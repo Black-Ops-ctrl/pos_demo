@@ -77,6 +77,7 @@ const SalesModule: React.FC = () => {
           <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
           <ColorfulTabsTrigger value="pos">POS System</ColorfulTabsTrigger>
           <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
+          
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="bg-cyan-50  text-cyan-700 transform hover:bg-cyan-600 hover:text-white hover:scale-105  active:scale-95 min-w-fit">
@@ -86,7 +87,6 @@ const SalesModule: React.FC = () => {
           <DropdownMenuContent className="bg-white border border-gray-300 rounded-lg p-2">
             <DropdownMenuItem hoverColor="bg-red-500"
              onClick={() => handleSelect("salesperson")}
-               
               >
               Sales Persons
             </DropdownMenuItem>

@@ -23,12 +23,14 @@ interface SecurityAlert {
   severity: string;
   failed_attempts:number;
   status: string ;
+   alert_status: string;
  
 }
 
 
 const SecurityAlerts: React.FC = () => {
   const [alerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
+
   const loadDetail = async () => {
          try {
            const res = await getAuditDetail();
@@ -86,7 +88,7 @@ const SecurityAlerts: React.FC = () => {
   };
 
 
-  const activeAlertsCount = alerts.filter(alert => alert.status === 'Active').length;
+  const activeAlerts = alerts.filter(log => log.alert_status === 'Active');
   const criticalAlertsCount = alerts.filter(alert => alert.severity === 'Critical').length;
 
   return (
@@ -95,11 +97,13 @@ const SecurityAlerts: React.FC = () => {
         <h2 className="text-2xl font-bold">Security Alerts</h2>
         <div className="flex gap-2">
           <Badge variant="destructive" className="px-3 py-1">
-            {activeAlertsCount} Active
+            {activeAlerts.length} Active
           </Badge>
+          {/*
           <Badge variant="outline" className="px-3 py-1">
             {criticalAlertsCount} Critical
           </Badge>
+          */}
         </div>
       </div>
 

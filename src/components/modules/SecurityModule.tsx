@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -8,17 +8,117 @@ import RoleManagement from '../security/RoleManagement';
 import AuditLogs from '../security/AuditLogs';
 import AuthenticationSettings from '../security/AuthenticationSettings';
 import SecurityAlerts from '../security/SecurityAlerts';
+import { getUsers } from '@/api/usersApi';
+import { getRoles } from '@/api/rolesApi';
+import { getAuditDetail } from '@/api/getAuditDetail';
+
+
+interface User {
+  user_id: number;
+  user_name: string;
+  email: string;
+  full_name: string;
+  password:string;
+  dep_id: number,
+  dep_name: string,
+  branch_id:number,
+  branch_name:string,
+  role_id:number,
+  role_name :string,
+  status:string,
+  created_by:number,
+  creation_date:Date,
+  updated_by:number,
+  updated_date: Date,
+  mfaEnabled :boolean
+}
+interface Role {
+  role_id: number | null;
+  role_name: string;
+  description: string;
+  created_by: number;
+  updated_by: number | null;
+
+  // Permissions (int 0/1)
+  sales_read: number;
+  sales_write: number;
+  sales_delete: number;
+  sales_export: number;
+  sales_approve: number;
+
+  accounting_read: number;
+  accounting_write: number;
+  accounting_delete: number;
+  accounting_export: number;
+  accounting_approve: number;
+
+  hr_read: number;
+  hr_write: number;
+  hr_delete: number;
+  hr_export: number;
+  hr_approve: number;
+
+  inventory_read: number;
+  inventory_write: number;
+  inventory_delete: number;
+  inventory_export: number;
+  inventory_approve: number;
+
+  crm_read: number;
+  crm_write: number;
+  crm_delete: number;
+  crm_export: number;
+  crm_approve: number;
+
+  purchasing_read: number;
+  purchasing_write: number;
+  purchasing_delete: number;
+  purchasing_export: number;
+  purchasing_approve: number;
+
+  reports_read: number;
+  reports_write: number;
+  reports_delete: number;
+  reports_export: number;
+  reports_approve: number;
+
+  security_read: number;
+  security_write: number;
+  security_delete: number;
+  security_export: number;
+  security_approve: number;
+}
+interface SecurityAlert {
+  log_id: number;
+  log_time: Date;
+  user_id: number;
+  username: string;
+  action: string;
+  module: string;
+  object: string;
+  ip_address: string;
+  details: string;
+  severity: string;
+  failed_attempts:number;
+  status: string ;
+   alert_status: string;
+ 
+}
 
 const SecurityModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+   const [alerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
+  
 
   const securityStats = {
-    totalUsers: 156,
-    activeUsers: 142,
-    lockedUsers: 3,
-    totalRoles: 8,
-    activeAlerts: 5,
-    criticalAlerts: 2,
+   // totalUsers: 156,
+   // activeUsers: 142,
+   // lockedUsers: 3,
+    //totalRoles: 8,
+   // activeAlerts: 5,
+   // criticalAlerts: 2,
     auditLogs: 1247,
     mfaEnabled: 89
   };
@@ -30,6 +130,46 @@ const SecurityModule: React.FC = () => {
     { id: '4', action: 'Password Change', user: 'mike.wilson', timestamp: '2024-01-15 10:15:00', status: 'Success' },
     { id: '5', action: 'Account Locked', user: 'system', timestamp: '2024-01-15 10:10:00', status: 'Warning' }
   ];
+
+   //  Fetch users list
+   const loadusers = async () => {
+       try {
+         const res = await getUsers();
+         setUsers(res.data || res);
+       } catch (error) {
+         console.error("Error loading users", error);
+       }
+     };
+     useEffect(() => {
+       loadusers();
+     }, []);
+      const loadRoles = async () => {
+            try {
+              const res = await getRoles();
+              setRoles(res.data || res);
+            } catch (error) {
+              console.error("Error loading users", error);
+            }
+          };
+          useEffect(() => {
+            loadRoles();
+          }, []);
+
+           const loadDetail = async () => {
+                   try {
+                     const res = await getAuditDetail();
+                     setSecurityAlerts(res);
+                     console.log(alerts);
+                   } catch (error) {
+                     console.error("Error loading users", error);
+                   }
+                 };
+                 useEffect(() => {
+                   loadDetail();
+                 }, []);
+       const activeAlerts = alerts.filter(log => log.alert_status === 'Active');
+     const activeUsers = users.filter(user => user.status === "ACTIVE");
+      const lockedUsers = users.filter(user => user.status === "LOCKED");
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,9 +208,9 @@ const SecurityModule: React.FC = () => {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{securityStats.totalUsers}</div>
+                <div className="text-2xl font-bold">{users.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  {securityStats.activeUsers} active, {securityStats.lockedUsers} locked
+                  {activeUsers.length} active, {lockedUsers.length} locked
                 </p>
               </CardContent>
             </Card>
@@ -81,7 +221,7 @@ const SecurityModule: React.FC = () => {
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{securityStats.totalRoles}</div>
+                <div className="text-2xl font-bold">{roles.length}</div>
                 <p className="text-xs text-muted-foreground">
                   Including system and custom roles
                 </p>
@@ -94,13 +234,11 @@ const SecurityModule: React.FC = () => {
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{securityStats.activeAlerts}</div>
-                <p className="text-xs text-muted-foreground">
-                  {securityStats.criticalAlerts} critical alerts
-                </p>
+                <div className="text-2xl font-bold text-red-600">{activeAlerts.length}</div>
+                
               </CardContent>
             </Card>
-
+{/* 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">MFA Enabled</CardTitle>
@@ -113,6 +251,7 @@ const SecurityModule: React.FC = () => {
                 </p>
               </CardContent>
             </Card>
+            */}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

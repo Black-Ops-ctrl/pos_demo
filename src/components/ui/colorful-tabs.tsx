@@ -85,6 +85,11 @@ const getTabColors = (value: string) => {
     accounting: { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', light: 'bg-cyan-50', text: 'text-cyan-700', gradient: 'bg-gradient-to-r from-cyan-500 to-cyan-600' },
     crm: { bg: 'bg-pink-500', hover: 'hover:bg-pink-600', light: 'bg-pink-50', text: 'text-pink-700', gradient: 'bg-gradient-to-r from-pink-500 to-pink-600' },
     security: { bg: 'bg-gray-500', hover: 'hover:bg-gray-600', light: 'bg-gray-50', text: 'text-gray-700', gradient: 'bg-gradient-to-r from-gray-500 to-gray-600' },
+    balance: { bg: 'bg-purple-500', hover: 'hover:bg-purple-600', light: 'bg-purple-50', text: 'text-purple-700', gradient: 'bg-gradient-to-r from-purple-500 to-purple-600' },
+    ledger: { bg: 'bg-green-500', hover: 'hover:bg-green-600', light: 'bg-green-50', text: 'text-green-700', gradient: 'bg-gradient-to-r from-green-500 to-green-600' },
+    journal: { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', light: 'bg-cyan-50', text: 'text-cyan-700', gradient: 'bg-gradient-to-r from-cyan-500 to-cyan-600' },
+    coa: { bg: 'bg-red-500', hover: 'hover:bg-red-600', light: 'bg-red-50', text: 'text-red-700', gradient: 'bg-gradient-to-r from-red-500 to-red-600' },
+    more: { bg: 'bg-cyan-500', hover: 'hover:bg-cyan-600', light: 'bg-cyan-50', text: 'text-cyan-700', gradient: 'bg-gradient-to-r from-cyan-500 to-cyan-600' },
   };
   
   return colorMap[value] || colorMap.dashboard;

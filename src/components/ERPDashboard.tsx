@@ -103,8 +103,8 @@ const ERPDashboard: React.FC = () => {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
-      <div className="container mx-auto p-6">
-        <div className="mb-8 flex items-center justify-between">
+      <div className="container mx-auto p-6 ">
+        <div className="mb-8 flex items-center justify-between no-print">
           <div>
             <h1 className={`text-4xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>MetaBooks</h1>
             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Smarter Operations, Faster Growth</p>
@@ -125,7 +125,7 @@ const ERPDashboard: React.FC = () => {
         </div>
 
         <ColorfulTabs value={activeModule} onValueChange={setActiveModule}>
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 no-print">
             <ColorfulTabsList className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 p-2">
               {modules.map((module) => (
                 <ColorfulTabsTrigger 

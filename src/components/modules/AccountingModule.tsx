@@ -13,6 +13,8 @@ import Branch from '@/components/others/Branches';
 import Company from '@/components/others/Company';
 import Department from '../others/Department';
 import Others from '../others/Others';
+import GeneralLedger from '@/components/accounting/GeneralLedger';
+import TrialBalance from '@/components/accounting/TrialBalance'
 
 const AccountingModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -29,7 +31,7 @@ const AccountingModule: React.FC = () => {
   const accountsPayable = 12300;
 
   const DashboardContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 no-print">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
           <CardHeader className="pb-2">
@@ -149,22 +151,27 @@ const AccountingModule: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100  ">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 ">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accounting & Finance</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2 no-print">Accounting & Finance</h1>
           <p className="text-gray-600">Manage your complete financial lifecycle with comprehensive accounting tools</p>
         </div>
 
         <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
         
-          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 mb-6">
+          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 mb-6">
             <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger>
+            <ColorfulTabsTrigger value='ledger' icon={CreditCard}>General Ledger</ColorfulTabsTrigger>
+            {/* 
             <ColorfulTabsTrigger value="ar" icon={CreditCard}>Accounts Receivable</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="ap" icon={DollarSign}>Accounts Payable</ColorfulTabsTrigger>
+            
             <ColorfulTabsTrigger value="bank" icon={Building}>Bank Reconciliation</ColorfulTabsTrigger>
+            */}
+            <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="reports" icon={TrendingUp}>Financial Reports</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger>
           </ColorfulTabsList>
@@ -180,7 +187,11 @@ const AccountingModule: React.FC = () => {
           <ColorfulTabsContent value="journal">
             <JournalEntries />
           </ColorfulTabsContent>
-
+          
+          <ColorfulTabsContent value="ledger">
+            <GeneralLedger />
+          </ColorfulTabsContent>
+{/* 
           <ColorfulTabsContent value="ar">
             <AccountsReceivable />
           </ColorfulTabsContent>
@@ -188,9 +199,9 @@ const AccountingModule: React.FC = () => {
           <ColorfulTabsContent value="ap">
             <AccountsPayable />
           </ColorfulTabsContent>
-
-          <ColorfulTabsContent value="bank">
-            <BankReconciliation />
+*/}
+          <ColorfulTabsContent value="balance">
+            <TrialBalance />
           </ColorfulTabsContent>
 
           <ColorfulTabsContent value="reports">

@@ -9,6 +9,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { getJournalEntries,createJournalEntry ,updateJournalEntry} from '@/api/journalEntryApi';
 import { getAccounts } from "@/api/getAccountsApi";
+import { getUserId } from "@/utils/auth";
 
 import {
   Popover,
@@ -243,6 +244,7 @@ const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onClose, onSave, en
   
    const [accounts, setAccounts] = useState([]);
    const [vouchers, setVouchers] = useState([]);
+   const user_id = getUserId();
   useEffect(() => {
       const fetchData = async () => {
         try {
@@ -252,6 +254,7 @@ const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onClose, onSave, en
           const vouchersData = await getVouchers(); 
           setVouchers(vouchersData);
           console.log(accountsData);
+          
           if (entry) {
           
           }
@@ -298,7 +301,7 @@ const JournalEntryForm: React.FC<JournalEntryFormProps> = ({ onClose, onSave, en
       voucher_id: formData.voucher_id ? parseInt(formData.voucher_id, 10) : null,
       entry_date: formData.date,
       description: formData.description,
-      created_by: 1, // You'll need to replace this with the actual user ID
+      created_by: user_id, 
       lines: formData.lines.map(line => ({
         account_id: parseInt(line.account_id),
         debit: parseFloat(line.debit),

@@ -23,7 +23,7 @@ const handleApiError = (error: any) => {
 export const getCompanies = async () => {
   try {
     const res = await axios.post(API_URL, { operation: 1 });
-    return res.data.data;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -32,19 +32,22 @@ export const getCompanies = async () => {
 // Add new company
 export const addCompany = async (
   company_name: string,
-  registration_number?: string,
-  address?: string,
-  phone?: string,
-  email?: string
+   registration_number: string,
+   address: string,
+   phone: string,
+   email: string,
+  image :string
+  
 ) => {
   try {
-    const res = await axios.post(API_URL, {
+    const res = await axios.post(API_URL,  {
       operation: 2,
       company_name,
       registration_number,
-      address,
       phone,
       email,
+      address,
+      image
     });
     return res.data;
   } catch (error) {
@@ -52,24 +55,25 @@ export const addCompany = async (
   }
 };
 
-// Update existing company
-export const updateCompany = async (
-  company_id: number,
+export const updateCompany = async ( 
+  company_id:number,
   company_name: string,
-  registration_number?: string,
-  address?: string,
-  phone?: string,
-  email?: string
+   registration_number: string,
+   address: string,
+   phone: string,
+   email: string,
+  image :string
 ) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 3,
-      company_id,
+      company_id ,
       company_name,
       registration_number,
-      address,
       phone,
       email,
+      address,
+      image
     });
     return res.data;
   } catch (error) {

@@ -23,6 +23,7 @@ interface AuditLog {
   details: string;
   severity: string;
   status: string ;
+  
 }
 
 const AuditLogs: React.FC = () => {
