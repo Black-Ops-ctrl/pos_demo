@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+// 1. Import useNavigate (Assuming react-router-dom is used)
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ColorfulTabs, ColorfulTabsList, ColorfulTabsTrigger, ColorfulTabsContent } from '@/components/ui/colorful-tabs';
-import { BarChart3, Package, ShoppingCart, Users, DollarSign, TrendingUp, Truck, UserCheck, Shield, Bell, Moon, Sun, FileText, CreditCard, BarChart } from 'lucide-react';
+import { BarChart3, Package, ShoppingCart, Users, DollarSign, TrendingUp, Truck, UserCheck, Shield, Bell, Moon, Sun, FileText, CreditCard, BarChart, LogOut, User } from 'lucide-react'; // Added User icon
 import { useAppContext } from '@/contexts/AppContext';
 import StatsCard from './dashboard/StatsCard';
 import DonutChart from './dashboard/DonutChart';
@@ -23,10 +25,34 @@ import SalesOrderForm from './forms/SalesOrderForm';
 import InvoiceForm from './forms/InvoiceForm';
 
 const ERPDashboard: React.FC = () => {
+  // 2. Initialize useNavigate
+  const navigate = useNavigate();
+
   const [activeModule, setActiveModule] = useState('dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [activeQuickAction, setActiveQuickAction] = useState<string | null>(null);
-  const { customers, invoices, employees, items } = useAppContext();
+
+  // Destructure 'user' from useAppContext
+  const { customers, invoices, employees, items, user } = useAppContext();
+
+  // --- 🛠️ FIX APPLIED: Consolidated User Name Logic 🛠️ ---
+  // Get username from context (priority), or sessionStorage as a fallback.
+const userNameFromStorage =
+  localStorage.getItem("userNameForDashboard") ||
+  sessionStorage.getItem("userNameForDashboard") ||
+  "John Doe";
+
+const userName = user?.name || user?.username || userNameFromStorage;
+
+  // --------------------------------------------------------
+
+  // Updated function for handling logout
+  const handleLogout = () => {
+    localStorage.removeItem('userToken');
+    sessionStorage.clear(); // Session storage bhi clear karein
+    console.log('User logged out. Redirecting to login.');
+    navigate('/login');
+  };
 
   const modules = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
@@ -60,7 +86,7 @@ const ERPDashboard: React.FC = () => {
   };
 
   const totalSales = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalInventoryValue = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const totalInventoryValue = items.reduce((sum, item) => sum + (item.quantity * item.price), 0); // Note: totalInventoryValue is not currently used in stats
   const lowStockItems = items.filter(item => item.quantity <= item.minStock).length;
 
   const stats = [
@@ -110,13 +136,33 @@ const ERPDashboard: React.FC = () => {
             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Smarter Operations, Faster Growth</p>
           </div>
           <div className="flex items-center gap-4">
+            {/* Display Username/User Profile Button */}
+            <Card className="p-2 border-none shadow-sm bg-white/70 backdrop-blur-md">
+              <div className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold text-sm text-gray-800 hidden sm:inline">{userName}</span>
+              </div>
+            </Card>
+
+            {/* --- LOGOUT BUTTON --- */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            {/* -------------------------------- */}
+
             <Button variant="outline" size="sm" className="relative">
               <Bell className="h-4 w-4" />
               <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">3</Badge>
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setDarkMode(!darkMode)}
             >
               {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -128,9 +174,9 @@ const ERPDashboard: React.FC = () => {
           <div className="flex justify-center mb-6 no-print">
             <ColorfulTabsList className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 p-2">
               {modules.map((module) => (
-                <ColorfulTabsTrigger 
-                  key={module.id} 
-                  value={module.id} 
+                <ColorfulTabsTrigger
+                  key={module.id}
+                  value={module.id}
                   icon={module.icon}
                   className="min-w-[100px] sm:min-w-[120px]"
                 >
@@ -174,21 +220,21 @@ const ERPDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DonutChart title="Sales by Category" data={salesData} />
-                <CustomLineChart 
-                  title="Monthly Revenue Trends" 
-                  data={revenueData} 
-                  color="#2F80ED" 
+                <CustomLineChart
+                  title="Monthly Revenue Trends"
+                  data={revenueData}
+                  color="#2F80ED"
                   gradientId="revenueGradient"
                 />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CustomBarChart 
-                  title="Expenses by Department" 
-                  data={expenseData} 
+                <CustomBarChart
+                  title="Expenses by Department"
+                  data={expenseData}
                   color="#EB5757"
                 />
-                
+
                 <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
                   <CardHeader>
                     <CardTitle>Recent Activities</CardTitle>
@@ -251,7 +297,9 @@ const ERPDashboard: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Create Invoice</DialogTitle>
             </DialogHeader>
-            <InvoiceForm onClose={closeQuickActionDialog} />
+            <InvoiceForm onClose={closeQuickActionDialog} onSave={function (invoice: any): void {
+              throw new Error('Function not implemented.');
+            } } />
           </DialogContent>
         </Dialog>
       </div>

@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/grn";
-const PO_API_URL = "http://localhost:5000/api/getPOdetail"; // adjust backend URL
-const grn_detail_API_URL = "http://localhost:5000/api/getGRNdetail"; // adjust backend URL
+const API_URL = "http://84.16.235.111:2091/api/grn";
+const PO_API_URL = "http://84.16.235.111:2091/api/getPOdetail"; // adjust backend URL
+const grn_detail_API_URL = "http://84.16.235.111:2091/api/getGRNdetail"; // adjust backend URL
 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/getGeneralLedgerRoute";
+const API_URL = "http://84.16.235.111:2091/api/getGeneralLedgerRoute";
 
 // Get all companies
 export const getGeneralLedger = async (

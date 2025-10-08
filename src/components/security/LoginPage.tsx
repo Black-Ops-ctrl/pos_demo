@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,9 +15,10 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    // Checking sessionStorage for the token for consistency
+    const token = sessionStorage.getItem("token");
     if (token) navigate("/");
-  }, []);
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,9 +28,24 @@ const Login: React.FC = () => {
     try {
       const res = await loginUser(username, password);
       if (res.success) {
+        
+        // --- START: 2-Minute Inactivity Timeout Calculation ---
+        // 2 minutes in milliseconds = 120,000 ms
+        const INACTIVITY_TIMEOUT_MS = 3600000;
+        const expirationTime = Date.now() + INACTIVITY_TIMEOUT_MS;
+        // --- END: 2-Minute Inactivity Timeout Calculation ---
+        
+        // Store auth state in sessionStorage
         sessionStorage.setItem("token", res.token);
         sessionStorage.setItem("user", JSON.stringify(res.user));
         sessionStorage.setItem("isAuthenticated", "true");
+        // NEW: Store the timestamp when the session should initially expire (2 minutes from now)
+        sessionStorage.setItem("sessionExpiration", expirationTime.toString());
+
+        // Store the user's name in localStorage for the dashboard
+        const userNameForDashboard = res.user.name || res.user.username || username;
+        localStorage.setItem("userNameForDashboard", userNameForDashboard);
+        
         navigate("/");
       } else {
         setError(res.message || "Invalid credentials");
@@ -46,29 +61,29 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-white px-6">
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
-      <div className="text-left">
-          
-          <div className="flex items-center space-x-2">
-           <img src={metabooksLogo} alt="MetaBooks Logo" className="h-11 w-11" />
-            <h1 className="text-4xl text-blue-600 font-bold">MetaBooks</h1>
+        <div className="text-left">
+          
+          <div className="flex items-center space-x-2">
+            <img src={metabooksLogo} alt="MetaBooks Logo" className="h-11 w-11" />
+             <h1 className="text-4xl text-blue-600 font-bold">MetaBooks</h1>
             
-          </div>
+          </div>
           <span className=" text-gray-500 ml-12">ERP</span>
-        </div>
+        </div>
         {/* Card */}
         <form
           onSubmit={handleLogin}
-          className="bg-white  p-6 space-y-5 "
+          className="bg-white p-6 space-y-5 "
         >
           {error && <div className="text-red-600 text-sm text-center">{error}</div>}
             <span
             className="text-3xl font-semibold mb-4"
             >
-                LogIn
+              LogIn
             </span>
           {/* Username */}
           <div
-        
+          
           >
             <Input
              className="bg-white rounded-none h-10 "

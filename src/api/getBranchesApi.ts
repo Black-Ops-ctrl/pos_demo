@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/getBranches";
+const API_URL = "http://84.16.235.111:2091/api/getBranches";
 
 // Get all branches
 export const getBranches = async () => {

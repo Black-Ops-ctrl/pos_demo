@@ -1,7 +1,7 @@
 // src/api/branchApi.ts
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/vouchers";
+const API_URL = "http://84.16.235.111:2091/api/vouchers";
 
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {

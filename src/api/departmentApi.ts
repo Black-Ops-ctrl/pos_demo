@@ -1,7 +1,7 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/departments";
+const API_URL = "http://84.16.235.111:2091/api/departments";
 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
