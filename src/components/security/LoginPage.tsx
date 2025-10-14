@@ -41,12 +41,12 @@ const Login: React.FC = () => {
         sessionStorage.setItem("isAuthenticated", "true");
         // NEW: Store the timestamp when the session should initially expire (2 minutes from now)
         sessionStorage.setItem("sessionExpiration", expirationTime.toString());
-
+          const user_id = res.user.user_id;
         // Store the user's name in localStorage for the dashboard
         const userNameForDashboard = res.user.name || res.user.username || username;
         localStorage.setItem("userNameForDashboard", userNameForDashboard);
         
-        navigate("/");
+        navigate("/modules");
       } else {
         setError(res.message || "Invalid credentials");
       }
@@ -138,3 +138,16 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
+
+
+export const getCurrentUserId = (): number | null => {
+  const userStr = sessionStorage.getItem("user");
+  if (!userStr) return null;
+  try {
+    const user = JSON.parse(userStr);
+    return user.user_id;
+  } catch {
+    return null;
+  }
+};

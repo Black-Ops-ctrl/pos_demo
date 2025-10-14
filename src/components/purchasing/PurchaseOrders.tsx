@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Eye, Check, X, Edit, Trash2, Search, Package, ChevronsUpDown } from 'lucide-react';
+import { Plus, Eye, Check, X, Edit, Trash2, Search, Package, ChevronsUpDown, CheckSquare } from 'lucide-react';
 import { useAppContext, Vendor } from '@/contexts/AppContext';
-import { getPurchaseOrders,createPurchaseOrder } from '@/api/poApi';
-import { getVendors } from '@/api/getvendorApi';
+import { getPurchaseOrders,createPurchaseOrder,UpdatePOStatus,updatePurchaseOrder } from '@/api/poApi';
+import { getVendors } from '@/api/vendorsApi';
 import { getItems } from '@/api/itemsApi';
+import { getCurrentUserId } from "@/components/security/LoginPage";
 import {
   Popover,
   PopoverContent,
@@ -32,8 +33,21 @@ interface PO {
   vendor_id?: number;
   vendor_name?: string;
   total_price?: number;
-  status?: string;
+  status: string;
   order_date?: string;
+  updated_by :number;
+  created_by:number;
+  items?: Array<{ item_id: number; item_name?: string; quantity: number; unit_price: number }>;
+}
+interface viewingPO {
+  po_id?: number;
+  vendor_id?: number;
+  vendor_name?: string;
+  total_price?: number;
+  status: string;
+  order_date?: string;
+  updated_by :number;
+  created_by:number;
   items?: Array<{ item_id: number; item_name?: string; quantity: number; unit_price: number }>;
 }
 
@@ -42,27 +56,95 @@ const PurchaseOrders: React.FC = () => {
    const [showForm, setShowForm] = useState(false);
    const [purchaseOrders, setPurchaseOrders] = useState<PO[]>([]);
    const [editingPO, setEditingPO] = useState<PO | null>(null);
- useEffect(() => {
-    // Fetch PO list
-    const fetchOrders = async () => {
-      const data = await getPurchaseOrders();
-      console.log('Fetched PO data:', data);
-      setPurchaseOrders(data);
-    };
-    fetchOrders();
-  }, []);
-const handleSavePO = async (payload: { vendor_id: number; items: POItem[] }) => {
-  try {
-    // created_by: replace 1 with logged-in user id
-    await createPurchaseOrder(payload.vendor_id, 1, payload.items);
+     const [selectedPOs, setSelectedPOs] = useState<number[]>([]);
+    
+      const [viewingPO, setViewingPO] = useState<viewingPO | null>(null);
+        const [viewDialogOpen, setViewDialogOpen] = useState(false);
+    
+     useEffect(() => {
+      loadPurchaseOrders();
+    }, []);
 
-    setShowForm(false);
-      toast({ title: "Created", description: "Purchase Order created successfully!", duration: 3000 });
-    const data = await getPurchaseOrders();
-    setPurchaseOrders(data);
-  } catch (err) {
-    console.error("Save PO failed", err);
+  const loadPurchaseOrders = async () => {
+    try {
+      const data = await getPurchaseOrders();
+      console.log("Loaded SOs:", data);
+      setPurchaseOrders(data);
+    } catch (error) {
+      console.error("Error loading sales orders", error);
+    }
+  };
+const handleViewPO = (po_id) => {
+  const selectedPO = filteredPO.find(po => po.po_id === po_id);
+  if (selectedPO) {
+    setViewingPO(selectedPO);
+    console.log("Filter Viewing PO:", selectedPO);
+    setViewDialogOpen(true);
   }
+};
+  const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+const userId = user.user_id || user.id;
+
+  // 🆕 Handle checkbox selection
+  const toggleSelectPO = (po_id: number) => {
+    setSelectedPOs((prev) =>
+      prev.includes(po_id) ? prev.filter((id) => id !== po_id) : [...prev, po_id]
+    );
+  };
+
+  // 🆕 Handle  status update
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (selectedPOs.length === 0) {
+      toast({ title: 'No PO Selected', description: 'Please select at least one Purchase Order.' });
+      return;
+    }
+
+    try {
+      await UpdatePOStatus(selectedPOs, newStatus);
+      toast({ title: 'Status Updated', description: `Status changed to ${newStatus} successfully.` });
+      setSelectedPOs([]);
+     // fetchOrders();
+    } catch (err) {
+      console.error(' Status Update failed', err);
+      toast({ title: 'Error', description: 'Failed to update PO status.' });
+    }
+  };
+
+const handleSavePO = async (payload: { 
+    vendor_id: number;
+    
+     
+     items: POItem[] 
+
+    }) => {
+  try {
+     if (editingPO){
+     await updatePurchaseOrder(
+        editingPO.po_id!, // required PO ID
+        payload.vendor_id,
+        editingPO.status , // keep existing or default
+       
+        payload.items
+      );
+            toast({ title: "Updated", description: "Sales Order updated successfully!" });
+     }
+     else {
+           // CREATE
+           await createPurchaseOrder(
+            
+            payload.vendor_id,
+           
+             payload.items
+           );
+           toast({ title: "Created", description: "Sales Order created successfully!" });
+         }
+          setShowForm(false);
+    setEditingPO(null);   // reset after save
+    loadPurchaseOrders();
+    } catch (err) {
+    console.error("Save/Update SO failed", err);
+  }
+
 };
 
      const filteredPO = purchaseOrders.filter((po) =>
@@ -117,12 +199,20 @@ const handleSavePO = async (payload: { vendor_id: number; items: POItem[] }) => 
               <Package className="h-5 w-5" />
               Purchase Orders
             </CardTitle>
+             <Button
+                onClick={() => handleStatusUpdate('APPROVED')}
+                disabled={selectedPOs.length === 0}
+                variant="outline"
+              >
+                Mark as Received
+              </Button>
            <Button
-              onClick={() => setShowForm(true)}
+               onClick={() => setShowForm(true)}
               className="bg-gradient-to-r from-purple-500 to-purple-600">
                   <Plus className="h-4 w-4 mr-2" />
                   Create PO
                 </Button>
+                
           </div>
          <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -138,18 +228,27 @@ const handleSavePO = async (payload: { vendor_id: number; items: POItem[] }) => 
           <Table>
             <TableHeader>
               <TableRow>
-                
+                 <TableHead>
+                  <CheckSquare className="h-4 w-4" />
+                </TableHead>
                 <TableHead>PO ID</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Order Date</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
-               
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPO.map((po) => (
                 <TableRow key={po.po_id}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedPOs.includes(po.po_id!)}
+                      onChange={() => toggleSelectPO(po.po_id!)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{po.po_id}</TableCell>
                   <TableCell>{po.vendor_name}</TableCell>
                   <TableCell>{new Date(po.order_date).toLocaleString('en-PK',
@@ -165,7 +264,47 @@ const handleSavePO = async (payload: { vendor_id: number; items: POItem[] }) => 
                           })}</TableCell>
                   <TableCell>{po.total_price}</TableCell>
                   <TableCell>{po.status}</TableCell>
-                  
+                   <TableCell>
+              <div className="flex gap-1">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleViewPO(po.po_id)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                {po.status === "CREATED" && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setEditingPO(po);
+                      setShowForm(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+                {/* {po.status === 'DELIVERED' && (
+                  <Button 
+                    size="sm" 
+                    className="bg-blue-500 hover:bg-blue-600"
+                  >
+                    <Truck className="h-4 w-4" />
+                  </Button>
+                )} */}
+                {/* {po.status === 'CREATED' && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => handleDeleteSO(so.so_id)}
+                  > 
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )} */}
+              </div>
+            </TableCell>
                   
                 </TableRow>
               ))}
@@ -173,9 +312,58 @@ const handleSavePO = async (payload: { vendor_id: number; items: POItem[] }) => 
           </Table>
         </CardContent>
       </Card>
-   {showForm && (
-  <PurchaseOrderForm po={editingPO} onClose={() => setShowForm(false)} onSave={handleSavePO} />
-)}
+  {showForm && (
+    <PurchaseOrderForm 
+      po={editingPO} 
+      onClose={() => { setShowForm(false); setEditingPO(null); }} 
+      onSave={handleSavePO} 
+    />
+  )}
+  <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Sales Order Details</DialogTitle>
+      </DialogHeader>
+      {viewingPO && (
+        <>
+          <table className="w-full border border-gray-300 mb-4 text-sm">
+            <tbody>
+              <tr><td className="p-2 font-medium text-gray-600 border">PO Number</td><td className="p-2 border">{viewingPO.po_id}</td></tr>
+             
+              <tr><td className="p-2 font-medium text-gray-600 border">Vednor Name</td><td className="p-2 border">{viewingPO.vendor_name}</td></tr>
+              <tr><td className="p-2 font-medium text-gray-600 border">Order Date</td><td className="p-2 border">{viewingPO.order_date}</td></tr>
+              <tr><td className="p-2 font-medium text-gray-600 border">Status</td><td className="p-2 border">{viewingPO.status}</td></tr>
+              <tr><td className="p-2 font-medium text-gray-600 border">Total Amount</td><td className="p-2 border font-semibold text-blue-700">{Number(viewingPO.total_price).toLocaleString()}</td></tr>
+            </tbody>
+          </table>
+  
+          <h3 className="text-md font-semibold mb-2">Items</h3>
+          <table className="w-full border border-gray-300 text-sm">
+            <thead>
+              <tr className="bg-gray-100">
+                
+                <th className="p-2 border text-left">Item Name</th>
+                <th className="p-2 border text-left">Quantity</th>
+                <th className="p-2 border text-left">Unit Price</th>
+                <th className="p-2 border text-left">Discount</th>
+                <th className="p-2 border text-left">Tax</th>
+              </tr>
+            </thead>
+            <tbody>
+              {viewingPO.items?.map((item, index) => (
+                <tr key={index}>
+                  <td className="p-2 border">{item.item_name ?? '-'}</td>
+                  <td className="p-2 border">{item.quantity}</td>
+                  <td className="p-2 border">{item.unit_price}</td>
+                 
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </DialogContent>
+  </Dialog>
     </div>
   );
 };
@@ -192,7 +380,11 @@ interface POItem {
 interface PurchaseOrderFormProps {
   po: PO | null;
   onClose: () => void;
-  onSave: (payload: { vendor_id: number; items: POItem[] }) => void;
+  onSave: (payload: {
+     po_id:number;
+     vendor_id: number;
+     
+     items: POItem[] }) => void;
 }
 
 export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClose, onSave }) => {
@@ -205,6 +397,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const [vendor_id, setVendorId] = useState<number>(0);
   const [poItems, setPoItems] = useState<POItem[]>([{ item_id: 0, quantity: 1, unit_price: 0 }]);
 
+  const userId = getCurrentUserId();
   // normalize API responses and load lists
   useEffect(() => {
     (async () => {
@@ -216,26 +409,25 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
         setVendors(vendorList);
 
         // normalize item list
-        const rawItems = ((itemsRes as any)?.data ?? (itemsRes as any) ?? []) as any[];
-        setItems(
-          rawItems.map((r) => ({
-            item_id: Number(r.item_id),
-            item_name: String(r.item_name ?? r.name ?? ""),
-            // keep other fields if needed
-          }))
-        );
+      const rawItems = ((itemsRes as any)?.data ?? (itemsRes as any) ?? []) as any[];
+        setItems(rawItems.map((r) => ({
+          item_id: Number(r.item_id),
+          item_name: String(r.item_name ?? r.name ?? ""),
+        })));
 
         // prefill when editing
         if (po) {
-          setVendorId(Number(po.vendor_id ?? 0));
+         setVendorId(Number(po.vendor_id ?? 0));
           setPoItems(
             (po.items ?? []).length
-              ? (po.items ?? []).map((it: any) => ({
+              ? po.items.map((it: any) => ({
                   item_id: Number(it.item_id),
                   quantity: Number(it.quantity),
                   unit_price: Number(it.unit_price ?? 0),
+                  discount: Number(it.discount ?? 0),
+                  tax: Number(it.tax ?? 0),
                 }))
-              : [{ item_id: 0, quantity: 1, unit_price: 0 }]
+              : [{ item_id: 0, quantity: 1, unit_price: 0, discount: 0, tax: 0 }]
           );
         } else {
           // new form: reset
@@ -280,7 +472,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
       alert("Add at least one item and ensure item and quantity are valid.");
       return;
     }
-    onSave({ vendor_id, items: poItems });
+    onSave({
+      vendor_id, items: poItems,
+      po_id: 0
+    });
   };
 
   return (
@@ -412,3 +607,4 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
 
 
 export default PurchaseOrders;
+

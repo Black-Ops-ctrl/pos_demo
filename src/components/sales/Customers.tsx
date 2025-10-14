@@ -423,11 +423,17 @@ const [status, setStatus] = useState("");
               placeholder="Credit Limit"
             />
             {/*payment_term*/}
-            <Input
-              value={payment_term}
-              onChange={(e) => setPaymentTerm(e.target.value)}
-              placeholder="Payment Term"
-            />
+<select
+  value={payment_term}
+  onChange={(e) => setPaymentTerm(e.target.value)}
+  className="border border-gray-300 rounded-md p-2 w-full"
+>
+  <option value="">Select Payment Term</option>
+  <option value="Advance">Advance</option>
+  <option value="Cash">Cash</option>
+  <option value="Credit">Credit</option>
+</select>
+
              {/* Region Popover */}
           <Popover open={regionOpen} onOpenChange={setRegionOpen}>
             <PopoverTrigger asChild>

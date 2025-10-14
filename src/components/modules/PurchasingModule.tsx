@@ -43,15 +43,15 @@ const PurchasingModule: React.FC = () => {
       </div>
 
       <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
-        <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 mb-6">
+        <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 mb-6">
           <ColorfulTabsTrigger value="overview" icon={BarChart3}>Overview</ColorfulTabsTrigger>
           <ColorfulTabsTrigger value="vendors" icon={Users}>Vendors</ColorfulTabsTrigger>
           {/*
           <ColorfulTabsTrigger value="rfq" icon={FileText}>RFQ</ColorfulTabsTrigger>
           */}
-          <ColorfulTabsTrigger value="purchase-requisition" icon={DollarSign}>Purchase Requisition</ColorfulTabsTrigger>
+          {/* <ColorfulTabsTrigger value="purchase-requisition" icon={DollarSign}>Purchase Requisition</ColorfulTabsTrigger> */}
           <ColorfulTabsTrigger value="purchase-orders" icon={Package}>Purchase Orders</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="goods-receipt" icon={Receipt}>Goods Receipt</ColorfulTabsTrigger>
+          <ColorfulTabsTrigger value="goods-receipt" icon={Receipt}>Purchase Invoices</ColorfulTabsTrigger>
           <ColorfulTabsTrigger value="reports" icon={BarChart3}>Reports</ColorfulTabsTrigger>
           
         </ColorfulTabsList>
@@ -125,10 +125,10 @@ const PurchasingModule: React.FC = () => {
         <ColorfulTabsContent value="vendors">
           <VendorMaster />
         </ColorfulTabsContent>
-        <ColorfulTabsContent value="purchase-requisition">
+        {/* <ColorfulTabsContent value="purchase-requisition">
           <PurchaseRequisition />
           
-        </ColorfulTabsContent>
+        </ColorfulTabsContent> */}
         <ColorfulTabsContent value="rfq">
           <RFQManagement />
         </ColorfulTabsContent>

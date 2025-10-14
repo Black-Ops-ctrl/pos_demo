@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import GRNDetail from "./components/purchasing/GRNDetail";
 import Login from "./components/security/LoginPage";
 import PrivateRoute from "./components/security/PrivateRoute";
+import ModulesPage from "./components/modules/ModulesPage";
 
 
 const queryClient = new QueryClient();
@@ -23,15 +23,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/modules" element={<ModulesPage />} />
             <Route path="/"      element={<PrivateRoute><Index /></PrivateRoute>}/>
-            <Route
-  path="/grn/:grn_id"
-  element={
-    <PrivateRoute>
-      <GRNDetail />
-    </PrivateRoute>
-  }
-/>
            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

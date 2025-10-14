@@ -160,7 +160,7 @@ const AccountingModule: React.FC = () => {
 
         <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
         
-          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 mb-6">
+          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 mb-6">
             <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger>
@@ -173,7 +173,7 @@ const AccountingModule: React.FC = () => {
             */}
             <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="reports" icon={TrendingUp}>Financial Reports</ColorfulTabsTrigger>
-            <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger>
+            {/* <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger> */}
           </ColorfulTabsList>
 
           <ColorfulTabsContent value="dashboard">
@@ -208,9 +208,9 @@ const AccountingModule: React.FC = () => {
             <FinancialReports />
           </ColorfulTabsContent>
 
-          <ColorfulTabsContent value="others">
+          {/* <ColorfulTabsContent value="others">
             <Others />
-          </ColorfulTabsContent>
+          </ColorfulTabsContent> */}
         </ColorfulTabs>
       </div>
     </div>

@@ -112,14 +112,14 @@ const Warehouses: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Warehouses
+              Stores
             </CardTitle>
             <Button
               onClick={handleAddWarehouse}
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Warehouse
+              New Store
             </Button>
           </div>
           <div className="relative">
@@ -136,7 +136,7 @@ const Warehouses: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>WareHouse Code</TableHead>
+                <TableHead> Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Address</TableHead>
                 <TableHead>Actions</TableHead>
@@ -153,14 +153,14 @@ const Warehouses: React.FC = () => {
                       <Button size="sm" variant="outline" onClick={() => handleEditWarehouse(wh)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="outline"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteWarehouse(wh.warehouse_id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -200,14 +200,14 @@ const WarehouseForm: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg w-96">
-        <h2 className="text-lg font-semibold mb-4">{warehouse ? "Edit Warehouse" : "Add Warehouse"}</h2>
+        <h2 className="text-lg font-semibold mb-4">{warehouse ? "Edit Store" : "Add Store"}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-           placeholder="Warehouse Code"
+           placeholder=" Code"
             value={warehouse_code}
              onChange={(e) => setWarehouseCode(e.target.value)} />
           <Input 
-          placeholder="Warehouse Name"
+          placeholder="Store Name"
            value={warehouse_name} 
            onChange={(e) => setWarehouseName(e.target.value)} />
           <Input

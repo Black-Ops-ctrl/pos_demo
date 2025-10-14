@@ -69,19 +69,14 @@ const SalesModule: React.FC = () => {
       </div>
 
       <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
-        <ColorfulTabsList className="grid w-full grid-cols-7">
+        <ColorfulTabsList className="grid w-full grid-cols-5">
           <ColorfulTabsTrigger value="overview">Overview</ColorfulTabsTrigger>
           
           <ColorfulTabsTrigger value="orders">Sales Orders</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="delivery-challans">Delivery Challans</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="pos">POS System</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
-          
-          <DropdownMenu>
+                    {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="bg-cyan-50  text-cyan-700 transform hover:bg-cyan-600 hover:text-white hover:scale-105  active:scale-95 min-w-fit">
-              More
+              Maintainance
               </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-white border border-gray-300 rounded-lg p-2">
@@ -97,7 +92,13 @@ const SalesModule: React.FC = () => {
               Customers
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
+          <ColorfulTabsTrigger value="delivery-challans">Delivery Challans</ColorfulTabsTrigger>
+          <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
+          {/* <ColorfulTabsTrigger value="pos">POS System</ColorfulTabsTrigger> */}
+          <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
+          
+
         </ColorfulTabsList>
 
         <ColorfulTabsContent value="overview" className="space-y-6">
