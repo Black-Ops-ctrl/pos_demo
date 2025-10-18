@@ -33,10 +33,10 @@ const CustomBarChart: React.FC<BarChartProps> = ({ title, data, color }) => {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `$${value}k`}
+              tickFormatter={(value) => `${value}k`}
             />
             <Tooltip 
-              formatter={(value: number) => [`$${value}k`, 'Amount']}
+              formatter={(value: number) => [`${value}k`, 'Amount']}
               labelFormatter={(label) => `Department: ${label}`}
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',

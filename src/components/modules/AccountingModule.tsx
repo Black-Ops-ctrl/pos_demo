@@ -40,7 +40,7 @@ const AccountingModule: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-600" />
-              <span className="text-2xl font-bold text-green-800">${totalAssets.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-green-800"> Rs.{totalAssets.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>
@@ -52,7 +52,7 @@ const AccountingModule: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-red-600" />
-              <span className="text-2xl font-bold text-red-800">${totalLiabilities.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-red-800"> Rs.{totalLiabilities.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>
@@ -64,7 +64,7 @@ const AccountingModule: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <Building className="h-5 w-5 text-blue-600" />
-              <span className="text-2xl font-bold text-blue-800">${totalEquity.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-blue-800"> Rs.{totalEquity.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>
@@ -76,7 +76,7 @@ const AccountingModule: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-purple-600" />
-              <span className="text-2xl font-bold text-purple-800">${netIncome.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-purple-800"> Rs.{netIncome.toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>
@@ -129,19 +129,19 @@ const AccountingModule: React.FC = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                 <span className="font-medium">Cash Balance</span>
-                <span className="text-green-600 font-bold">${cashBalance.toLocaleString()}</span>
+                <span className="text-green-600 font-bold"> Rs.{cashBalance.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                 <span className="font-medium">Accounts Receivable</span>
-                <span className="text-blue-600 font-bold">${accountsReceivable.toLocaleString()}</span>
+                <span className="text-blue-600 font-bold"> Rs.{accountsReceivable.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                 <span className="font-medium">Accounts Payable</span>
-                <span className="text-red-600 font-bold">${accountsPayable.toLocaleString()}</span>
+                <span className="text-red-600 font-bold"> Rs.{accountsPayable.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border-t">
                 <span className="font-medium">Working Capital</span>
-                <span className="text-purple-600 font-bold">${(accountsReceivable - accountsPayable + cashBalance).toLocaleString()}</span>
+                <span className="text-purple-600 font-bold"> Rs.{(accountsReceivable - accountsPayable + cashBalance).toLocaleString()}</span>
               </div>
             </div>
           </CardContent>
@@ -160,7 +160,7 @@ const AccountingModule: React.FC = () => {
 
         <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
         
-          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 mb-6">
+          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 mb-6">
             <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger>
@@ -173,7 +173,7 @@ const AccountingModule: React.FC = () => {
             */}
             <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="reports" icon={TrendingUp}>Financial Reports</ColorfulTabsTrigger>
-            <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger>
+            {/* <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger> */}
           </ColorfulTabsList>
 
           <ColorfulTabsContent value="dashboard">
@@ -208,9 +208,9 @@ const AccountingModule: React.FC = () => {
             <FinancialReports />
           </ColorfulTabsContent>
 
-          <ColorfulTabsContent value="others">
+          {/* <ColorfulTabsContent value="others">
             <Others />
-          </ColorfulTabsContent>
+          </ColorfulTabsContent> */}
         </ColorfulTabs>
       </div>
     </div>

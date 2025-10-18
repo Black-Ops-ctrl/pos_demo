@@ -2,6 +2,12 @@ import axios from "axios";
 
 const API_URL = "http://84.16.235.111:2091/api/sales-invoices";
 
+
+
+const getModuleId = (): string => {
+  // Use 'selectedBranchId' as the module_id for API operations
+  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+};
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -18,43 +24,51 @@ const handleApiError = (error: any) => {
   console.error("Unexpected error:", error);
   throw new Error("Unexpected error occurred. Check console for details.");
 };
+
 // 🔹 Get All Sale Invoices
 export const getSaleInvoices = async () => {
+      const module_id = getModuleId(); 
+
   try {
-    const res = await axios.post(API_URL, { operation: 1 });
+    const res = await axios.post(API_URL, { operation: 1,
+      module_id,  
+     });
     return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
+
 // 🔹 Insert Sale Invoice (with JSON items)
 export const createSalesInvoice = async (
-    dc_id:number,
-  customer_id: number,
-  status: string,
+
+customer_id: number,
+ invoice_date: Date, 
+ status: string,
   remarks: string,
-  created_by: number,
-  discount: number,
-  tax: number,
-  total_amount: number,
-  items: { item_id: number; quantity: number; unit_price: number; discount: number; tax: number }[]
-) => {
+ created_by: number, // Removed discount and tax from main invoice level based on your JSON example
+ total_amount: number,
+ items: {item_id: number; quantity: number;unit_price: number; discount: number; tax: number; 
+}[]) => {
+        const module_id = getModuleId(); 
+
   try {
     const res = await axios.post(API_URL, {
-      operation: 2, // Assuming operation 2 is for insertion
-      dc_id,
+      operation: 2, 
       customer_id,
       status,
       remarks,
       created_by,
-      discount,
-      tax,
+      // Removed discount and tax fields from payload based on your JSON example
       total_amount,
-      items, // Convert array to JSON
+      items,
+              module_id, 
+              invoice_date
+ // The array is automatically converted to JSON by axios
     });
 
     // Backend expected: { success: true, so_id: 123, message: "SO created successfully" }
-    return res.data.data ;
+    return res.data ;
   } catch (error) {
     handleApiError(error);
   }

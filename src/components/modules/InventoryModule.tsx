@@ -9,6 +9,7 @@ import StockValuation from '../inventory/StockValuation';
 import InventoryReports from '../inventory/InventoryReports';
 import { getItems } from '@/api/itemsApi';
 import { getWarehouses } from '@/api/getWarehousesApi';
+import UOM from '../inventory/UOM';
 
 
 const InventoryModule: React.FC = () => {
@@ -63,6 +64,7 @@ const totalWarehouses = warehouses.length;
           <ColorfulTabsTrigger value="items" icon={Package}>
             Items
           </ColorfulTabsTrigger>
+
           <ColorfulTabsTrigger value="warehouses" icon={Warehouse}>
             Warehouses
           </ColorfulTabsTrigger>
@@ -98,7 +100,7 @@ const totalWarehouses = warehouses.length;
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-green-800">${inventoryStats.totalValue.toLocaleString()}</span>
+                  <span className="text-3xl font-bold text-green-800"> Rs.{inventoryStats.totalValue.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-green-600 mt-1">Current inventory valuation</p>
               </CardContent>

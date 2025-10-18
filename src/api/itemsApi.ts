@@ -2,7 +2,17 @@ import axios from "axios";
 
 const API_URL = "http://84.16.235.111:2091/api/items";
 
-//  Centralized error handler
+/**
+ * Retrieves the 'module_id' (which corresponds to 'selectedBranchId') from sessionStorage.
+ * This ensures the correct branch context is sent with every API request.
+ * @returns {string} The selected branch ID or 'N/A' if not found.
+ */
+const getModuleId = (): string => {
+  // Use 'selectedBranchId' as the module_id for API operations
+  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+};
+
+//  Centralized error handler
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
     if (error.response) {
@@ -19,20 +29,26 @@ const handleApiError = (error: any) => {
   throw new Error("Unexpected error occurred. Check console for details.");
 };
 
-//  Get Items
+// --- API Functions Updated with module_id ---
+
+//  Get Items
 export const getItems = async () => {
+  const module_id = getModuleId(); // Get the branch/module ID
+  
   try {
-    const res = await axios.post(API_URL, { operation: 1 });
-   console.log("API Response:", res.data);
+    const res = await axios.post(API_URL, { 
+      operation: 1,
+      module_id, // 🔑 Added module_id
+    });
+    console.log("API Response:", res.data);
     return res.data.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
-//  Add Item
+//  Add Item
 export const addItem = async (
-  item_code: string,
   item_name: string,
   description: string,
   category: number,
@@ -40,10 +56,12 @@ export const addItem = async (
   unit: string,
   price: number
 ) => {
+  const module_id = getModuleId(); // Get the branch/module ID
+  
   try {
     const res = await axios.post(API_URL, {
       operation: 2,
-      item_code,
+      module_id, // 🔑 Added module_id
       item_name,
       description,
       category,
@@ -61,20 +79,20 @@ export const addItem = async (
 // 🔹 Update Item
 export const updateItem = async (
   item_id: number,
-  item_code: string,
   item_name: string,
   description: string,
   category: number,
   warehouse_id: number,
   unit: string,
   price: number,
-  
 ) => {
+  const module_id = getModuleId(); // Get the branch/module ID
+
   try {
     const res = await axios.post(API_URL, {
       operation: 3,
+      module_id, // 🔑 Added module_id
       item_id,
-      item_code,
       item_name,
       description,
       category,
@@ -88,11 +106,14 @@ export const updateItem = async (
   }
 };
 
-//  Delete Item
+//  Delete Item
 export const deleteItem = async (item_id: number) => {
+  const module_id = getModuleId(); // Get the branch/module ID
+
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
+      module_id, // 🔑 Added module_id
       item_id,
     });
     return res.data ; 

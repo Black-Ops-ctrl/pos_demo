@@ -1,14 +1,11 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/departments";
-
-
-
+const API_URL = "http://84.16.235.111:2091/api/regions";
 const getModuleId = (): string => {
-  // Use 'selectedBranchId' as the module_id for API operations
   return sessionStorage.getItem('selectedBranchId') || 'N/A';
 };
+ const module_id = getModuleId(); 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -27,87 +24,59 @@ const handleApiError = (error: any) => {
 };
 
 // 1️⃣ Get all departments
-export const getDepartments = async () => {
-    const module_id = getModuleId(); 
-
+export const getRegions= async () => {
   try {
-    const res = await axios.post(API_URL, { operation: 1,
-      module_id,
-    });
-    return res.data;
+    const res = await axios.post(API_URL, { operation: 1,module_id });
+    return res.data.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
 // 2️⃣ Add department
-export const addDepartment = async (
-  
-  dep_name: string,
-  branch_id: number,
-  company_id: number
+export const addRegion = async (
+  region_name: string
+ 
 ) => {
-      const module_id = getModuleId(); 
   try {
     const res = await axios.post(API_URL, {
       operation: 2,
-      dep_name,
-      branch_id,
-      company_id,
-            module_id, 
-
+      region_name,
+      module_id
     });
-    return res.data;
+    return res.data.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
 // 3️⃣ Update department
-export const updateDepartment = async (
-  dep_id: number,
-  dep_name: string,
-  branch_id: number,
-  company_id: number
+export const updateRegion = async (
+  region_id: number,
+  region_name: string
 ) => {
-      const module_id = getModuleId(); 
-
   try {
     const res = await axios.post(API_URL, {
       operation: 3,
-      dep_id,
-      dep_name,
-      branch_id,
-      company_id,
-            module_id,
+      region_id,
+      region_name,
+      module_id
     });
-    return res.data;
+    return res.data.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
 // 4️⃣ Delete department
-export const deleteDepartment = async (dep_id: number) =>
-   {    const module_id = getModuleId(); 
-
+export const deleteRegion = async (region_id: number) => {
   try {
     const res = await axios.post(API_URL, {
-      operation: 4,
-      dep_id,
-            module_id,
+      p_operation: 4,
+      region_id,
     });
-    return res.data;
-  } catch (error) {
-    handleApiError(error);
-  }
-};
+    return res.data.data;
 
-// 5️⃣ Get dropdown data (branches & companies)
-export const getBranchAndCompanyList = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/dropdown-data`);
-    return res.data; // Expected: { branches: [], companies: [] }
   } catch (error) {
     handleApiError(error);
   }

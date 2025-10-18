@@ -40,10 +40,10 @@ const CustomLineChart: React.FC<LineChartProps> = ({ title, data, color, gradien
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => `${value}`}
             />
             <Tooltip 
-              formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+              formatter={(value: number) => [`${value.toLocaleString()}`, 'Revenue']}
               labelFormatter={(label) => `Month: ${label}`}
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',

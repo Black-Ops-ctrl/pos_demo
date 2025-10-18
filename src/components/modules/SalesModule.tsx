@@ -52,7 +52,7 @@ const SalesModule: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Sales & POS Management</h2>
-        <div className="flex gap-2">
+        {/* <div className="flex gap-2">
           <Button 
             className="bg-gradient-to-r from-green-500 to-green-600"
             onClick={handleQuickSale}
@@ -61,27 +61,22 @@ const SalesModule: React.FC = () => {
             Quick Sale
           </Button>
           <Button variant="outline" onClick={handleNewQuote}>
-            <FileText className="h-4 w-4 mr-2" />
+            <FileText className="h-4 w-4 mr-2" />  
             New Quote
           </Button>
           
-        </div>
+        </div> */}
       </div>
 
       <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
-        <ColorfulTabsList className="grid w-full grid-cols-7">
+        <ColorfulTabsList className="grid w-full grid-cols-3">
           <ColorfulTabsTrigger value="overview">Overview</ColorfulTabsTrigger>
           
-          <ColorfulTabsTrigger value="orders">Sales Orders</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="delivery-challans">Delivery Challans</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="pos">POS System</ColorfulTabsTrigger>
-          <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
-          
-          <DropdownMenu>
+          {/* <ColorfulTabsTrigger value="orders">Sales Orders</ColorfulTabsTrigger> */}
+                    {/* <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="bg-cyan-50  text-cyan-700 transform hover:bg-cyan-600 hover:text-white hover:scale-105  active:scale-95 min-w-fit">
-              More
+              Maintainance
               </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="bg-white border border-gray-300 rounded-lg p-2">
@@ -97,7 +92,13 @@ const SalesModule: React.FC = () => {
               Customers
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
+          {/* <ColorfulTabsTrigger value="delivery-challans">Delivery Challans</ColorfulTabsTrigger> */}
+          <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
+          {/* <ColorfulTabsTrigger value="pos">POS System</ColorfulTabsTrigger> */}
+          <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
+          
+
         </ColorfulTabsList>
 
         <ColorfulTabsContent value="overview" className="space-y-6">
@@ -109,7 +110,7 @@ const SalesModule: React.FC = () => {
               <CardContent>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-green-500" />
-                  <span className="text-2xl font-bold">${overviewData.totalSales.toLocaleString()}</span>
+                  <span className="text-2xl font-bold"> Rs.{overviewData.totalSales.toLocaleString()}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">+12% from last month</p>
               </CardContent>
@@ -187,12 +188,12 @@ const SalesModule: React.FC = () => {
 
         
 
-        <ColorfulTabsContent value="orders">
+        {/* <ColorfulTabsContent value="orders">
           <SalesOrders />
-        </ColorfulTabsContent>
-        <ColorfulTabsContent value="delivery-challans">
+        </ColorfulTabsContent> */}
+        {/* <ColorfulTabsContent value="delivery-challans">
           <DeliveryChallans />
-        </ColorfulTabsContent>
+        </ColorfulTabsContent> */}
         <ColorfulTabsContent value="invoices">
           <InvoiceManagement />
         </ColorfulTabsContent>

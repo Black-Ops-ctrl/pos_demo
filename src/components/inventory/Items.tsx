@@ -67,7 +67,6 @@ const Items: React.FC = () => {
       if (editingItem) {
         await updateItem(
           editingItem.item_id,
-          itemData.item_code,
           itemData.item_name,
           itemData.description,
           itemData.category_id,
@@ -78,7 +77,6 @@ const Items: React.FC = () => {
          toast({ title: "Updated", description: "Item updated successfully!" ,duration: 3000,});
       } else {
         await addItem(
-          itemData.item_code,
           itemData.item_name,
           itemData.description,
           itemData.category_id,
@@ -209,7 +207,6 @@ const ItemForm: React.FC<{
   onClose: () => void;
   onSave: (data: Omit<Item, "item_id">) => void;
 }> = ({ item, onClose, onSave }) => {
-  const [item_code, setItemCode] = useState("");
   const [item_name, setItemName] = useState("");
   const [description, setDescription] = useState("");
   const [unit, setUnit] = useState("");
@@ -232,7 +229,6 @@ const ItemForm: React.FC<{
         setCategories(categoriesData);
         setWarehouses(warehousesData);
    if (item) {
-          setItemCode(item.item_code || "");
           setItemName(item.item_name || "");
           setDescription(item.description || "");
           setPrice(item.price);
@@ -249,19 +245,18 @@ const ItemForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!item_name  || !category_id || !item_code || !description || !unit) {
+    if (!item_name  || !category_id  || !description || !unit) {
       alert("Please fill all fields.");
       return;
     }
     onSave({
-        item_code,
-        item_name,
-        price,
-        category_id,
-        warehouse_id,
-        description,
-        unit
-        
+      item_name,
+      price,
+      category_id,
+      warehouse_id,
+      description,
+      unit,
+      item_code: ''
     });
   };
 
@@ -272,11 +267,11 @@ const ItemForm: React.FC<{
           {item ? "Edit Item" : "Add Item"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-             <Input
+             {/* <Input
             value={item_code}
             onChange={(e) => setItemCode(e.target.value)}
             placeholder="Item Code"
-          />
+          /> */}
           <Input
             value={item_name}
             onChange={(e) => setItemName(e.target.value)}
