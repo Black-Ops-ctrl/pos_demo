@@ -1,0 +1,644 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import {
+  ChevronsUpDown,
+  Check,
+  Search
+} from 'lucide-react';
+import { getVendorLedger, getCompanyimg } from '@/api/VendorsledgerApi';
+import { getVendorAccounts } from '@/api/getAccountsApi';
+import { getCompanies } from '@/api/VendorsledgerApi';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+interface Account {
+  account_id: number;
+  account_name: string;
+  account_code: string;
+}
+
+interface Company {
+  company_id: number;
+  company_name: string;
+  registration_number: string;
+  address: string;
+  phone: string;
+  email: string;
+  image: string;
+}
+
+interface VendorLedger {
+  journal_entry_id: number;
+  voucher_id: number;
+  category: string;
+  entry_date: string | Date;
+  item_name: string;
+  tran_no: string;
+  remarks: string;
+  vehicle_no: string;
+  quantity: string;
+  rate: string;
+  discount_amount: number;
+  freight: number;
+  line_id: number;
+  account_id: number;
+  account_code: string;
+  debit: number;
+  credit: number;
+  line_description: string;
+  created_by: number;
+  user_name: string;
+  running_balance: string;
+}
+
+const VendorLedger: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [ledger, setLedger] = useState<VendorLedger[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [companyData, setCompanyData] = useState<Company | null>(null);
+  const [account_id, setAccountId] = useState<number>(0);
+  const [start_date, setStartDate] = useState('');
+  const [end_date, setEndDate] = useState('');
+
+  // Format running balance string (e.g., "585800.0 CR") to display format
+  const formatRunningBalance = (balanceString: string): string => {
+    if (!balanceString) return '0';
+    
+    const parts = balanceString.trim().split(' ');
+    if (parts.length < 2) return formatNumber(parts[0] || '0');
+    
+    const amount = parts[0];
+    const type = parts[1]; // CR या DR
+    
+    const formattedAmount = formatNumber(amount);
+    
+    // Return with type indicator
+    return `${formattedAmount} ${type}`;
+  };
+
+  // Get only the numeric value from running balance for calculations
+  const getBalanceValue = (balanceString: string): number => {
+    if (!balanceString) return 0;
+    
+    const parts = balanceString.trim().split(' ');
+    const amount = parts[0];
+    
+    const numericValue = parseFloat(amount);
+    return isNaN(numericValue) ? 0 : numericValue;
+  };
+
+  // Get balance type (CR/DR) for styling
+  const getBalanceType = (balanceString: string): string => {
+    if (!balanceString) return '';
+    
+    const parts = balanceString.trim().split(' ');
+    return parts.length > 1 ? parts[1] : '';
+  };
+
+  // Load company image and data
+  const loadCompanyImage = async () => {
+    try {
+      const data = await getCompanyimg();
+      if (data && data.length > 0) {
+        setCompanyData(data[0]);
+      }
+    } catch (error) {
+      console.error("Error loading company image", error);
+    }
+  };
+
+  // Format date to DD-MMM-YYYY
+  const formatDate = (dateString: string | Date): string => {
+    if (!dateString) return '';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const year = date.getFullYear();
+    
+    return `${day}-${month}-${year}`;
+  };
+
+  // Format number with commas and remove decimal zeros
+  const formatNumber = (num: number | string): string => {
+    if (num === null || num === undefined || num === '') return '0';
+
+    const numberValue = typeof num === 'string' ? parseFloat(num) : num;
+    if (isNaN(numberValue)) return '0';
+
+    // Check if number has decimals
+    const hasDecimals = numberValue % 1 !== 0;
+
+    return numberValue.toLocaleString('en-US', {
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: hasDecimals ? 2 : 0
+    });
+  };
+
+  const loadVendorLedgers = async () => {
+    try {
+      const data = await getVendorLedger(
+        account_id,
+        start_date ? new Date(start_date) : new Date(),
+        end_date ? new Date(end_date) : new Date()
+      );
+      setLedger(data);
+    } catch (error) {
+      console.error('Error loading Vendor ledgers', error);
+    }
+  };
+
+  // Load accounts
+  const loadAccounts = async () => {
+    try {
+      const res = await getVendorAccounts();
+      setAccounts(res);
+    } catch (error) {
+      console.error('Error loading accounts', error);
+    }
+  };
+
+  // Load companies
+  const loadCompanies = async () => {
+    try {
+      const res = await getCompanies();
+      setCompanies(res);
+      if (res && res.length > 0) {
+        setSelectedCompany(res[0]);
+      }
+    } catch (error) {
+      console.error('Error loading companies', error);
+    }
+  };
+
+  useEffect(() => {
+    loadAccounts();
+    loadCompanies();
+    loadCompanyImage();
+  }, []);
+
+  // Filter ledger based on search term
+  const filteredLedgers = ledger.filter((ledger) => {
+    const refNumber = ledger.tran_no?.toLowerCase() || '';
+    const voucherName = ledger.category?.toLowerCase() || '';
+    const accountCode = ledger.account_code?.toLowerCase() || '';
+    const itemName = ledger.item_name?.toLowerCase() || '';
+    const searchLower = searchTerm.toLowerCase();
+
+    return (
+      refNumber.includes(searchLower) ||
+      voucherName.includes(searchLower) ||
+      accountCode.includes(searchLower) ||
+      itemName.includes(searchLower)
+    );
+  });
+    
+  // Compute totals
+  const totalDebit = filteredLedgers.reduce((sum, row) => {
+    const debitValue = Number(row.debit);
+    return sum + (isNaN(debitValue) ? 0 : debitValue);
+  }, 0);
+
+  const totalCredit = filteredLedgers.reduce((sum, row) => {
+    const creditValue = Number(row.credit);
+    return sum + (isNaN(creditValue) ? 0 : creditValue);
+  }, 0);
+
+  // Get final running balance (last entry's running balance)
+  const finalRunningBalance = filteredLedgers.length > 0 
+    ? filteredLedgers[filteredLedgers.length - 1].running_balance 
+    : '0';
+  
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    if (!printRef.current) return;
+
+    const printContent = printRef.current.innerHTML;
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+
+    if (!printWindow) {
+      alert('Unable to open print window');
+      return;
+    }
+
+    // Get company data for print
+    const logoSource = companyData?.image || '';
+    const companyName = companyData?.company_name || "Company Name";
+    const companyAddress = companyData?.address || "";
+    const companyPhone = companyData?.phone || "";
+    const companyEmail = companyData?.email || "";
+    const companyReg = companyData?.registration_number || "";
+
+    printWindow.document.write(`
+<html>
+  <head>
+    <title>Vendor Ledger Report</title>
+    <style>
+      /* Remove browser default headers and footers */
+      @page {
+        margin-top: 0;
+         margin-bottom:0;
+        
+      }
+      
+      body {
+        font-family: 'Times New Roman', serif;
+        font-size: 11px;
+        margin: 15;
+        padding: 15px;
+        color: #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* Header layout */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #000;
+        padding: 10px 0;
+        margin-bottom: 15px;
+      }
+
+      /* Logo on the left */
+      .logo img {
+        width: 160px;
+        height: auto;
+      }
+
+      /* Company info at center */
+      .company-info {
+        text-align: center;
+        flex: 1;
+      }
+
+      .company-info h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .company-details {
+        font-size: 13px;
+        color: #666;
+        margin-top: 3px;
+      }
+
+      .header-right {
+        text-align: right;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .report-title {
+        text-align: center;
+        margin: 12px 0;
+        font-size: 16px;
+        font-weight: bold;
+        
+      }
+      
+      .report-heading {
+        font-size: 14px;   
+        font-weight: 700; 
+      }
+
+      .report-info {
+        margin: 8px 0;
+        font-size: 11px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 5px;
+        font-size: 10px;
+      }
+
+      th, td {
+        border: 0.6px solid #000;
+        padding: 4px;
+        text-align: center;
+        vertical-align: top;
+      }
+
+      th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+      }
+
+      .text-right { text-align: right; }
+      .text-left { text-align: left !important; }
+      .text-center { text-align: center; }
+
+      .footer {
+        margin-top: 15px;
+        border-top: 1px solid #000;
+        padding-top: 8px;
+        font-size: 10px;
+      }
+
+      .totals-row {
+        font-weight: bold;
+        background-color: #f8f8f8;
+      }
+
+      .balance-cr {
+        color: green;
+      }
+      
+      .balance-dr {
+        color: red;
+      }
+
+      .page-break {
+        page-break-after: always;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">
+        ${logoSource ? `<img src="${logoSource}" alt="Company Logo" />` : ''}
+      </div>
+
+      <div class="company-info">
+        <h2>${companyName}</h2>
+        <div class="company-details">
+          ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+          ${companyPhone ? `<div>${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}</div>` : ''}
+        </div>
+      </div>
+
+      
+    </div>
+    <div style="width: 100%; text-align: right; margin: 8px 0;">
+      Print Date: ${formatDate(new Date())}
+    </div>
+    <div class="report-title">VENDOR LEDGER REPORT</div>
+
+    <div class="report-info">
+      <div>
+        <p><strong class="report-heading">Account:</strong> ${accounts.find(a => a.account_id === account_id) 
+                ? `${accounts.find(a => a.account_id === account_id)?.account_name} (${accounts.find(a => a.account_id === account_id)?.account_code})`
+                : 'All Accounts'}</p>
+      </div>
+      <div>
+        <p><strong class="report-heading">Date Range:</strong> ${formatDate(start_date)} to ${formatDate(end_date)}</p>
+      </div>
+    </div>
+
+    ${printContent}
+  </body>
+</html>
+`);
+
+    printWindow.document.close();
+    printWindow.focus();
+
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+  return (
+    <>
+      <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Vendor Item wise Ledger</CardTitle>
+            <div className="flex gap-4">
+              {/* Account Popover */}
+              <Popover open={accountOpen} onOpenChange={setAccountOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                    {account_id
+                      ? `${accounts.find((a) => a.account_id === account_id)?.account_name} (${accounts.find((a) => a.account_id === account_id)?.account_code})`
+                      : 'Select Account'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="max-h-[300px] overflow-auto">
+                  <Command>
+                    <CommandInput placeholder="Search accounts..." className="text-black" />
+                    <CommandEmpty>No account found.</CommandEmpty>
+                    <CommandGroup>
+                      {accounts.map((a) => (
+                        <CommandItem
+                          key={a.account_id}
+                          className="hover:bg-gray-100"
+                          onSelect={() => {
+                            setAccountId(a.account_id);
+                            setAccountOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4',
+                              account_id === a.account_id ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          {`${a.account_code} - ${a.account_name}`}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* Date Inputs */}
+              <Input
+                type="date"
+                placeholder="Start Date"
+                value={start_date}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40"
+              />
+              <Input
+                type="date"
+                placeholder="End Date"
+                value={end_date}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40"
+              />
+
+              {/* Load Button */}
+              <Button onClick={loadVendorLedgers}>Load</Button>
+              <Button onClick={handlePrint} variant="secondary">
+                Print
+              </Button>
+            </div>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search by Voucher No, Type, Item Name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-center align-middle">Date</TableHead>
+                  <TableHead className="text-center align-middle">Type</TableHead>
+                  <TableHead className="text-center align-middle">Item Name</TableHead>
+                  <TableHead className="text-center align-middle">No#</TableHead>
+                  <TableHead className="text-center align-middle">Narration</TableHead>
+                  <TableHead className="text-center align-middle">Vehicle No</TableHead>
+                  <TableHead className="text-center align-middle">Quantity</TableHead>
+                  <TableHead className="text-center align-middle">Rate</TableHead>
+                  <TableHead className="text-center align-middle">Discount</TableHead>
+                  {/* <TableHead className="text-center align-middle">Freight</TableHead> */}
+                  <TableHead className="text-center align-middle">Debit</TableHead>
+                  <TableHead className="text-center align-middle">Credit</TableHead>
+                  <TableHead className="text-center align-middle">Balance</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {filteredLedgers.map((ledger) => {
+                  const balanceType = getBalanceType(ledger.running_balance);
+                  return (
+                    <TableRow key={ledger.journal_entry_id}>
+                      <TableCell className="text-center align-middle">{formatDate(ledger.entry_date)}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.category}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.item_name}</TableCell>
+                      <TableCell className="text-center align-middle font-mono">{ledger.tran_no}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.remarks}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.vehicle_no}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.quantity}</TableCell>
+                      <TableCell className="text-center align-middle">{ledger.rate}</TableCell>
+                      <TableCell className="text-center align-middle">{formatNumber(ledger.discount_amount)}</TableCell>
+                      {/* <TableCell className="text-center align-middle">{formatNumber(ledger.freight)}</TableCell> */}
+                      <TableCell className="text-center align-middle">{formatNumber(ledger.debit)}</TableCell>
+                      <TableCell className="text-center align-middle">{formatNumber(ledger.credit)}</TableCell>
+                      <TableCell className={`text-center align-middle ${
+                        balanceType === 'CR' ? 'text-green-600' : 
+                        balanceType === 'DR' ? 'text-red-600' : ''
+                      }`}>
+                        {formatRunningBalance(ledger.running_balance)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex justify-end gap-8 px-6 mt-4 text-sm text-gray-800">
+            <span>
+              <strong>Total Debit:</strong> {formatNumber(totalDebit)}
+            </span>
+            <span>
+              <strong>Total Credit:</strong> {formatNumber(totalCredit)}
+            </span>
+            <span>
+              <strong>Final Balance:</strong> 
+              <span className={
+                finalRunningBalance.includes('CR') ? 'text-green-600 ml-1' : 
+                finalRunningBalance.includes('DR') ? 'text-red-600 ml-1' : 'ml-1'
+              }>
+                {formatRunningBalance(finalRunningBalance)}
+              </span>
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hidden print section */}
+      <div className="hidden" ref={printRef}>
+        <table className="w-full text-sm border border-collapse border-gray-400">
+          <thead className="border-b border-gray-400">
+            <tr>
+              <th className="text-center border px-2 py-1 align-middle">Date</th>
+              <th className="text-center border px-2 py-1 align-middle">Type</th>
+              <th className="text-center border px-2 py-1 align-middle">Item Name</th>
+              <th className="text-center border px-2 py-1 align-middle">Invoice No</th>
+              <th className="text-center border px-2 py-1 align-middle">Naration</th>
+              <th className="text-center border px-2 py-1 align-middle">Vehicle No</th>
+              <th className="text-center border px-2 py-1 align-middle">Quantity</th>
+              <th className="text-center border px-2 py-1 align-middle">Rate</th>
+              <th className="text-center border px-2 py-1 align-middle">Discount</th>
+              <th className="text-center border px-2 py-1 align-middle">Freight</th>
+              <th className="text-center border px-2 py-1 align-middle">Debit</th>
+              <th className="text-center border px-2 py-1 align-middle">Credit</th>
+              <th className="text-center border px-2 py-1 align-middle">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLedgers.map((ledger) => {
+              const balanceType = getBalanceType(ledger.running_balance);
+              return (
+                <tr key={ledger.journal_entry_id}>
+                  <td className="border px-2 py-1 text-center align-middle">{formatDate(ledger.entry_date)}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.category}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.item_name}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.tran_no}</td>
+                  <td className="text-left">{(ledger.remarks || "").toUpperCase()}</td>                
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.vehicle_no}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.quantity}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.rate}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.discount_amount)}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.freight)}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.debit)}</td>
+                  <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.credit)}</td>
+                  <td className={`border px-2 py-1 text-center align-middle ${
+                    balanceType === 'CR' ? 'balance-cr' : 
+                    balanceType === 'DR' ? 'balance-dr' : ''
+                  }`}>
+                    {formatRunningBalance(ledger.running_balance)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="totals-row">
+              <td colSpan={10} className="border px-2 py-1 text-center align-middle font-bold">
+                Totals:
+              </td>
+              <td className="border px-2 py-1 text-center align-middle font-bold">{formatNumber(totalDebit)}</td>
+              <td className="border px-2 py-1 text-center align-middle font-bold">{formatNumber(totalCredit)}</td>
+              <td className={`border px-2 py-1 text-center align-middle font-bold ${
+                finalRunningBalance.includes('CR') ? 'balance-cr' : 
+                finalRunningBalance.includes('DR') ? 'balance-dr' : ''
+              }`}>
+                {formatRunningBalance(finalRunningBalance)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </>
+  );
+};
+
+export default VendorLedger;

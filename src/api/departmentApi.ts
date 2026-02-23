@@ -1,7 +1,7 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/departments";
+const API_URL = "http://84.16.235.111:2135/api/departments";
 
 
 
@@ -31,8 +31,7 @@ export const getDepartments = async () => {
     const module_id = getModuleId(); 
 
   try {
-    const res = await axios.post(API_URL, { operation: 1,
-      module_id,
+    const res = await axios.post(API_URL, { operation: 1
     });
     return res.data;
   } catch (error) {
@@ -53,8 +52,7 @@ export const addDepartment = async (
       operation: 2,
       dep_name,
       branch_id,
-      company_id,
-            module_id, 
+      company_id
 
     });
     return res.data;
@@ -78,8 +76,7 @@ export const updateDepartment = async (
       dep_id,
       dep_name,
       branch_id,
-      company_id,
-            module_id,
+      company_id
     });
     return res.data;
   } catch (error) {
@@ -94,8 +91,7 @@ export const deleteDepartment = async (dep_id: number) =>
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
-      dep_id,
-            module_id,
+      dep_id
     });
     return res.data;
   } catch (error) {

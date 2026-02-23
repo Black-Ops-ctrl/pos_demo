@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // 👈 Import useEffect
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ColorfulTabs, ColorfulTabsContent, ColorfulTabsList, ColorfulTabsTrigger } from '@/components/ui/colorful-tabs';
@@ -15,15 +15,86 @@ import Department from '../others/Department';
 import Others from '../others/Others';
 import GeneralLedger from '@/components/accounting/GeneralLedger';
 import TrialBalance from '@/components/accounting/TrialBalance'
+import ItemCategories from'@/components/accounting/Bank'
+import Journal  from '@/components/accounting/Journal';
+import { getBalanceSheet } from '@/api/accountingDashboardApi';
 
+
+
+
+
+interface Balances {
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  netIncome?: number;
+}
 const AccountingModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+    
+  // ⭐️ CHANGE 1: Initialize activeTab from Session Storage or default to 'dashboard'
+  const [activeTab, setActiveTab] = useState(() => {
+    // Check if a tab ID is saved in session storage
+    return sessionStorage.getItem('accountingActiveTab') || 'dashboard';
+  });
+
+  // ⭐️ CHANGE 2: Save activeTab to Session Storage whenever it changes
+  useEffect(() => {
+    // Save the current active tab to session storage with a specific key
+    sessionStorage.setItem('accountingActiveTab', activeTab);
+  }, [activeTab]);
+
+
+
+const [balances, setBalances] = useState<Balances>({
+  totalAssets: 0,
+  totalLiabilities: 0,
+  totalEquity: 0,
+  netIncome: 0,
+});
+
+useEffect(() => {
+  const loadBalanceSheet = async () => {
+    const response = await getBalanceSheet();
+    console.log(response.data)
+
+    if (!response?.success) return;
+
+    const result = {
+      totalAssets: 0,
+      totalLiabilities: 0,
+      totalEquity: 0,
+      netIncome: 0,
+    };
+
+    response.data.forEach((row: any) => {
+      const amount = parseFloat(row.total_amount); //  convert string to number
+      switch (row.account_type) {
+        case 'ASSET':
+          result.totalAssets = amount;
+          break;
+        case 'LIABILITY':
+          result.totalLiabilities = amount;
+          break;
+        case 'EQUITY':
+          result.totalEquity = amount;
+          break;
+        case 'NET_INCOME':
+          result.netIncome = amount;
+          break;
+      }
+    });
+
+    setBalances(result);
+  };
+
+  loadBalanceSheet();
+}, []);
+    
+  
+const { totalAssets, totalLiabilities, totalEquity, netIncome } = balances;
 
   // Financial summary data
-  const totalAssets = 205000;
-  const totalLiabilities = 70000;
-  const totalEquity = 135000;
-  const netIncome = 45000;
+
   const totalRevenue = 125000;
   const totalExpenses = 80000;
   const cashBalance = 25750;
@@ -151,7 +222,7 @@ const AccountingModule: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100  ">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100  ">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 ">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2 no-print">Accounting & Finance</h1>
@@ -163,16 +234,19 @@ const AccountingModule: React.FC = () => {
           <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 mb-6">
             <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
-            <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger>
-            <ColorfulTabsTrigger value='ledger' icon={CreditCard}>General Ledger</ColorfulTabsTrigger>
-            {/* 
-            <ColorfulTabsTrigger value="ar" icon={CreditCard}>Accounts Receivable</ColorfulTabsTrigger>
+            {/* <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger> */}
+            <ColorfulTabsTrigger value='ledger' icon={CreditCard}>Accounts Ledger</ColorfulTabsTrigger>
+                        <ColorfulTabsTrigger value='Journal' icon={CreditCard}>Vouchers</ColorfulTabsTrigger>
+
+            {/* <ColorfulTabsTrigger value="ar" icon={CreditCard}>Accounts Receivable</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="ap" icon={DollarSign}>Accounts Payable</ColorfulTabsTrigger>
             
             <ColorfulTabsTrigger value="bank" icon={Building}>Bank Reconciliation</ColorfulTabsTrigger>
             */}
             <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="reports" icon={TrendingUp}>Financial Reports</ColorfulTabsTrigger>
+                        {/* <ColorfulTabsTrigger value="bank" icon={TrendingUp}> Bank</ColorfulTabsTrigger> */}
+
             {/* <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger> */}
           </ColorfulTabsList>
 
@@ -184,15 +258,19 @@ const AccountingModule: React.FC = () => {
             <ChartOfAccounts />
           </ColorfulTabsContent>
 
-          <ColorfulTabsContent value="journal">
-            <JournalEntries />
+
+                    <ColorfulTabsContent value="Journal">
+            <Journal />
           </ColorfulTabsContent>
+
+          {/* <ColorfulTabsContent value="journal">
+            <JournalEntries />
+          </ColorfulTabsContent> */}
           
           <ColorfulTabsContent value="ledger">
             <GeneralLedger />
           </ColorfulTabsContent>
-{/* 
-          <ColorfulTabsContent value="ar">
+{/* <ColorfulTabsContent value="ar">
             <AccountsReceivable />
           </ColorfulTabsContent>
 
@@ -206,6 +284,10 @@ const AccountingModule: React.FC = () => {
 
           <ColorfulTabsContent value="reports">
             <FinancialReports />
+          </ColorfulTabsContent>
+
+                    <ColorfulTabsContent value="bank">
+            <ItemCategories />
           </ColorfulTabsContent>
 
           {/* <ColorfulTabsContent value="others">

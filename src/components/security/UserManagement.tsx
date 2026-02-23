@@ -386,32 +386,36 @@ const UserForm: React.FC<{
 
 
   // Fetch categories
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-      
-        const branchData = await getBranches();
-        const departmentData = await getDepartments();
-        const rolesData=await getRoles();
-        
-        setBranches(branchData);
-        setDepartments(departmentData);
-        setRoles(rolesData);
-        if (user) {
-          setUserName(user.user_name || "");
-          setEmail(user.email || "");
-          setFullName(user.full_name || "");    
-         
-          setBranchId(user.branch_id || 0);
-          setDepartmentId(user.dep_id || 0);
-          setRoleId(user.role_id || 0);
-        }
-      } catch (err) {
-        console.error("Error loading categories", err);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [branchData, departmentData, rolesData] = await Promise.all([
+        getBranches(),
+        getDepartments(),
+        getRoles()
+      ]);
+
+      setBranches(branchData);
+      setDepartments(departmentData);
+      setRoles(rolesData);
+
+      // set user values AFTER lists are ready
+      if (user) {
+        setUserName(user.user_name ?? "");
+        setEmail(user.email ?? "");
+        setFullName(user.full_name ?? "");
+
+        setBranchId(Number(user.branch_id));
+        setDepartmentId(Number(user.dep_id));
+        setRoleId(Number(user.role_id));
       }
-    };
-    fetchData();
-  }, [user]);
+    } catch (err) {
+      console.error("Error loading data", err);
+    }
+  };
+
+  fetchData();
+}, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

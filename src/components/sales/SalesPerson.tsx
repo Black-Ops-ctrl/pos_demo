@@ -1,16 +1,15 @@
-// ItemCategories.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit, Trash2, Building2, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Building2, ChevronsUpDown, Check, ArrowUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GenericForm from "@/components/forms/GenericForm";
 import { getItemCategory, addItemCategory, updateItemCategory, deleteItemCategory } from "@/api/itemCategoryApi";
 import { getAccounts } from "@/api/getAccountsApi";
-import { getRegions } from "@/api/salesPersonApi";
-import { getSalesPersons,addSalePerson,updateSalePerson,deleteSalePerson } from "@/api/salesPersonApi";
+import { getRegions } from "@/api/regionApi";
+import { getSalesPersons, addSalePerson, updateSalePerson, deleteSalePerson } from "@/api/salesPersonApi";
 import {
   Popover,
   PopoverContent,
@@ -35,23 +34,44 @@ interface SalesPerson {
   sales_person_name: string;
   father_name: string;
   phone: string;
-  designation_id?: number;
-  designation_name?: string;
+  account_id?: number;
+  account_name?: string;
   branch_id?: number;
   branch_name?: string;
   company_id?: number;
   company_name?: string;
-  region_id?: number;
-  region_name?: string;
-  created_by: number;
-  updated_by: number;
+ 
+ 
 }
+
+// Define types for API data to ensure type safety in the form
+interface Branch {
+    branch_id: number;
+    branch_name: string;
+    status: string;
+    // Add other branch fields if necessary
+}
+
+interface Company {
+    company_id: number;
+    company_name: string;
+    // Add other company fields if necessary
+}
+interface Accounts {
+    account_id: number;
+    account_name: string;
+    // Add other company fields if necessary
+}
+
+
 
 const SalesPersons: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editSalePerson, setEditSalePerson] = useState<SalesPerson | null>(null);
-  const [SalesPersons, setSalesPersons] = useState<SalesPerson[]>([]);  
+  const [showScrollToTop, setShowScrollToTop] = useState(false); // ✅ New state for scroll button
+
+  const [SalesPersons, setSalesPersons] = useState<SalesPerson[]>([]);
   const { toast } = useToast();
   // Load categories
   const loadSalesPersons = async () => {
@@ -69,6 +89,34 @@ const SalesPersons: React.FC = () => {
     setEditSalePerson(null);
     setShowForm(true);
   };
+
+
+
+
+
+
+  const checkScrollTop = useCallback(() => {
+    // Show button if page is scrolled down more than 400px
+    if (!showScrollToTop && window.scrollY > 400) {
+      setShowScrollToTop(true);
+    } else if (showScrollToTop && window.scrollY <= 400) {
+      setShowScrollToTop(false);
+    }
+  }, [showScrollToTop]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', checkScrollTop);
+    return () => {
+      window.removeEventListener('scroll', checkScrollTop);
+    };
+  }, [checkScrollTop]);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
   const handleEditSalesPerson = (saleperson: SalesPerson) => {
     setEditSalePerson(saleperson);
     setShowForm(true);
@@ -81,12 +129,10 @@ const SalesPersons: React.FC = () => {
           data.sales_person_name,
           data.father_name,
           data.phone,
-          data.designation_id,
+          data.account_id,
           data.branch_id,
-          data.company_id,
-          data.region_id,
-          data.created_by,
-          data.updated_by
+          data.company_id
+        
         );
         toast({ title: "Updated", description: "Sales Person updated successfully!" });
       } else {
@@ -94,12 +140,10 @@ const SalesPersons: React.FC = () => {
           data.sales_person_name,
           data.father_name,
           data.phone,
-          data.designation_id,
+          data.account_id,
           data.branch_id,
-          data.company_id,
-          data.region_id,
-          data.created_by,
-          data.updated_by
+          data.company_id
+       
         );
         toast({ title: "Created", description: "Sales Person created successfully!" });
       }
@@ -127,9 +171,9 @@ const SalesPersons: React.FC = () => {
       sp.sales_person_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sp.father_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sp.phone || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (sp.designation_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sp.account_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (sp.branch_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (sp.company_name || "").toLowerCase().includes(searchTerm.toLowerCase())  
+      (sp.company_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
   return (
     <>
@@ -163,14 +207,12 @@ const SalesPersons: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-               
                 <TableHead>Father Name</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Designation</TableHead>
+                {/* <TableHead>Designation</TableHead> */}
                 <TableHead>Branch</TableHead>
                 <TableHead>Company</TableHead>
-                <TableHead>Region</TableHead>
-    
+                <TableHead className="invisible">Account</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -180,11 +222,10 @@ const SalesPersons: React.FC = () => {
                   <TableCell className="font-medium">{sp.sales_person_name}</TableCell>
                   <TableCell>{sp.father_name}</TableCell>
                   <TableCell>{sp.phone}</TableCell>
-                  <TableCell>{sp.designation_name}</TableCell>
+                  {/* <TableCell>{sp.designation_name}</TableCell> */}
                   <TableCell>{sp.branch_name}</TableCell>
                   <TableCell>{sp.company_name}</TableCell>
-                  <TableCell>{sp.region_name}</TableCell>
-
+                  <TableCell className="invisible">{sp.account_name}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button size="sm" variant="outline" onClick={() => handleEditSalesPerson(sp)}>
@@ -204,7 +245,7 @@ const SalesPersons: React.FC = () => {
               ))}
               {filteredSalesPersons.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-sm text-gray-500">
+                  <TableCell colSpan={7} className="text-center text-sm text-gray-500">
                     No sales persons found.
                   </TableCell>
                 </TableRow>
@@ -214,10 +255,24 @@ const SalesPersons: React.FC = () => {
         </CardContent>
       </Card>
 
-       {
-       showForm && (
-        <SalesPersonForm salesPerson={editSalePerson} onClose={() => setShowForm(false)} onSave={handleSaveSalesPerson} />
+
+
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          size="icon"
+          className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg
+                             bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
       )}
+
+      {
+        showForm && (
+          <SalesPersonForm salesPerson={editSalePerson} onClose={() => setShowForm(false)} onSave={handleSaveSalesPerson} />
+        )}
     </>
   );
 };
@@ -230,42 +285,70 @@ const SalesPersonForm: React.FC<{
   const [father_name, setFatherName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const [designation_id, setDesignationId] = useState<number >(0);
-   const [designations, setDesignations] = useState([]);
-     const [designationOpen, setDesignationOpen] = useState(false);
+  const [account_id, setAccountId] = useState<number>(0);
+  const [accounts, setAccounts] = useState<Accounts[]>([]);
+  const [accountOpen, setAccountOpen] = useState(false);
 
-  const [branch_id, setBranchId] = useState<number >(0);
-   const [branches, setBranches] = useState([]);
+  const [branch_id, setBranchId] = useState<number>(0);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [branchOpen, setBranchOpen] = useState(false);
 
-  const [company_id, setCompanyId] = useState<number >(0);
-  const [companies, setCompanies] = useState([]);
-  const [companyOpen, setCompanyOpen] = useState(false);
+  const [company_id, setCompanyId] = useState<number>(0);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyOpen, setCompanyOpen] = useState(false); // No longer needed, but kept for consistency in state structure
 
-  const [region_id, setRegionId] = useState<number >(0);
-   const [regions, setRegions] = useState([]);
-  const [regionOpen, setRegionOpen] = useState(false);
+  // const [region_id, setRegionId] = useState<number>(0);
+  // const [regions, setRegions] = useState<Region[]>([]);
+  // const [regionOpen, setRegionOpen] = useState(false);
 
 
-  // Fetch categories
+  // Fetch all necessary data and set default values
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const designationData = await getDesignations();
-        const branchData = await getBranches();
-        const companyData = await getCompanies();
-        setDesignations(designationData);
-        setBranches(branchData);
+        const accountData: Accounts[] = await getAccounts();
+        const branchData: Branch[] = await getBranches();
+        const companyData: Company[] = await getCompanies();
+        // const regionData: Region[] = await getRegions();
+
+        // Filter only approved branches
+        // const approvedBranches = branchData.filter((branch: Branch) => 
+        //   branch.status === 'APPROVED'
+        // );
+          
+        setAccounts(accountData);
+       // setBranches(approvedBranches); // Set filtered branches
+       setBranches(branchData)
         setCompanies(companyData);
-        setRegions(await getRegions());
+        // setRegions(regionData);
+
+        // **Logic to set default company_id**
+        let defaultCompanyId = 0;
+        if (companyData.length > 0) {
+            // Assuming the first company in the list is the default company
+            defaultCompanyId = companyData[0].company_id;
+        }
+
         if (salesPerson) {
+          // Editing existing person: use their values
           setSalesPersonName(salesPerson.sales_person_name || "");
           setFatherName(salesPerson.father_name || "");
-          setPhone(salesPerson.phone || "");    
-          setDesignationId(salesPerson.designation_id || 0);
+          setPhone(salesPerson.phone || "");
+          setAccountId(salesPerson.account_id || 0);
           setBranchId(salesPerson.branch_id || 0);
-          setCompanyId(salesPerson.company_id || 0);
-          setRegionId(salesPerson.region_id || 0);
+          // For edit, use the sales person's company_id if available, otherwise the default
+          setCompanyId(salesPerson.company_id || defaultCompanyId);
+          // setRegionId(salesPerson.region_id || 0);
+        } else {
+          // Adding new person: set fields to initial or default values
+          setSalesPersonName("");
+          setFatherName("");
+          setPhone("");
+          setAccountId(0);
+          setBranchId(0);
+          // Set to the first company's ID for new forms
+          setCompanyId(defaultCompanyId);
+          //setRegionId(0);
         }
       } catch (err) {
         console.error("Error loading categories", err);
@@ -276,22 +359,25 @@ const SalesPersonForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sales_person_name || !father_name || !phone || !designation_id || !branch_id || !company_id || !region_id) {
+    if (!sales_person_name ) {
       alert("Please fill all fields.");
       return;
     }
     onSave({
-        sales_person_name,
-        father_name,
-        phone,
-        designation_id,
-        branch_id,
-        company_id,
-        region_id,
-        created_by: 0,
-        updated_by: 0
+      sales_person_name,
+      father_name,
+      phone,
+      account_id, // Include account_id in save data
+      branch_id,
+      company_id
+      //region_id,
+     
     });
   };
+  
+  
+  const selectedCompanyName = companies.find((c) => c.company_id === company_id)?.company_name;
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -301,201 +387,178 @@ const SalesPersonForm: React.FC<{
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex space-x-4">
-             <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Sales Person Name</span>
-          <Input
-          
-            value={sales_person_name}
-            onChange={(e) => setSalesPersonName(e.target.value)}
-            placeholder="Sales Person Name"
-          />
+            <div className="flex flex-col flex-1">
+              <span className="text-sm font-medium text-gray-700">Sales Person Name</span>
+              <Input
+
+                value={sales_person_name}
+                onChange={(e) => setSalesPersonName(e.target.value)}
+                placeholder="Sales Person Name"
+              />
+            </div>
+            <div className="flex flex-col flex-1">
+              <span className="text-sm font-medium text-gray-700">Father Name</span>
+              <Input
+                value={father_name}
+                onChange={(e) => setFatherName(e.target.value)}
+                placeholder="Father Name"
+              />
+            </div>
+            <div className="flex flex-col flex-1">
+              <span className="text-sm font-medium text-gray-700">Phone</span>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Phone"
+              />
+            </div>
           </div>
-          <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Father Name</span>
-          <Input
-            value={father_name}
-            onChange={(e) => setFatherName(e.target.value)}
-            placeholder="Father Name"
-          />
+          <div className="flex space-x-4">
+            <div className="flex flex-col flex-1">
+              <span className="text-sm font-medium text-gray-700">Branch</span>
+              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                    {branch_id
+                      ? `${branches.find((br) => br.branch_id === branch_id)?.branch_name}`
+                      : "Select Branch"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="max-h-[300px] overflow-auto">
+                  <Command >
+                    <CommandInput placeholder="Search Branch..." className="text-black" />
+                    <CommandEmpty >No Branch found.</CommandEmpty>
+                    <CommandGroup>
+                      {branches.map((br) => (
+                        <CommandItem
+                          key={br.branch_id}
+                          className="hover:bg-gray-100"
+                          onSelect={() => {
+                            setBranchId(br.branch_id);
+                            setBranchOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              branch_id === br.branch_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {br.branch_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex flex-col flex-1 ">
+              <span className="text-sm font-medium text-gray-700">Company</span>
+              <Input
+                  value={selectedCompanyName}
+                  readOnly // Make it read-only since it's defaulted
+                  className="bg-gray-100 cursor-not-allowed" // Add styling to indicate it's not editable
+                  placeholder="Company Name"
+              />
+            </div>
+            <div className="flex flex-col flex-1 invisible">
+                <span className="text-sm font-medium text-gray-700">Account</span>
+                <Popover open={accountOpen} onOpenChange={setAccountOpen}>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                            {account_id
+                                ? `${accounts.find((d) => d.account_id === account_id)?.account_name}`
+                                : "Select Account"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="max-h-[300px] overflow-auto">
+                        <Command >
+                            <CommandInput placeholder="Search Accounts..." className="text-black" />
+                            <CommandEmpty >No Account found.</CommandEmpty>
+                            <CommandGroup>
+                                {accounts.map((d) => (
+                                    <CommandItem
+                                        key={d.account_id}
+                                        className="hover:bg-gray-100"
+                                        onSelect={() => {
+                                            setAccountId(d.account_id);
+                                            setAccountOpen(false);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                account_id === d.account_id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {d.account_name}
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            
+            <div className="flex flex-col flex-1">
+              {/* Region Popover */}
+              {/* <span className="text-sm font-medium text-gray-700">Region</span>
+              <Popover open={regionOpen} onOpenChange={setRegionOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                    {region_id
+                      ? `${regions.find((r) => r.region_id === region_id)?.region_name}`
+                      : "Select Region"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="max-h-[300px] overflow-auto">
+                  <Command >
+                    <CommandInput placeholder="Search region..." className="text-black" />
+                    <CommandEmpty >No region found.</CommandEmpty>
+                    <CommandGroup>
+                      {regions.map((r) => (
+                        <CommandItem
+                          key={r.region_id}
+                          className="hover:bg-gray-100"
+                          onSelect={() => {
+                            setRegionId(r.region_id);
+                            setRegionOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              region_id === r.region_id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {r.region_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover> */}
+              
+            </div>
           </div>
-           <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Phone</span>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone"
-          />
+          <div className="flex space-x-4">
+            {/* Add an empty div or adjust flex to keep layout consistent if needed */}
+            <div className="flex-1"></div>
+            <div className="flex-1"></div>
           </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-2 bg-gradient-to-r from-blue-500 to-blue-600">
+              Save
+            </Button>
           </div>
-           <div className="flex space-x-4">
-             <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Designation</span>
-           <Popover open={designationOpen} onOpenChange={setDesignationOpen}>
-                      <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between">
-                {designation_id
-                  ? `${designations.find((d) => d.designation_id === designation_id)?.designation_name}`
-                  : "Select Designation"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="max-h-[300px] overflow-auto">
-              <Command >
-                <CommandInput placeholder="Search designation..." className="text-black" />
-                <CommandEmpty >No designation found.</CommandEmpty>
-                <CommandGroup>
-                  {designations.map((d) => (
-                    <CommandItem
-                      key={d.designation_id}
-                      className="hover:bg-gray-100"
-                      onSelect={() => {
-                        setDesignationId(d.designation_id);
-                        setDesignationOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                           "mr-2 h-4 w-4",
-                          designation_id === d.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {d.designation_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          </div>
-           <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Branch</span>
-         <Popover open={branchOpen} onOpenChange={setBranchOpen}>
-                      <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between">
-                {branch_id
-                  ? `${branches.find((br) => br.branch_id === branch_id)?.branch_name}`
-                  : "Select Branch"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="max-h-[300px] overflow-auto">
-              <Command >
-                <CommandInput placeholder="Search branches..." className="text-black" />
-                <CommandEmpty >No branch found.</CommandEmpty>
-                <CommandGroup>
-                  {branches.map((br) => (
-                    <CommandItem
-                      key={br.branch_id}
-                      className="hover:bg-gray-100"
-                      onSelect={() => {
-                        setBranchId(br.branch_id);
-                        setBranchOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                           "mr-2 h-4 w-4",
-                          branch_id === br.branch_id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {br.branch_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          </div>
-          </div>
-                     <div className="flex space-x-4">
- <div className="flex flex-col flex-1">
-          <span className="text-sm font-medium text-gray-700">Company</span>
-         <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
-                      <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between">
-                {company_id
-                  ? `${companies.find((c) => c.company_id === company_id)?.company_name}`
-                  : "Select Company"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="max-h-[300px] overflow-auto">
-              <Command >
-                <CommandInput placeholder="Search company..." className="text-black" />
-                <CommandEmpty >No company found.</CommandEmpty>
-                <CommandGroup>
-                  {companies.map((c) => (
-                    <CommandItem
-                      key={c.company_id}
-                      className="hover:bg-gray-100"
-                      onSelect={() => {
-                        setCompanyId(c.company_id);
-                        setCompanyOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                           "mr-2 h-4 w-4",
-                          company_id === c.company_id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {c.company_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          </div>
-           <div className="flex flex-col flex-1">
-          {/* Region Popover */}
-          <span className="text-sm font-medium text-gray-700">Region</span>
-          <Popover open={regionOpen} onOpenChange={setRegionOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" className="w-full justify-between">
-                {region_id
-                  ? `${regions.find((r) => r.region_id === region_id)?.region_name}`
-                  : "Select Region"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="max-h-[300px] overflow-auto">
-              <Command >
-                <CommandInput placeholder="Search region..." className="text-black" />
-                <CommandEmpty >No region found.</CommandEmpty>
-                <CommandGroup>
-                  {regions.map((r) => (
-                    <CommandItem
-                      key={r.region_id}
-                      className="hover:bg-gray-100"
-                      onSelect={() => {
-                        setRegionId(r.region_id);
-                        setRegionOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                           "mr-2 h-4 w-4",
-                          region_id === r.region_id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {r.region_name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          </div>
-          </div>
-           <div className="flex gap-2 justify-end">
-                      <Button type="button" variant="outline" onClick={onClose}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="flex-2 bg-gradient-to-r from-blue-500 to-blue-600">
-                        Save
-                      </Button>
-                    </div>
         </form>
       </div>
     </div>
@@ -503,7 +566,3 @@ const SalesPersonForm: React.FC<{
 };
 
 export default SalesPersons;
-
-
-
-

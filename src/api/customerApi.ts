@@ -5,8 +5,10 @@ const getSelectedBranchId = (): string | null => {
     return sessionStorage.getItem("selectedBranchId");
 };
 
-const API_URL = "http://84.16.235.111:2091/api/customers";
-const SALES_PERSON_API_URL = "http://84.16.235.111:2091/api/salespersons";
+const API_URL = "http://84.16.235.111:2135/api/customers";
+const SALES_PERSON_API_URL = "http://84.16.235.111:2135/api/salespersons";
+import { getCurrentUserId } from "@/components/security/LoginPage";
+const user_id = getCurrentUserId();
 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
@@ -36,182 +38,117 @@ const getModuleId = () => {
 }
 
 
-// 🔹 Get Customers
-// 💡 CHANGE 2: Read branch ID and include it as 'module_id' in the POST payload.
 export const getCustomers = async () => {
-    const module_id = getModuleId();
-
-    try {
-        const res = await axios.post(API_URL, {
-            operation: 1,
-            module_id: module_id // Sending the branch ID to the API
-        });
-        console.log("API Request Payload for getCustomers:", { operation: 1, module_id: module_id });
-        console.log("API Response:", res.data);
-        return res.data;
-    } catch (error) {
-        handleApiError(error);
-    }
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 1
+    });
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
 };
-
-// 🔹 Add Customer (UPDATED to include module_id and 3 new fields)
 export const addCustomer = async (
-    customer_name: string,
-    phone: string,
-    email: string,
-    address: string,
-    city: string,
-    status: string,
-    country: string,
-    credit_limit: number,
-    payment_term: string,
-    sales_person_id: number,
-    account_id: number,
-    region_id: number,
-    // 👇 NEW FIELDS
-    ntn: string, 
-    reg_no: string,
-    discount: number, // 1 for true, 0 for false
-    // 👆 END NEW FIELDS
-    created_by: number,
-    updated_by: number
+  customer_name: string,
+  phone: string,
+  email: string,
+  address: string,
+  city: string,
+  status: string,
+
+  payment_term: string,
+  sales_person_id: number,
+  account_id: number,
+
+  ntn: string,
+  reg_no: string,
+  allow_commission: string, 
+  credit_limit: number,
+  agreement_start_date: string,
+  agreement_end_date: string
 ) => {
-    // 💡 REQUIRED CHANGE: Get the branch ID to include in the payload
-    const module_id = getModuleId();
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 2,
+      customer_name,
+      phone,
+      email,
+      address,
+      city,
+      status,
+     
+      payment_term,
+      sales_person_id,
+      account_id,
+      ntn,
+      reg_no,
+      allow_commission,
+      credit_limit,
+      agreement_start_date,
+      agreement_end_date,
+      created_by:user_id
+    });
 
-    try {
-        const res = await axios.post(API_URL, {
-            operation: 2,
-            customer_name,
-            phone,
-            email,
-            address,
-            city,
-            status,
-            country,
-            credit_limit,
-            payment_term,
-            sales_person_id,
-            account_id,
-            region_id,
-            // 👇 Added new fields
-            ntn, 
-            reg_no,
-            discount, // Send 1 or 0
-            // 👆 End new fields
-            created_by,
-            updated_by,
-            // 👇 Added module_id to the API payload
-            module_id: module_id 
-        });
-        console.log("API Request Payload for addCustomer:", { 
-            operation: 2, 
-            customer_name, 
-            phone,
-            email,
-            address,
-            city,
-            status,
-            country,
-            credit_limit,
-            payment_term,
-            sales_person_id,
-            account_id,
-            region_id,
-            ntn, 
-            reg_no,
-            discount,
-            created_by,
-            updated_by,
-            module_id 
-        });
-        // Backend returns: { success: true, message: "Customer added successfully" }
-        return res.data;
-    } catch (error) {
-        handleApiError(error);
-    }
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
 };
-
-// 🔹 Update Customer (UPDATED to include 3 new fields)
 export const updateCustomer = async (
-    customer_id: number,
-    customer_name: string,
-    phone: string,
-    email: string,
-    address: string,
-    city: string,
-    status: string,
-    country: string,
-    credit_limit: number,
-    payment_term: string,
-    sales_person_id: number,
-    account_id: number,
-    region_id: number,
-    // 👇 NEW FIELDS
-    ntn: string, 
-    reg_no: string,
-    discount: number, // 1 for true, 0 for false
-    // 👆 END NEW FIELDS
-    created_by: number,
-    updated_by: number
+  customer_id: number,
+  customer_name: string,
+  phone: string,
+  email: string,
+  address: string,
+  city: string,
+  status: string,
+  
+  payment_term: string,
+  sales_person_id: number,
+  account_id: number,
+  ntn: string,
+  reg_no: string,
+  allow_commission: string,
+  credit_limit: number,
+  agreement_start_date: string,
+  agreement_end_date: string
 ) => {
-    try {
-        const res = await axios.post(API_URL, {
-            operation: 3,
-            customer_id,
-            customer_name,
-            phone,
-            email,
-            address,
-            city,
-            status,
-            country,
-            credit_limit,
-            payment_term,
-            sales_person_id,
-            account_id,
-            region_id,
-            // 👇 Added new fields
-            ntn, 
-            reg_no,
-            discount, // Send 1 or 0
-            // 👆 End new fields
-            created_by,
-            updated_by
-        });
-        return res.data;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 3,
+      customer_id,
+      customer_name,
+      phone,
+      email,
+      address,
+      city,
+      status,
+      
+      payment_term,
+      sales_person_id,
+      account_id,
+      ntn,
+      reg_no,
+      allow_commission,
+      credit_limit,
+      agreement_start_date,
+      agreement_end_date,
+      updated_by:user_id
+    });
 
-// 🔹 Delete Customer
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
 export const deleteCustomer = async (customer_id: number) => {
-    try {
-        const res = await axios.post(API_URL, {
-            operation: 4,
-            customer_id,
-        });
-        return res.data ;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
-
-// 🔹 Get Sales Persons
-// 💡 REQUIRED CHANGE: Include 'module_id' (Branch ID) in the payload.
-export const getSalesPersons = async () => {
-    const module_id = getModuleId(); // Get the branch ID
-
-    try {
-        // API is now a POST request to send module_id
-        const res = await axios.post(SALES_PERSON_API_URL, { 
-            operation: 1,
-            module_id: module_id 
-        });
-        console.log("API Request Payload for getSalesPersons:", { module_id: module_id });
-        return res.data; // [{ sales_person_id, sales_person_name }]
-    } catch (error) {
-        handleApiError(error);
-    }
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 4,
+      customer_id
+    });
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
 };

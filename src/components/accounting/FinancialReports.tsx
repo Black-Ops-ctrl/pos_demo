@@ -53,7 +53,7 @@ const FinancialReports: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ${totalAssets.toLocaleString()}
+              Rs.{totalAssets.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -63,7 +63,7 @@ const FinancialReports: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              ${totalRevenue.toLocaleString()}
+              Rs.{totalRevenue.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -73,7 +73,7 @@ const FinancialReports: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              ${netIncome.toLocaleString()}
+              Rs.{netIncome.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ const FinancialReports: React.FC = () => {
                   <TableCell className={`text-right font-mono ${
                     item.amount >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    ${Math.abs(item.amount).toLocaleString()}
+                    {Math.abs(item.amount).toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))}
@@ -152,15 +152,15 @@ const FinancialReports: React.FC = () => {
             <div className="mt-6 space-y-2 border-t pt-4">
               <div className="flex justify-between font-semibold">
                 <span>Total Assets:</span>
-                <span className="font-mono">${totalAssets.toLocaleString()}</span>
+                <span className="font-mono">Rs.{totalAssets.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Liabilities:</span>
-                <span className="font-mono">${totalLiabilities.toLocaleString()}</span>
+                <span className="font-mono">Rs.{totalLiabilities.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Equity:</span>
-                <span className="font-mono">${totalEquity.toLocaleString()}</span>
+                <span className="font-mono">Rs.{totalEquity.toLocaleString()}</span>
               </div>
             </div>
           )}
@@ -169,16 +169,16 @@ const FinancialReports: React.FC = () => {
             <div className="mt-6 space-y-2 border-t pt-4">
               <div className="flex justify-between">
                 <span>Total Revenue:</span>
-                <span className="font-mono text-green-600">${totalRevenue.toLocaleString()}</span>
+                <span className="font-mono text-green-600">Rs.{totalRevenue.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Expenses:</span>
-                <span className="font-mono text-red-600">${totalExpenses.toLocaleString()}</span>
+                <span className="font-mono text-red-600">Rs.{totalExpenses.toLocaleString()}</span>
               </div>
               <div className="flex justify-between font-bold text-lg border-t pt-2">
                 <span>Net Income:</span>
                 <span className={`font-mono ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${netIncome.toLocaleString()}
+                  Rs.{netIncome.toLocaleString()}
                 </span>
               </div>
             </div>

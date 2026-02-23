@@ -1,7 +1,7 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/regions";
+const API_URL = "http://84.16.235.111:2135/api/regions";
 const getModuleId = (): string => {
   return sessionStorage.getItem('selectedBranchId') || 'N/A';
 };
@@ -26,8 +26,8 @@ const handleApiError = (error: any) => {
 // 1️⃣ Get all departments
 export const getRegions= async () => {
   try {
-    const res = await axios.post(API_URL, { operation: 1,module_id });
-    return res.data.data;
+    const res = await axios.post(API_URL, { operation: 1 });
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -44,7 +44,7 @@ export const addRegion = async (
       region_name,
       module_id
     });
-    return res.data.data;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -62,7 +62,7 @@ export const updateRegion = async (
       region_name,
       module_id
     });
-    return res.data.data;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -75,7 +75,7 @@ export const deleteRegion = async (region_id: number) => {
       p_operation: 4,
       region_id,
     });
-    return res.data.data;
+    return res.data;
 
   } catch (error) {
     handleApiError(error);

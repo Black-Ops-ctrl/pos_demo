@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState ,useCallback} from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Edit, Trash2, Building2, Loader2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Building2, Loader2, ArrowUp } from "lucide-react";
 import { getCompanies, addCompany, updateCompany, deleteCompany } from "@/api/companyApi"; 
 
 // Company type
@@ -24,6 +24,8 @@ export interface Company {
 const CompanyComponent: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
+      const [showScrollToTop, setShowScrollToTop] = useState(false); // ✅ New state for scroll button
+  
   const [open, setOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   
@@ -42,6 +44,31 @@ const CompanyComponent: React.FC = () => {
     }
   };
 
+
+
+      const checkScrollTop = useCallback(() => {
+        // Show button if page is scrolled down more than 400px
+        if (!showScrollToTop && window.scrollY > 400) {
+          setShowScrollToTop(true);
+        } else if (showScrollToTop && window.scrollY <= 400) {
+          setShowScrollToTop(false);
+        }
+      }, [showScrollToTop]);
+    
+      useEffect(() => {
+        window.addEventListener('scroll', checkScrollTop);
+        return () => {
+          window.removeEventListener('scroll', checkScrollTop);
+        };
+      }, [checkScrollTop]);
+    
+      const scrollToTop = () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      };
+  
   // Filtered companies based on search (using useMemo for performance)
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) =>
@@ -115,9 +142,9 @@ const CompanyComponent: React.FC = () => {
               <Building2 className="h-5 w-5" />
               Company
             </CardTitle>
-            <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAdd}>
+            {/* <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-2" /> Add Company
-            </Button>
+            </Button> */}
           </div>
           <div className="relative mt-2">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -185,7 +212,17 @@ const CompanyComponent: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
-
+              {showScrollToTop && (
+                <Button
+                  onClick={scrollToTop}
+                  size="icon"
+                  className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
+                             bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
+                  aria-label="Scroll to top"
+                >
+                  <ArrowUp className="h-5 w-5" />
+                </Button>
+              )}
       {open && (
         <CompanyForm
           company={editingCompany}

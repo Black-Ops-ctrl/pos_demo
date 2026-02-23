@@ -1,29 +1,23 @@
-// src/api/branchApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/branches";
+const API_URL = "http://84.16.235.111:2135/api/branches";
+import { getCurrentUserId } from "@/components/security/LoginPage";
 
-/**
- * Retrieves the 'module_id' (which corresponds to 'selectedBranchId') from sessionStorage.
- * This ensures the correct branch context is sent with every API request.
- * @returns {string} The selected branch ID or 'N/A' if not found.
- */
+
+
+
 const getModuleId = (): string => {
-  // Use 'selectedBranchId' as the module_id for API operations
-  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+  return sessionStorage.getItem('selectedBranchId') || '2'; 
 };
-
+const user_id = getCurrentUserId();
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
-    // Server responded with a status code outside 2xx
     if (error.response) {
       console.error("API error:", error.response.data);
       throw new Error(
         error.response.data?.message || `API Error: ${error.response.status}`
       );
-    }
-    // No response received (server down, network issue)
-    else if (error.request) {
+    } else if (error.request) {
       console.error("No response from server:", error.request);
       throw new Error("No response from server. Please check your connection.");
     }
@@ -35,39 +29,16 @@ const handleApiError = (error: any) => {
 };
 
 // ----------------------------------------------------
-// --- API Functions Updated with 'module_id' ---
+// --- API Functions Updated with proper payload structure ---
 // ----------------------------------------------------
 
-// Get all branches
+// Get all branches (Operation 1)
 export const getBranches = async () => {
-  const module_id = getModuleId(); // Get module_id
-  
-  try {
-    const res = await axios.post(API_URL, { 
-      operation: 1,
-      module_id, // 🔑 Added module_id
-    });
-    return res.data;
-  } catch (error) {
-    handleApiError(error);
-  }
-};
+  const module_id = getModuleId();
 
-// Add new branch
-export const addBranch = async (
-  branch_name: string,
-  address: string,
-  city: string
-) => {
-  const module_id = getModuleId(); // Get module_id
-  
   try {
     const res = await axios.post(API_URL, {
-      operation: 2,
-      module_id, // 🔑 Added module_id
-      branch_name,
-      address,
-      city,
+      operation: 1
     });
     return res.data;
   } catch (error) {
@@ -75,23 +46,91 @@ export const addBranch = async (
   }
 };
 
-// Update existing branch
+// Add new branch (Operation 2) - UPDATED with proper payload structure
+export const addBranch = async (
+  branch_name: string,
+  farm_type: string,
+  city: string,
+  account_id: number,
+  no_of_partners?: number,
+  discounts?: string,
+  extra_discount?: number,
+  remarks?: string,
+  is_owned?: boolean,
+  is_rent?: boolean,
+  farm_description?: string
+) => {
+  const module_id = getModuleId();
+  const moduleIdNum = parseInt(module_id);
+
+  try {
+    // Base payload structure
+    const payload: any = {
+      operation: 2,
+      
+      branch_name,
+      account_id,
+      city,
+    };
+
+    
+      
+      
+
+    const res = await axios.post(API_URL, payload);
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+// Update existing branch (Operation 3) - UPDATED with proper payload structure
 export const updateBranch = async (
   branch_id: number,
   branch_name: string,
-  address: string,
-  city: string
+  farm_type: string,
+  city: string,
+  account_id: number,
+  no_of_partners?: number,
+  discounts?: string,
+  extra_discount?: number,
+  remarks?: string,
+  is_owned?: boolean,
+  is_rent?: boolean,
+  farm_description?: string
 ) => {
-  const module_id = getModuleId(); // Get module_id
-  
+  const module_id = getModuleId();
+  const moduleIdNum = parseInt(module_id);
+
   try {
-    const res = await axios.post(API_URL, {
+    // Base payload structure
+    const payload: any = {
       operation: 3,
-      module_id, // 🔑 Added module_id
+     
       branch_id,
       branch_name,
-      address,
+      account_id,
       city,
+    };
+
+    
+
+    const res = await axios.post(API_URL, payload);
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+// Delete branch (Operation 4)
+export const deleteBranch = async (branch_id: number) => {
+  const module_id = getModuleId();
+
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 4,
+    
+      branch_id,
     });
     return res.data;
   } catch (error) {
@@ -99,18 +138,38 @@ export const updateBranch = async (
   }
 };
 
-// Delete branch
-export const deleteBranch = async (branch_id: number) => {
-  const module_id = getModuleId(); // Get module_id
-  
+//🔹 Approve Multiple Journal Entries (Bulk Status Update)
+export const approveBranch = async (branch_ids: number[]) => {
   try {
     const res = await axios.post(API_URL, {
-      operation: 4,
-      module_id, // 🔑 Added module_id
-      branch_id,
+      operation: 5,                        
+      updated_by: user_id,                 
+                           
+      branch_ids               
     });
-    return res.data;
+
+    return res.data; // returns the updated invoices list
   } catch (error) {
     handleApiError(error);
   }
 };
+
+//🔹 Unapprove Multiple Journal Entries (Bulk Status Update)
+export const UnapproveBranch = async (branch_ids: number[]) => {
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 6,                        // 5 = Unapprove operation
+      updated_by: user_id,                 // current user performing approval
+                              // current branch/module context
+      branch_ids,                   // array of IDs to unapprove
+    });
+
+    return res.data; // returns the updated invoices list
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+
+
+

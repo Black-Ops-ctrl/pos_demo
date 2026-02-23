@@ -1,7 +1,7 @@
 // src/api/companyApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/company";
+const API_URL = "http://84.16.235.111:2135/api/company";
 
 /**
  * Retrieves the 'module_id' (which corresponds to 'selectedBranchId') from sessionStorage.
@@ -89,7 +89,7 @@ export const updateCompany = async (
   try {
     const res = await axios.post(API_URL, {
       operation: 3,
-      module_id, 
+    
       id,
       name,
       registration_number,
@@ -111,7 +111,7 @@ export const deleteCompany = async (id: number) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
-      module_id, 
+     
       id,
     });
     return res.data;

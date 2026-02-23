@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Factory, PillBottle, Bot } from "lucide-react"; // Example icons
+import { Factory, PillBottle, Bot } from "lucide-react"; // Example icons - Note: Bot is not used, PillBottle is not used
 import { getModules } from "@/api/modulesApi";
-import logo from "src\\assets\\logo.png";
 import { useNavigate } from "react-router-dom";
 
 interface Modules {
@@ -16,15 +14,23 @@ const ModulesPage: React.FC = () => {
   const navigate = useNavigate();
 
   /**
-   * Function to handle card clicks, save the selected branch ID, and navigate.
+   * Function to handle card clicks, save the selected branch ID, navigate, and reload.
    * @param moduleId - The ID of the selected branch/module (e.g., "1", "2", "3").
    */
   const handleModuleClick = (moduleId: string) => {
-    // 💡 CHANGE 1: Store the selected module ID in sessionStorage for global access
+    // 💡 CHANGE 1: Store the selected module ID in sessionStorage
     sessionStorage.setItem("selectedBranchId", moduleId);
+    
+    // 💡 CHANGE 2: Clear any previous activeModule to reset to 'dashboard'
+    // Optional: This ensures a new module/branch always starts on the dashboard tab.
+    sessionStorage.removeItem("activeModule"); 
 
-    // Navigate to the main dashboard page
+    // Navigate to the main dashboard page (client-side navigation)
     navigate("/");
+    
+    // ⭐️ CHANGE 3: Force a full page reload to reset the application state
+    // and ensure the new branch ID is read by all components on mount.
+    window.location.reload(); 
   };
 
   const loadModules = async () => {
@@ -33,9 +39,6 @@ const ModulesPage: React.FC = () => {
       // but the data structure and fetching logic are maintained.
       const res = await getModules();
       // setModules(res.data || res); 
-      // For demonstration, we'll keep the static cards, but if dynamic is needed:
-      // const fetchedModules: Modules[] = res.data || res;
-      // setModules(fetchedModules); 
     } catch (error) {
       console.error("Error loading modules", error);
     }
@@ -61,7 +64,7 @@ const ModulesPage: React.FC = () => {
       {/* Boxes */}
       <div className="flex flex-col md:flex-row flex-wrap items-center justify-center gap-8">
         {/* Feed Mill - Value "1" */}
-        <Card
+        {/* <Card
           onClick={() => handleModuleClick("1")}
           className="cursor-pointer w-64 bg-gray-300 rounded-xl shadow-md flex flex-col items-center justify-between p-6 hover:shadow-lg transition-shadow hover:bg-gray-200"
         >
@@ -75,41 +78,12 @@ const ModulesPage: React.FC = () => {
             </div>
             <h2 className="text-lg font-medium">Feed Mill</h2>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Brokery - Value "2" */}
-        <Card
-          onClick={() => handleModuleClick("2")}
-          className="cursor-pointer w-64 bg-gray-300 rounded-xl shadow-md flex flex-col items-center justify-between p-6 hover:shadow-lg transition-shadow hover:bg-gray-200"
-        >
-          <CardContent className="flex flex-col items-center">
-            <div className="text-gray-700 text-3xl mb-4">
-              <img
-                src="brokery.png"
-                alt="Brokery Icon"
-                className="w-20 mb-4"
-              />
-            </div>
-            <h2 className="text-lg font-medium">Brokery</h2>
-          </CardContent>
-        </Card>
 
         {/* Medicine - Value "3" */}
-        <Card
-          onClick={() => handleModuleClick("3")}
-          className="cursor-pointer w-64 bg-gray-300 rounded-xl shadow-md flex flex-col items-center justify-between p-6 hover:shadow-lg transition-shadow hover:bg-gray-200"
-        >
-          <CardContent className="flex flex-col items-center">
-            <div className="text-gray-700 text-3xl mb-4">
-              <img
-                src="medicon.png"
-                alt="Medicine Icon"
-                className="w-20 mb-4"
-              />
-            </div>
-            <h2 className="text-lg font-medium">Medicine</h2>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );

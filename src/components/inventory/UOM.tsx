@@ -20,18 +20,19 @@ const UOM: React.FC = () => {
 
   // Load departments on mount
   useEffect(() => {
-    loadUOMs();
-  }, []);
+        
+        loadUOM();
+    }, []);
 
-  const loadUOMs = async () => {
-    try {
-      const data = await getUOM();
-      setUOMs(data);
-      console.log(data);
-    } catch (error) {
-      console.error("Error loading UOMs", error);
-    }
-  };
+    const loadUOM = async () => {
+        try {
+            const data = await getUOM();
+            setUOMs(data);
+        } catch (error) {
+            console.error("Error loading UOMs", error);
+        }
+    };
+
 
   const handleAddUOM = () => {
     setEditingUOM(null);
@@ -52,7 +53,7 @@ const UOM: React.FC = () => {
         await addUOM(regData.uom_name);
       }
       setShowForm(false);
-      loadUOMs();
+      loadUOM();
     } catch (error) {
       console.error("Error saving UOM", error);
     }
@@ -62,68 +63,93 @@ const UOM: React.FC = () => {
     if (confirm("Are you sure you want to delete this UOM?")) {
       try {
         await deleteUOM(uom_id);
-        loadUOMs();
+        loadUOM();
       } catch (error) {
         console.error("Error deleting UOMs", error);
       }
     }
   };
 
-  const filteredUOMs = UOMs.filter((UOM) =>
-    UOM.uom_name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredUOMs = UOMs.filter((uom) =>
+    uom.uom_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <>
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>UOMs</CardTitle>
-            <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAddUOM}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add UOM
-            </Button>
-          </div>
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search UOMs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>UOM Name</TableHead>
-               
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUOMs.map((UOM) => (
-                <TableRow key={UOM.uom_id}>
-                  <TableCell className="font-medium">{UOM.uom_name}</TableCell>
-                 
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditUOM(UOM)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteUOM(UOM.uom_id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+  <CardHeader>
+    <div className="flex items-center justify-between">
+      <CardTitle>UOMs</CardTitle>
+      <Button
+        className="bg-gradient-to-r from-blue-500 to-blue-600"
+        onClick={handleAddUOM}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add UOM
+      </Button>
+    </div>
+
+    <div className="relative mt-3">
+      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+      <Input
+        placeholder="Search UOMs..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="pl-10"
+      />
+    </div>
+  </CardHeader>
+
+  <CardContent>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>UOM Name</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+        {filteredUOMs.length > 0 ? (
+          filteredUOMs.map((uom) => (
+            <TableRow key={uom.uom_id}>
+              <TableCell className="font-medium">
+                {uom.uom_name}
+              </TableCell>
+
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditUOM(uom)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDeleteUOM(uom.uom_id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={2} className="text-center text-gray-500 py-6">
+              No UOMs found
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  </CardContent>
+</Card>
+
 
       {showForm && (
         <UOMForm UOM={editingUOM} 

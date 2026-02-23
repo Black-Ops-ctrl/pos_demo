@@ -7,6 +7,8 @@ import { Building, Package } from 'lucide-react';
 import Items from '../inventory/Items';
 import ItemCategories from './ItemCategory';
 import UOM from './UOM';
+import CreateCategoryPage from '../../pages/CreateCategoryPage';
+
 const Others: React.FC = () => {
   const [activeTab, setActiveTab] = useState('items');
 
@@ -40,13 +42,11 @@ const Others: React.FC = () => {
 
         
           <ColorfulTabsContent value="items">
-            <Items />
+            <ItemCategories />
           </ColorfulTabsContent>
 
-
-
           <ColorfulTabsContent value="item-categories">
-            <ItemCategories />
+          <CreateCategoryPage />
           </ColorfulTabsContent>
 
          

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/getvendors";
+const API_URL = "http://84.16.235.111:2135/api/getvendors";
 
 export const getVendors = async () => {
   try {

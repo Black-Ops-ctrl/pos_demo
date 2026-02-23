@@ -10,6 +10,10 @@ import GRNDetail from "./components/purchasing/GRNDetail";
 import Login from "./components/security/LoginPage";
 import PrivateRoute from "./components/security/PrivateRoute";
 import ModulesPage from "./components/modules/ModulesPage";
+import ViewProduct from "@/pages/ViewProductPage"; 
+import AddProductPage from "@/pages/AddProductPage";  
+
+
 
 
 const queryClient = new QueryClient();
@@ -23,9 +27,10 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/modules" element={<ModulesPage />} />
             <Route path="/"      element={<PrivateRoute><Index /></PrivateRoute>}/>
            <Route path="*" element={<NotFound />} />
+           <Route path="/view-products/:categoryName" element={<ViewProduct />} />
+           <Route path="/add-product" element={<PrivateRoute><AddProductPage /></PrivateRoute>} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

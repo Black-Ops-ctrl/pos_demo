@@ -1,14 +1,13 @@
-// ItemCategories.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit, Trash2, Building2, ChevronsUpDown, Check } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Building2, ChevronsUpDown, Check, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GenericForm from "@/components/forms/GenericForm";
 import { getItemCategory, addItemCategory, updateItemCategory, deleteItemCategory } from "@/api/itemCategoryApi";
-import { getAccounts } from "@/api/getAccountsApi";
+import { getItemsAccounts } from "@/api/getAccountsApi";
 import {
   Popover,
   PopoverContent,
@@ -23,7 +22,6 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
-
 interface ItemCategory {
   category_id: number;
   category_name: string;
@@ -33,16 +31,12 @@ interface ItemCategory {
   description: string;
 }
 
-
-
-
 const ItemCategories: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ItemCategory | null>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
-   
-  
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const { toast } = useToast();
 
@@ -55,24 +49,40 @@ const ItemCategories: React.FC = () => {
       console.error("Error loading categories", error);
     }
   };
-  
-  
 
   useEffect(() => {
     loadCategories();
-    
   }, []);
+
+  const checkScrollTop = useCallback(() => {
+    if (!showScrollToTop && window.scrollY > 400) {
+      setShowScrollToTop(true);
+    } else if (showScrollToTop && window.scrollY <= 400) {
+      setShowScrollToTop(false);
+    }
+  }, [showScrollToTop]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', checkScrollTop);
+    return () => {
+      window.removeEventListener('scroll', checkScrollTop);
+    };
+  }, [checkScrollTop]);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const handleAddCategory = () => {
     setEditingCategory(null);
-     
     setShowForm(true);
   };
 
   const handleEditCategory = (cat: ItemCategory) => {
     setEditingCategory(cat);
-   
-    
     setShowForm(true);
   };
 
@@ -85,7 +95,7 @@ const ItemCategories: React.FC = () => {
           data.account_id,
           data.description
         );
-        toast({ title: "Updated", description: "Category updated successfully!" ,duration: 3000});
+        toast({ title: "Updated", description: "Category updated successfully!", duration: 3000 });
       } else {
         await addItemCategory(
           data.category_name,
@@ -99,6 +109,7 @@ const ItemCategories: React.FC = () => {
     } catch (error) {
       console.error("Error saving category", error);
       toast({ title: "Error", description: "Failed to save category", variant: "destructive", duration: 3000 });
+      throw error;
     }
   };
 
@@ -121,7 +132,6 @@ const ItemCategories: React.FC = () => {
       (cat.description || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const newLocal = "custom";
   return (
     <>
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
@@ -154,9 +164,7 @@ const ItemCategories: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-               
-                <TableHead>Account</TableHead>
-                 <TableHead>Description</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -164,11 +172,7 @@ const ItemCategories: React.FC = () => {
               {filteredCategories.map((cat) => (
                 <TableRow key={cat.category_id}>
                   <TableCell className="font-medium">{cat.category_name}</TableCell>
-                   <TableCell>{cat.account_name
-                      ? `${cat.account_name}-${cat.account_code}`
-                      : "-"}</TableCell>
                   <TableCell>{cat.description || "-"}</TableCell>
-                 
                   <TableCell>
                     <div className="flex gap-1">
                       <Button size="sm" variant="outline" onClick={() => handleEditCategory(cat)}>
@@ -197,41 +201,48 @@ const ItemCategories: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+      
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          size="icon"
+          className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
+      )}
 
-       {
-       showForm && (
-        <CategoryForm category={editingCategory} onClose={() => setShowForm(false)} onSave={handleSaveCategory} />
+      {showForm && (
+        <CategoryForm 
+          category={editingCategory} 
+          onClose={() => setShowForm(false)} 
+          onSave={handleSaveCategory} 
+        />
       )}
     </>
   );
 };
+
 const CategoryForm: React.FC<{
   category: ItemCategory | null;
   onClose: () => void;
-  onSave: (data: Omit<ItemCategory, "category_id">) => void;
+  onSave: (data: Omit<ItemCategory, "category_id">) => Promise<void>;
 }> = ({ category, onClose, onSave }) => {
   const [category_name, setCategoryName] = useState("");
-  const [account_id, setAccountId] = useState<number >(0);
   const [description, setDescription] = useState("");
-
   const [accounts, setAccounts] = useState([]);
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-
-
-  // Fetch categories
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const accountsData = await getAccounts();
-        
+        const accountsData = await getItemsAccounts();
         setAccounts(accountsData);
-       
 
         if (category) {
-          
           setCategoryName(category.category_name || "");
-          setAccountId(category.account_id || 0);
           setDescription(category.description || "");
         }
       } catch (err) {
@@ -241,92 +252,71 @@ const CategoryForm: React.FC<{
     fetchData();
   }, [category]);
 
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category_name || !account_id || !description) {
+    if (!category_name || !description) {
       alert("Please fill all fields.");
       return;
     }
-    onSave({
+
+    setIsLoading(true);
+
+    try {
+      await onSave({
         category_name,
-        account_id,
         description
-      
-        
-    });
+      });
+      // Form will close automatically on successful save
+    } catch (error) {
+      // If saving fails, keep the form open and turn off loading state
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg w-96">
-        
-      
-
-  
-      <h2 className="text-lg font-semibold mb-4">
-        {category ? "Edit Category" : "Add Category"}
-      </h2>
-   
+        <h2 className="text-lg font-semibold mb-4">
+          {category ? "Edit Category" : "Add Category"}
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-             
           <Input
             value={category_name}
             onChange={(e) => setCategoryName(e.target.value)}
             placeholder="Category Name"
+            disabled={isLoading}
           />
-          {/* 🔹 Account Selection Dropdown */}
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-    <Button variant="outline" role="combobox" className="w-full justify-between">
-      {account_id
-        ? `${accounts.find((a) => a.account_id === account_id)?.account_name} (${accounts.find((a) => a.account_id === account_id)?.account_code})`
-        : "Select Account"}
-      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-    </Button>
-  </PopoverTrigger>
-  <PopoverContent className="max-h-[300px] overflow-auto">
-    <Command >
-      <CommandInput placeholder="Search accounts..." className="text-black" />
-      <CommandEmpty >No account found.</CommandEmpty>
-      <CommandGroup>
-        {accounts.map((acc) => (
-          <CommandItem
-            key={acc.account_id}
-            className="hover:bg-gray-100"
-            onSelect={() => {
-              setAccountId(acc.account_id);
-              setOpen(false);
-            }}
-          >
-            <Check
-              className={cn(
-                 "mr-2 h-4 w-4",
-                account_id === acc.account_id ? "opacity-100" : "opacity-0"
-              )}
-            />
-            {acc.account_name} ({acc.account_code})
-          </CommandItem>
-        ))}
-      </CommandGroup>
-    </Command>
-  </PopoverContent>
-</Popover>
           <Input
-           
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             type='text'
             placeholder="Description"
+            disabled={isLoading}
           />
-          <div className="flex  gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-                          Cancel
-                        </Button>
-            <Button type="submit" className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600">
-              Save
-            </Button>  
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
           </div>
         </form>
       </div>

@@ -1,7 +1,14 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/itemCategories";
+const API_URL = "http://84.16.235.111:2135/api/itemCategories";
 
+
+
+const getModuleId = (): string => {
+  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+};
+
+const module_id = getModuleId(); 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -22,7 +29,7 @@ const handleApiError = (error: any) => {
 // 🔹 Get Item Categories
 export const getItemCategory = async () => {
   try {
-    const res = await axios.post(API_URL, { operation: 1 });
+    const res = await axios.post(API_URL,{operation:1});
    console.log("API Response:", res.data);
     return res.data;
   } catch (error) {
@@ -81,7 +88,7 @@ export const deleteItemCategory = async (category_id: number) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
-      category_id,
+      category_id
     });
     return res.data ; 
   } catch (error) {

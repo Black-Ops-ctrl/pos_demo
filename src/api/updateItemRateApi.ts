@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/updateItemRate";
+const API_URL = "http://84.16.235.111:2135/api/updateItemRate";
+
+const getModuleId = (): string => {
+  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+};
+
+const module_id = getModuleId(); 
 
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -21,35 +27,42 @@ const handleApiError = (error: any) => {
 // Get all companies
 export const getAllItems = async () => {
   try {
-    const res = await axios.post(API_URL, { operation: 1 ,module_id:1});
+    const res = await axios.post(API_URL, { operation: 1, module_id: module_id });
     return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
+
 export const updateItemRates = async (
   rate_ids: number[],
   item_ids: number[],
   categories: number[],
-  warehouse_ids: number[],
-  rates: number[] // Renamed from prices to rates for clarity
+  rates: number[],
+  discounts: number[]
 ) => {
   try {
-    // ... (array length check remains valid)
+    // Validate array lengths
+    if (rate_ids.length !== item_ids.length || 
+        rate_ids.length !== categories.length || 
+        rate_ids.length !== rates.length ||
+        rate_ids.length !== discounts.length) {
+      throw new Error("All input arrays must have the same length");
+    }
 
     // Prepare the payload for the request to match PostgreSQL function parameters
     const payload = {
       operation: 2,
       rate_ids,
       item_ids,
-     categories,
-     warehouse_ids,
-      rates, // Match the function parameter name p_rates
-      module_id: 1, // Assuming this is the fixed module ID
+      categories,
+      rates,
+      discounts,
+      module_id: module_id
     };
 
     // Send the request to the API
-    const res = await axios.post(API_URL, payload); // Send the flat array payload
+    const res = await axios.post(API_URL, payload);
 
     return res.data; // Return the response from the API
   } catch (error) {

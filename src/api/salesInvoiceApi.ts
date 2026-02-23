@@ -1,15 +1,22 @@
 import axios from "axios";
+import { getCurrentUserId } from "@/components/security/LoginPage";
+const Items_API_URL = "http://84.16.235.111:2135/api/items";
 
-const API_URL = "http://84.16.235.111:2091/api/sales-invoices";
+
+const image_URL = "http://84.16.235.111:2135/api/company";
+
+
+const API_URL = "http://84.16.235.111:2135/api/sales-invoices";
+
+const getModuleId = (): string | null => {
+  return sessionStorage.getItem('selectedBranchId');
+};  
 
 
 
-const getModuleId = (): string => {
-  // Use 'selectedBranchId' as the module_id for API operations
-  return sessionStorage.getItem('selectedBranchId') || 'N/A';
-};
-// 🔹 Centralized error handler
-const handleApiError = (error: any) => {
+//const user_id = getCurrentUserId();
+
+const handleApiError = (error: any) => {  
   if (axios.isAxiosError(error)) {
     if (error.response) {
       console.error("API error:", error.response.data);
@@ -25,50 +32,223 @@ const handleApiError = (error: any) => {
   throw new Error("Unexpected error occurred. Check console for details.");
 };
 
-// 🔹 Get All Sale Invoices
-export const getSaleInvoices = async () => {
-      const module_id = getModuleId(); 
+// 🔹 Get All Sale Invoices (Operation 1)
+export const getSaleInvoices = async (startDate?: string, endDate?: string) => {
+  const module_id = getModuleId(); 
 
   try {
-    const res = await axios.post(API_URL, { operation: 1,
-      module_id,  
-     });
+   
+   
+     const user_id = getCurrentUserId();
+    
+    if (!user_id) {
+      throw new Error("User not authenticated. Please log in again.");
+    }
+      const res = await axios.post(API_URL, { 
+      operation: 1, 
+      start_date: startDate, 
+      end_date: endDate   ,   
+      created_by:user_id
+    });
     return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
-// 🔹 Insert Sale Invoice (with JSON items)
+// 🔹 Insert Sale Invoice (Operation 2) - UPDATED: Changed discount to discount_percentage
 export const createSalesInvoice = async (
-
-customer_id: number,
- invoice_date: Date, 
- status: string,
+  customer_id: number,
+  invoice_date: Date, 
   remarks: string,
- created_by: number, // Removed discount and tax from main invoice level based on your JSON example
- total_amount: number,
- items: {item_id: number; quantity: number;unit_price: number; discount: number; tax: number; 
-}[]) => {
-        const module_id = getModuleId(); 
-
+  
+  total_amount: number,
+  
+  commission_amount:number,
+  company_id: number,
+  branch_id: number,
+  items: {
+    item_id: number;
+    quantity: number;
+    unit_price: number;
+    discount_percentage: number; // CHANGED: discount to discount_percentage
+    discount_amount: number;
+    tax: number;
+    extra_discount: number;
+    commission_percentge: number;
+    commission_amount: number;
+  }[]
+) => {
+ const user_id = getCurrentUserId();
+    
+    if (!user_id) {
+      throw new Error("User not authenticated. Please log in again.");
+    }
   try {
+    
+    const tax = items.reduce(
+      (sum, item) => sum + Number(item.tax || 0),
+      0
+    );
     const res = await axios.post(API_URL, {
-      operation: 2, 
+      operation: 2,
       customer_id,
-      status,
       remarks,
-      created_by,
-      // Removed discount and tax fields from payload based on your JSON example
+      created_by: user_id,
+      tax,
+      company_id,    
+      branch_id, 
       total_amount,
-      items,
-              module_id, 
-              invoice_date
- // The array is automatically converted to JSON by axios
+      commission_amount,
+      items         ,
+       invoice_date,
     });
 
-    // Backend expected: { success: true, so_id: 123, message: "SO created successfully" }
-    return res.data ;
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+// 🔹 Delete Sale Invoice (Operation 3)
+export const deleteSalesInvoice = async (sales_invoice_id: number) => {
+  
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 3,
+      sales_invoice_id: sales_invoice_id
+    });
+
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+export const approveSaleInvoices = async (selectedInvoices: number[]) => {
+ 
+  
+  try {
+     const user_id = getCurrentUserId();
+    
+    if (!user_id) {
+      throw new Error("User not authenticated. Please log in again.");
+    }
+    const res = await axios.post(API_URL, {
+      operation: 4,      
+      updated_by: user_id,
+      
+      sales_invoice_ids: selectedInvoices,
+    });
+
+    return res.data.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+export const unapproveSaleInvoices = async (selectedInvoices: number[]) => {
+  
+  try {
+    const res = await axios.post(API_URL, {
+      operation: 5,      
+     
+      sales_invoice_ids: selectedInvoices,
+    });
+
+    return res.data.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+// 🔹 Update Sale Invoice (Operation 7) - UPDATED: Changed discount to discount_percentage
+export const updateSalesInvoice = async (
+  sales_invoice_id: number,
+  customer_id: number,
+  invoice_date: Date,
+  remarks: string,
+  total_amount: number,
+  commission_amount,
+  company_id: number,
+  branch_id: number,
+  
+  items: {
+    item_id: number;
+    quantity: number;
+    unit_price: number;
+    discount_percentage: number; 
+    discount_amount: number;
+    tax: number;
+    extra_discount: number;
+    commission_percentge :number;
+    commission_amount :number;
+  }[]
+) => {
+ 
+  try {
+     const user_id = getCurrentUserId();
+    
+    if (!user_id) {
+      throw new Error("User not authenticated. Please log in again.");
+    }
+    const tax = items.reduce(
+      (sum, item) => sum + Number(item.tax || 0),
+      0
+    );
+    const res = await axios.post(API_URL, {
+      operation: 7,
+     
+      customer_id,
+     
+      
+      remarks,
+      updated_by: user_id,
+      tax,
+       company_id,
+      branch_id,
+      
+      total_amount,
+      commission_amount,
+      items,
+       sales_invoice_id,
+        invoice_date
+    });   
+    return res.data;
+  } catch (error) {
+    handleApiError(error);
+  }
+}
+
+
+
+
+
+// Get Items for Discount
+export const getItemsfordiscount = async (branch_id: number) => {
+ const module_id = getModuleId();
+ 
+ try {
+  const res = await axios.post(Items_API_URL, { 
+   operation: 1,
+   
+   branch_id,
+  });
+  console.log("API Response for branch", branch_id, ":", res.data);
+  return res.data.data;
+ } catch (error) {
+  handleApiError(error);
+ }
+};
+
+
+
+export const getCompanyimg = async () => {
+  try {
+    const res = await axios.post(image_URL, { 
+      operation: 1
+    });
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }

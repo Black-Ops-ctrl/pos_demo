@@ -1,7 +1,12 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import "./styles/tailwind.css";
+import AppRouter from "./core/routes/AppRouter";
+import App from './App.tsx';
+import './index.css';
 
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-// Remove dark mode class addition
-createRoot(document.getElementById("root")!).render(<App />);
+// Use StrictMode and BrowserRouter for routing
+createRoot(document.getElementById("root")!).render(
+  <App/>
+);

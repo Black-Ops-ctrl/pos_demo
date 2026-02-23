@@ -27,12 +27,14 @@ interface Role {
   sales_delete: number;
   sales_export: number;
   sales_approve: number;
+  sales_unapprove:number;
 
   accounting_read: number;
   accounting_write: number;
   accounting_delete: number;
   accounting_export: number;
   accounting_approve: number;
+  accounting_unapprove:number;
 
   hr_read: number;
   hr_write: number;
@@ -45,30 +47,35 @@ interface Role {
   inventory_delete: number;
   inventory_export: number;
   inventory_approve: number;
+  inventory_unapprove:number;
 
   crm_read: number;
   crm_write: number;
   crm_delete: number;
   crm_export: number;
   crm_approve: number;
+  crm_unapprove:number;
 
   purchasing_read: number;
   purchasing_write: number;
   purchasing_delete: number;
   purchasing_export: number;
   purchasing_approve: number;
+  purchasing_unapprove:number;
 
   reports_read: number;
   reports_write: number;
   reports_delete: number;
   reports_export: number;
   reports_approve: number;
+  reports_unapprove:number;
 
   security_read: number;
   security_write: number;
   security_delete: number;
   security_export: number;
   security_approve: number;
+  security_unapprove:number;
 }
 
 const RoleManagement: React.FC = () => {
@@ -80,7 +87,16 @@ const [roles, setRoles] = useState<Role[]>([]);
    const [editRole, setEditRole] = useState<Role | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const modules = ['Sales', 'Accounting', 'HR', 'Inventory', 'CRM', 'Purchasing', 'Reports', 'Security'];
+  const modules = [
+  'Sales',
+  'Accounting',
+ // 'HR',
+  'Inventory',
+ // 'CRM',
+  'Purchasing',
+  'Reports',
+  'Security'
+];
  
 
    const loadRoles = async () => {
@@ -119,12 +135,14 @@ const [roles, setRoles] = useState<Role[]>([]);
         data.sales_delete,
         data.sales_export,
         data.sales_approve,
+        data.sales_unapprove,
 
         data.accounting_read,
         data.accounting_write,
         data.accounting_delete,
         data.accounting_export,
         data.accounting_approve,
+        data.accounting_unapprove,
 
         data.hr_read,
         data.hr_write,
@@ -137,30 +155,35 @@ const [roles, setRoles] = useState<Role[]>([]);
         data.inventory_delete,
         data.inventory_export,
         data.inventory_approve,
+        data.inventory_unapprove,
 
         data.crm_read,
         data.crm_write,
         data.crm_delete,
         data.crm_export,
         data.crm_approve,
+        data.crm_unapprove,
 
         data.purchasing_read,
         data.purchasing_write,
         data.purchasing_delete,
         data.purchasing_export,
         data.purchasing_approve,
+        data.purchasing_unapprove,
 
         data.reports_read,
         data.reports_write,
         data.reports_delete,
         data.reports_export,
         data.reports_approve,
+        data.reports_unapprove,
 
         data.security_read,
         data.security_write,
         data.security_delete,
         data.security_export,
-        data.security_approve
+        data.security_approve,
+        data.security_unapprove
       );
 
       toast({ title: "Updated", description: "Role updated successfully!" });
@@ -176,12 +199,14 @@ const [roles, setRoles] = useState<Role[]>([]);
         data.sales_delete,
         data.sales_export,
         data.sales_approve,
+        data.sales_unapprove,
 
         data.accounting_read,
         data.accounting_write,
         data.accounting_delete,
         data.accounting_export,
         data.accounting_approve,
+        data.accounting_unapprove,
 
         data.hr_read,
         data.hr_write,
@@ -194,30 +219,37 @@ const [roles, setRoles] = useState<Role[]>([]);
         data.inventory_delete,
         data.inventory_export,
         data.inventory_approve,
+        data.inventory_unapprove,
 
         data.crm_read,
         data.crm_write,
         data.crm_delete,
         data.crm_export,
         data.crm_approve,
+        data.crm_unapprove,
+
 
         data.purchasing_read,
         data.purchasing_write,
         data.purchasing_delete,
         data.purchasing_export,
         data.purchasing_approve,
+        data.purchasing_unapprove,
+
 
         data.reports_read,
         data.reports_write,
         data.reports_delete,
         data.reports_export,
         data.reports_approve,
+        data.reports_unapprove,
 
         data.security_read,
         data.security_write,
         data.security_delete,
         data.security_export,
-        data.security_approve
+        data.security_approve,
+        data.security_unapprove
       );
 
       toast({ title: "Created", description: "Role created successfully!" });
@@ -250,7 +282,7 @@ const getModulePermissionCount = (role: Role, module: string): number => {
     const prefix = module.toLowerCase();
 
     // 2. Define the 5 standard actions
-    const actions = ['read', 'write', 'delete', 'export', 'approve'];
+    const actions = ['read', 'write', 'delete', 'export', 'approve','unapprove'];
 
     // 3. Calculate the count by summing up the values (0 or 1)
     return actions.reduce((count, action) => {
@@ -266,7 +298,7 @@ const getModulePermissionCount = (role: Role, module: string): number => {
 };
 
 // Assuming max permissions per module is 5
-const MAX_PERMISSIONS = 5;
+const MAX_PERMISSIONS = 6;
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -409,8 +441,12 @@ const MAX_PERMISSIONS = 5;
     </div>
   );
 };
-const actions = ["read", "write", "delete", "export", "approve"];
-const modules = ['sales', 'accounting', 'hr', 'inventory', 'crm', 'purchasing', 'reports', 'security'];
+const actions = ["read", "write", "delete", "export", "approve","unapprove"];
+const modules = ['sales', 'accounting', 
+  //'hr', 
+   'inventory',
+   // 'crm', 
+    'purchasing', 'reports', 'security'];
 const RoleForm: React.FC<{
   role: Role | null;
   onClose: () => void;
@@ -485,12 +521,15 @@ loadedPermissions[key] = value === 1 ? 1 : 0;
       sales_delete: permissionFields.sales_delete ?? 0,
       sales_export: permissionFields.sales_export ?? 0,
       sales_approve: permissionFields.sales_approve ?? 0,
+      sales_unapprove: permissionFields.sales_unapprove ?? 0,
+
 
       accounting_read: permissionFields.accounting_read ?? 0,
       accounting_write: permissionFields.accounting_write ?? 0,
       accounting_delete: permissionFields.accounting_delete ?? 0,
       accounting_export: permissionFields.accounting_export ?? 0,
       accounting_approve: permissionFields.accounting_approve ?? 0,
+      accounting_unapprove: permissionFields.accounting_unapprove ?? 0,
 
       hr_read: permissionFields.hr_read ?? 0,
       hr_write: permissionFields.hr_write ?? 0,
@@ -503,30 +542,35 @@ loadedPermissions[key] = value === 1 ? 1 : 0;
       inventory_delete: permissionFields.inventory_delete ?? 0,
       inventory_export: permissionFields.inventory_export ?? 0,
       inventory_approve: permissionFields.inventory_approve ?? 0,
+      inventory_unapprove: permissionFields.inventory_unapprove ?? 0,
 
       crm_read: permissionFields.crm_read ?? 0,
       crm_write: permissionFields.crm_write ?? 0,
       crm_delete: permissionFields.crm_delete ?? 0,
       crm_export: permissionFields.crm_export ?? 0,
       crm_approve: permissionFields.crm_approve ?? 0,
+      crm_unapprove: permissionFields.crm_unapprove ?? 0,
 
       purchasing_read: permissionFields.purchasing_read ?? 0,
       purchasing_write: permissionFields.purchasing_write ?? 0,
       purchasing_delete: permissionFields.purchasing_delete ?? 0,
       purchasing_export: permissionFields.purchasing_export ?? 0,
       purchasing_approve: permissionFields.purchasing_approve ?? 0,
+      purchasing_unapprove: permissionFields.purchasing_unapprove ?? 0,
 
       reports_read: permissionFields.reports_read ?? 0,
       reports_write: permissionFields.reports_write ?? 0,
       reports_delete: permissionFields.reports_delete ?? 0,
       reports_export: permissionFields.reports_export ?? 0,
       reports_approve: permissionFields.reports_approve ?? 0,
+      reports_unapprove: permissionFields.reports_unapprove ?? 0,
 
       security_read: permissionFields.security_read ?? 0,
       security_write: permissionFields.security_write ?? 0,
       security_delete: permissionFields.security_delete ?? 0,
       security_export: permissionFields.security_export ?? 0,
       security_approve: permissionFields.security_approve ?? 0,
+      security_unapprove: permissionFields.security_unapprove ?? 0,
     };
 
     onSave(payload);

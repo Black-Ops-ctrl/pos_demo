@@ -1,11 +1,15 @@
-// src/api/departmentApi.ts
+// src/api/cityApi.ts  <-- (Recommended change from departmentApi.ts to reflect content)
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2091/api/city";
+const API_URL = "http://84.16.235.111:2135/api/city";
+
+// 💡 Helper to get the module_id from session storage
 const getModuleId = (): string => {
   return sessionStorage.getItem('selectedBranchId') || 'N/A';
 };
- const module_id = getModuleId(); 
+
+const module_id = getModuleId(); 
+
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -23,11 +27,13 @@ const handleApiError = (error: any) => {
   throw new Error("Unexpected error occurred. Check console for details.");
 };
 
-// 1️⃣ Get all City
-export const getCity= async () => {
+// --- API Functions for City Management ---
+
+// 1️⃣ Get all City (Used for listing and likely for dropdown in the Branch form)
+export const getCity = async () => {
   try {
-    const res = await axios.post(API_URL, { operation: 1,module_id });
-    return res.data.data;
+    const res = await axios.post(API_URL, { operation: 1 });
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -36,15 +42,13 @@ export const getCity= async () => {
 // 2️⃣ Add City
 export const addCity = async (
   city_name: string
- 
 ) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 2,
-      city_name,
-      module_id
+      city_name
     });
-    return res.data.data;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -59,10 +63,9 @@ export const updateCity = async (
     const res = await axios.post(API_URL, {
       operation: 3,
       city_id,
-      city_name,
-      module_id
+      city_name
     });
-    return res.data.data;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
@@ -73,9 +76,19 @@ export const deleteCity = async (city_id: number) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
-      city_id,
+      city_id
     });
-    return res.data.data; 
+    return res.data; 
+  } catch (error) {
+    handleApiError(error);
+  }
+};
+
+// 5️⃣ Get all cities for dropdown (Alternative/Specific operation for dropdown data)
+export const getAllCitiesForDropdown = async () => {
+  try {
+    const res = await axios.post(API_URL, { operation: 5 });
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useCallback} from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ArrowUp } from "lucide-react";
 import { addRegion, deleteRegion, getRegions, updateRegion } from "@/api/regionApi";
 import { addCity, deleteCity, getCity, updateCity } from "@/api/cityApi";
 
@@ -17,12 +17,23 @@ const City: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingCity, setEditingCity] = useState<City | null>(null);
+          const [showScrollToTop, setShowScrollToTop] = useState(false); // ✅ New state for scroll button
+  
   const [Cities, setCities] = useState<City[]>([]);
 
   // Load departments on mount
   useEffect(() => {
     loadCities();
   }, []);
+
+
+
+
+  
+
+
+
+
 
   const loadCities = async () => {
     try {
@@ -32,6 +43,31 @@ const City: React.FC = () => {
       console.error("Error loading Cities", error);
     }
   };
+
+
+
+        const checkScrollTop = useCallback(() => {
+        // Show button if page is scrolled down more than 400px
+        if (!showScrollToTop && window.scrollY > 400) {
+          setShowScrollToTop(true);
+        } else if (showScrollToTop && window.scrollY <= 400) {
+          setShowScrollToTop(false);
+        }
+      }, [showScrollToTop]);
+    
+      useEffect(() => {
+        window.addEventListener('scroll', checkScrollTop);
+        return () => {
+          window.removeEventListener('scroll', checkScrollTop);
+        };
+      }, [checkScrollTop]);
+    
+      const scrollToTop = () => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      };
 
   const handleAddCity = () => {
     setEditingCity(null);
@@ -124,6 +160,19 @@ const City: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
+
+
+                          {showScrollToTop && (
+                      <Button
+                        onClick={scrollToTop}
+                        size="icon"
+                        className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
+                                   bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
+                        aria-label="Scroll to top"
+                      >
+                        <ArrowUp className="h-5 w-5" />
+                      </Button>
+                    )}
 
       {showForm && (
         <CityForm city={editingCity} 
