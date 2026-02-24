@@ -691,8 +691,8 @@ const handleDeletePO = async (po_id: number) => {
               
               <Button
                 onClick={() => setShowForm(true)}
-                className="bg-gradient-to-r from-purple-500 to-purple-600">
-                <Plus className="h-4 w-4 mr-2" />
+                className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary">
+                <Plus className="h-4 w-4 mr-1" />
                 Create PO
               </Button>
             </div>
@@ -727,7 +727,7 @@ const handleDeletePO = async (po_id: number) => {
                   <Button
                     onClick={handleApplyDateFilter}
                     disabled={isLoading}
-                    className="bg-blue-500 hover:bg-blue-600"
+                    className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
                   >
                     {isLoading ? (
                       <>
@@ -1547,7 +1547,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               <span className="w-[100px] text-center">Discount %</span>
               <span className="w-[100px] text-center">Discount Amount</span>
               <span className="w-[100px] text-center">Line Total</span>
-              <span className="w-[30px] text-center">Remove</span>
+              <span className="w-[40px] text-center"></span>
             </div>
             {poItems.map((row, idx) => {
               const selectedItem = items.find((it) => Number(it.item_id) === Number(row.item_id));
@@ -1631,31 +1631,34 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                     {lineTotal.toFixed(2)}
                   </div>
 
-                  {poItems.length > 1 && (
-                    <Button
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => removeItemRow(idx)}
-                      className="w-[30px] p-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  {/* Always render the button container, but conditionally show/hide the button */}
+                  <div className="w-[40px] flex justify-center">
+                    {poItems.length > 1 && (
+                      <Button
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeItemRow(idx)}
+                        className="p-0 h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })}
 
-            <Button type="button" variant="secondary" onClick={addItemRow}>
+            <Button type="button" variant="default" onClick={addItemRow}>
               <Plus className="h-4 w-4 mr-1" /> Add Item
             </Button>
           </div>
           
           <div className="flex justify-end mt-4 pt-4 border-t">
             <div className="flex flex-col w-full max-w-[350px] space-y-2">
-              <div className="flex justify-between items-center text-lg font-bold p-2 border-2 border-blue-500 rounded-lg bg-blue-50">
+              <div className="flex justify-between items-center text-base font-semibold p-2 border border-purple-500 rounded-lg bg-lightGreyColor">
                 <span>Total Amount:</span>
-                <span className="text-blue-700">{totalAmount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
+                <span className="text-secondary">{totalAmount.toLocaleString('en-PK', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
@@ -1666,7 +1669,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-blue-600"
+              className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
               disabled={isLoading}
             >
               {isLoading ? (
