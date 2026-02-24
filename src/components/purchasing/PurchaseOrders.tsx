@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1452,9 +1453,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                 </Popover>
               </div>
             )}
-
-
-            
 
             {/* Vehicle Number - Only for module_id 2, replaced with select dropdown */}
             {showVehicleNumberField && (

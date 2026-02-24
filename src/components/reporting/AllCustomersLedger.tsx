@@ -403,7 +403,7 @@ const CustomerBalance: React.FC = () => {
 
               {/* Load Button */}
               <Button onClick={loadVendorsLedger}>Load</Button>
-              <Button onClick={handlePrint} variant="secondary">
+              <Button onClick={handlePrint} variant="outline">
                 Print
               </Button>
             </div>

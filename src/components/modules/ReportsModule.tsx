@@ -224,6 +224,8 @@ const ReportsModule: React.FC = () => {
         return 'grid-cols-10';
     };
 
+    const blueTabClass = "bg-primary text-secondary transition-colors data-[state=active]:bg-blue-600 ";
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -237,27 +239,52 @@ const ReportsModule: React.FC = () => {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className={`grid w-full ${getTabGridCols()}`}>
-                    <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
+                <TabsList className={`grid w-full ${getTabGridCols()} gap-1 bg-transparent`}>
+                    <TabsTrigger 
+                        value="dashboards"
+                        className={blueTabClass}
+                    >
+                        Dashboards
+                    </TabsTrigger>
                     
                     {/* {shouldShowFarmReports && (
                         <TabsTrigger value="FarmReports">Farm Reports</TabsTrigger>
                     )} */}
                     {shouldShowCustomerLedger && (
-                        <TabsTrigger value="CustomerLedger">Customer Ledger</TabsTrigger>
+                        <TabsTrigger 
+                            value="CustomerLedger"
+                            className={blueTabClass}
+                        >
+                            Customer Ledger
+                        </TabsTrigger>
                     )}
                     {shouldShowVendorLedger && (
-                        <TabsTrigger value="VendorLedger">Vendor Ledger</TabsTrigger>
+                        <TabsTrigger 
+                            value="VendorLedger"
+                            className={blueTabClass}
+                        >
+                            Vendor Ledger
+                        </TabsTrigger>
                     )}
                     {/* <TabsTrigger value="stock">Stock Report</TabsTrigger> */}
-                    <TabsTrigger value="item-profit-loss">Item Profit & Loss</TabsTrigger>
+                    <TabsTrigger 
+                        value="item-profit-loss"
+                        className={blueTabClass}
+                    >
+                        Item Profit & Loss
+                    </TabsTrigger>
                     
                     {/* {shouldShowVehicleProfitLoss && (
                         <TabsTrigger value="vehicle-profit-loss">Vehicle Profit & Loss</TabsTrigger>
                     )} */}
                     
                     {shouldShowBirdsVehicle && (
-                        <TabsTrigger value="birds-vehicle">Birds Vehicle</TabsTrigger>
+                        <TabsTrigger 
+                            value="birds-vehicle"
+                            className={blueTabClass}
+                        >
+                            Birds Vehicle
+                        </TabsTrigger>
                     )}
                     
                     {/* {shouldShowFeedReports && (
@@ -267,9 +294,24 @@ const ReportsModule: React.FC = () => {
                     {/* {shouldShowChicksReports && (
                         <TabsTrigger value="chicks-reports">Chicks Reports</TabsTrigger>
                     )} */}
-                    <TabsTrigger value="customer-balance">Customers Balance</TabsTrigger>
-                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
-                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    <TabsTrigger 
+                        value="customer-balance"
+                        className={blueTabClass}
+                    >
+                        Customers Balance
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="alerts"
+                        className={blueTabClass}
+                    >
+                        Alerts
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="analytics"
+                        className={blueTabClass}
+                    >
+                        Analytics
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
