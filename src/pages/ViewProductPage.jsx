@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import editIcon from '../assets/png/ic_edit_button.png';
+import deleteIcon from '../assets/png/ic_delete_button.png';
 import { fetchProducts, deleteProduct, updateProduct } from "../core/services/api";
 import Toast from "../components/common/Toast";
 import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
@@ -366,22 +367,15 @@ const ViewProduct = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Bulk Delete Button - Using DeleteConfirmButton */}
+          {/* Delete Selected Button - Simple text button without icon */}
           {selectedProducts.length > 0 && (
-            <DeleteConfirmButton
-              onConfirm={handleBulkDelete}
-              title="Delete Multiple Products?"
-              message={`Are you sure you want to delete ${selectedProducts.length} selected product(s)?`}
-              buttonText="Delete All"
-              cancelText="Cancel"
-              icon={
-                <div className="flex items-center gap-2">
-                  <img src={deleteIcon} alt="Delete" className="w-5 h-5 filter brightness-0 invert" />
-                  <span>Delete Selected ({selectedProducts.length})</span>
-                </div>
-              }
-              buttonClassName="bg-red-500 px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md"
-            />
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleteLoading}
+              className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md text-sm"
+            >
+              Delete Selected ({selectedProducts.length})
+            </button>
           )}
 
           {/* Status Filter */}
