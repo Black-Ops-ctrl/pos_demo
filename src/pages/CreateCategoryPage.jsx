@@ -3,14 +3,16 @@ import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import AddProductPage from "../pages/AddProductPage"; 
+import AddProductPage from "../pages/AddProductPage";
+import Toast from "../components/common/Toast"; 
 
 const CreateCategoryPage = () => {
   const [categories, setCategories] = useState([]);
   const [open, setOpen] = useState(false);
-  const [openProductModal, setOpenProductModal] = useState(false); // added state
+  const [openProductModal, setOpenProductModal] = useState(false);
   const [name, setName] = useState("");
   const [image, setImage] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const navigate = useNavigate();
 
   /* ---------------- LOAD FROM LOCAL STORAGE ---------------- */
@@ -24,9 +26,17 @@ const CreateCategoryPage = () => {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories]);
 
+  /* ---------------- SHOW TOAST MESSAGE ---------------- */
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
   /* ---------------- CREATE CATEGORY ---------------- */
   const handleCreate = () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      showToast("Please enter category name", "warning");
+      return;
+    }
 
     const newCategory = {
       id: Date.now(),
@@ -36,6 +46,7 @@ const CreateCategoryPage = () => {
     };
 
     setCategories([...categories, newCategory]);
+    showToast("Category created successfully!", "success");
 
     setName("");
     setImage(null);
@@ -44,11 +55,22 @@ const CreateCategoryPage = () => {
 
   /* ---------------- DELETE CATEGORY ---------------- */
   const handleDelete = (id) => {
+    const categoryName = categories.find(c => c.id === id)?.name;
     setCategories((prev) => prev.filter((c) => c.id !== id));
+    showToast(`Category "${categoryName}" deleted successfully!`, "success");
   };
 
   return (
     <div>
+      {/* Toast Message */}
+      {toast.show && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast({ show: false, message: '', type: 'success' })}
+        />
+      )}
+
       {/* ================= HEADER ================= */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex flex-col">
@@ -106,14 +128,26 @@ const CreateCategoryPage = () => {
               </p>
 
               {/* Buttons */}
-              <div className="flex gap-2 w-full">
+              <div className="flex justify-center items-center gap-2 w-full">
+                {/* View Products Button */}
                 <button
                   onClick={() => navigate(`/view-products/${cat.name}`)}
-                  className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-400 text-primary py-2 rounded-full font-poppins"
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-400 text-white py-2.5 rounded-full font-poppins text-sm hover:opacity-90 transition shadow-sm"
                 >
                   View Products
                 </button>
-                <DeleteConfirmButton onConfirm={() => handleDelete(cat.id)} />
+                
+                {/* DeleteConfirmButton */}
+                <DeleteConfirmButton
+                  onConfirm={() => handleDelete(cat.id)}
+                  title="Delete Category?"
+                  message="Are you sure you want to delete this category?"
+                  itemName={cat.name}
+                  buttonText="Delete"
+                  cancelText="Cancel"
+                  iconClassName="w-9 h-9" 
+                  buttonClassName="p-2.5 bg-red-500 hover:bg-red-600 rounded-full transition shadow-sm"
+                />
               </div>
             </div>
           ))}
@@ -179,13 +213,20 @@ const CreateCategoryPage = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold font-sans">Add Product</h2>
               <button
-                className="text-gray-500 hover:text-gray-700 font-bold"
+                className="text-gray-500 hover:text-gray-700 font-bold text-xl"
                 onClick={() => setOpenProductModal(false)}
               >
                 ✕
               </button>
             </div>
-            <AddProductPage />
+            <AddProductPage 
+              categories={categories}
+              onSuccess={() => {
+                showToast("Product added successfully!", "success");
+                setOpenProductModal(false);
+              }}
+              onClose={() => setOpenProductModal(false)}
+            />
           </div>
         </div>
       )}
