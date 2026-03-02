@@ -3,6 +3,7 @@ import Sidebar from "./Sidebar";
 import OrderSummary from "../common/OrderSummary";
 import TopBar from "../common/TopBar";
 import ProductGrid from "../common/ProductGrid";
+import CategoryTabs from "../common/CategoryTabs"; 
 
 const allProducts = [
   { title: "Thai Rice Bowl", price: "27.09", image: "/img_categoryFive.webp", barcode: "M-MARK2212010015", desc: "Spicy Thai Style" },
@@ -21,6 +22,7 @@ const allProducts = [
 const POSLayout = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [scannedBarcode, setScannedBarcode] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("Rice Bowl");
 
   const handleBarcodeScanned = (barcode) => {
     console.log("Barcode scanned in POSLayout:", barcode);
@@ -60,6 +62,12 @@ const POSLayout = () => {
     setScannedBarcode(null);
   };
 
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    console.log("Selected category:", category);
+    // You can add filtering logic here based on category
+  };
+
   return (
     <div className="h-screen bg-rose-50 p-2 sm:p-3 md:p-4 overflow-hidden">
       <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-xl h-full flex flex-col lg:flex-row overflow-hidden">
@@ -78,6 +86,14 @@ const POSLayout = () => {
             />
           </div>
 
+          {/* Category Tabs Section - Added below TopBar */}
+          <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3 md:pb-4">
+            <CategoryTabs 
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          </div>
+
           {/* Product Grid and Order Summary */}
           <div className="flex-1 flex flex-col lg:flex-row min-h-0 px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 gap-4 overflow-hidden">
             {/* Product Grid - Takes remaining space */}
@@ -85,12 +101,13 @@ const POSLayout = () => {
               <ProductGrid 
                 onProductSelect={handleProductSelect}
                 searchTerm={searchTerm}
+                selectedCategory={selectedCategory} 
               />
             </div>
 
             {/* Order Summary */}
             <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 h-full overflow-hidden">
-                <OrderSummary 
+              <OrderSummary 
                 scannedBarcode={scannedBarcode}
                 onBarcodeProcessed={handleBarcodeProcessed}
               />

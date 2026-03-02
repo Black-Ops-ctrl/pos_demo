@@ -100,7 +100,7 @@ const CreateCategoryPage = () => {
       {categories.length === 0 ? (
         <p className="text-center text-lg font-sans">No categories added.</p>
       ) : (
-        <div className="grid md:grid-cols-6 gap-8">
+        <div className="grid md:grid-cols-5 gap-8">
           {categories.map((cat) => (
             <div
               key={cat.id}
