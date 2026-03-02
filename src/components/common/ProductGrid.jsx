@@ -43,7 +43,7 @@ const ProductGrid = ({ onProductSelect, searchTerm }) => {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Sticky Header */}
       <div className="sticky top-0 bg-white z-10 pb-3">
-        <h2 className="font-semibold text-gray-700 text-sm sm:text-base">
+        <h2 className="font-semibold text-secondary text-sm sm:text-base">
           Total Products {searchTerm && `(Found: ${filteredProducts.length})`}
         </h2>
       </div>
