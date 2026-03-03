@@ -4,10 +4,10 @@ import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();
 
 // First API for fetching Bank Accounts/Chart of Accounts (used in the form)
-const ACCOUNTS_API_URL = "http://84.16.235.111:2135/api/bankAccounts";
+const ACCOUNTS_API_URL = "http://84.16.235.111:2140/api/bankAccounts";
 
 // Second API for Bank Details (main CRUD operations)
-const BANK_DETAILS_API_URL = "http://84.16.235.111:2135/api/bank";
+const BANK_DETAILS_API_URL = "http://84.16.235.111:2140/api/bank";
 
 // 💡 Helper to get the module_id from session storage (Copied from City API logic)
 const getModuleId = (): string => {

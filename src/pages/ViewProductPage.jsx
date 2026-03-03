@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import editIcon from '../assets/png/ic_edit_button.png';
-import deleteIcon from '../assets/png/ic_delete_button.png';
-import { fetchProducts, deleteProduct, updateProduct } from "../core/services/api";
+import { fetchProducts, deleteProduct, updateProduct, fetchCategories } from "../core/services/api"; 
 import Toast from "../components/common/Toast";
 import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
 
-const ViewProduct = () => {
+const ViewProductsByCategory = () => {
+  const { categoryName } = useParams();
+  const navigate = useNavigate();
+  
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -31,56 +36,115 @@ const ViewProduct = () => {
     count: 0
   });
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  // Decode the category name
+  const decodedCategoryName = decodeURIComponent(categoryName);
 
-  const loadProducts = async () => {
+  useEffect(() => {
+    loadProductsAndCategories();
+  }, [categoryName]);
+
+  const loadProductsAndCategories = async () => {
     setLoading(true);
     setError("");
     
     try {
-      const result = await fetchProducts(); 
+      // Fetch both products and categories
+      const [productsResult, categoriesResult] = await Promise.all([
+        fetchProducts(),
+        fetchCategories()
+      ]);
       
-      if (result?.success) {
-        const productsList = result.data?.data || result.data || [];
-        console.log("Raw API Data:", productsList);
+      console.log("Products Result:", productsResult);
+      console.log("Categories Result:", categoriesResult);
+      
+      // Handle products data
+      let productsList = [];
+      if (productsResult?.success && productsResult.data) {
+        productsList = productsResult.data.data || productsResult.data;
+      } else if (Array.isArray(productsResult)) {
+        productsList = productsResult;
+      }
+      
+      // Handle categories data
+      let categoriesList = [];
+      if (Array.isArray(categoriesResult)) {
+        categoriesList = categoriesResult;
+      } else if (categoriesResult?.data) {
+        categoriesList = categoriesResult.data;
+      }
+      
+      setCategories(categoriesList);
+      console.log("Processed categories:", categoriesList);
+      
+      // Find the current category ID
+      const currentCategory = categoriesList.find(
+        cat => cat.category_name?.toLowerCase() === decodedCategoryName.toLowerCase()
+      );
+      
+      console.log("Current category from URL:", decodedCategoryName);
+      console.log("Found category:", currentCategory);
+      
+      // Transform products with category names
+      const transformedProducts = productsList.map((item) => {
+        // Find category name from categories list
+        const productCategory = categoriesList.find(
+          cat => cat.category_id === item.category_id
+        );
         
-        const transformedProducts = productsList.map((item) => ({
+        return {
           id: item?.product_id,
           name: item?.product_name || "Unknown Product",
-          category: item?.category || "Uncategorized",
+          category_id: item?.category_id,
+          category_name: productCategory?.category_name || item?.category || "Uncategorized",
           barcode: item?.bar_code || "N/A",
           status: getStockStatus(parseInt(item?.quantity) || 0),
           quantity: parseInt(item?.quantity) || 0,
-          reorder: 100,
           price: parseFloat(item?.price) || 0,
           image: "https://via.placeholder.com/150",
           description: item?.description || "",
           productCode: item?.product_code,
-          apiStatus: item?.status,
-        }));
-        
-        setProducts(transformedProducts);
-        setSelectedProducts([]);
-        setSelectAll(false);
+        };
+      });
+      
+      setProducts(transformedProducts);
+      console.log("Transformed products:", transformedProducts);
+      
+      // Filter products by current category (using category_id)
+      let filtered = [];
+      if (currentCategory) {
+        filtered = transformedProducts.filter(
+          product => product.category_id === currentCategory.category_id
+        );
       } else {
-        setError(result?.message || "Failed to load products");
+        // Fallback to name matching if category not found
+        filtered = transformedProducts.filter(
+          product => product.category_name.toLowerCase() === decodedCategoryName.toLowerCase()
+        );
       }
+      
+      console.log("Filtered products:", filtered);
+      setFilteredProducts(filtered);
+      setSelectedProducts([]);
+      setSelectAll(false);
+      
     } catch (err) {
+      console.error("Error loading data:", err);
       setError("An error occurred while loading products");
-      console.error(err);
     }
     
     setLoading(false);
   };
 
   const refreshProducts = async () => {
-    await loadProducts();
+    await loadProductsAndCategories();
   };
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
+    
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
   const getStockStatus = (quantity) => {
@@ -95,7 +159,8 @@ const ViewProduct = () => {
     return str.slice(0, limit) + "...";
   };
 
-  const displayedProducts = products.filter((p) => {
+  // Apply search and status filters
+  const displayedProducts = filteredProducts.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus =
       statusFilter === "All Status" || p.status === statusFilter;
@@ -234,10 +299,6 @@ const ViewProduct = () => {
       updateData.barcode = selectedProduct.barcode;
     }
     
-    if (selectedProduct.category !== originalProduct.category) {
-      updateData.category = selectedProduct.category;
-    }
-    
     if (Object.keys(updateData).length === 0) {
       showToast("No changes to save", "warning");
       setModalOpen(false);
@@ -274,6 +335,10 @@ const ViewProduct = () => {
     setOriginalProduct(null);
   };
 
+  const handleBackToCategories = () => {
+    navigate(-1);
+  };
+
   const totalStockValue = displayedProducts.reduce(
     (sum, p) => sum + (p.price * p.quantity),
     0
@@ -300,7 +365,7 @@ const ViewProduct = () => {
           Error loading products: {error}
         </div>
         <button 
-          onClick={loadProducts}
+          onClick={loadProductsAndCategories}
           className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition"
         >
           Try Again
@@ -320,112 +385,130 @@ const ViewProduct = () => {
         />
       )}
 
-      {/* Summary Cards */}
-      <div className="flex gap-6 font-poppins mb-6">
-        <div className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-400 p-4 rounded-xl border shadow-md flex flex-col">
-          <span className="text-primary font-sans text-lg font-semibold mb-1">
-            Total Stock Value
-          </span>
-          <span className="text-lg font-semibold font-sans">
-            Rs{" "}
-            {totalStockValue.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </span>
-        </div>
-        <div className="flex-1 bg-gradient-to-r from-pink-500 to-red-300 p-4 rounded-xl border shadow-md flex flex-col">
-          <span className="text-primary font-sans text-lg mb-1 font-semibold">
-            Total Products
-          </span>
-          <span className="text-lg font-semibold font-sans">{totalProducts}</span>
-        </div>
-        <div className="flex-1 bg-gradient-to-r from-amber-500 to-orange-300 p-4 rounded-xl border shadow-md flex flex-col">
-          <span className="text-primary font-sans text-lg mb-1 font-semibold">
-            Low Stock Products
-          </span>
-          <span className="text-lg font-semibold font-sans">{lowStockCount}</span>
-        </div>
-        <div className="flex-1 bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-200 p-4 rounded-xl border shadow-md flex flex-col">
-          <span className="text-primary font-sans text-lg mb-1 font-semibold">
-            Out of Stock Products
-          </span>
-          <span className="text-lg font-semibold font-sans">{outOfStockCount}</span>
-        </div>
-      </div>
-
-      {/* Filters and Delete Selected */}
-      <div className="flex justify-between mb-4">
+      {/* Header with Back Button */}
+      <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <input
-            type="search"
-            placeholder="Search Products..."
-            className="rounded-full px-2 py-2 w-64 sm:w-72 md:w-80 lg:w-96 border border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Delete Selected Button - Simple text button without icon */}
-          {selectedProducts.length > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              disabled={deleteLoading}
-              className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md text-sm"
-            >
-              Delete Selected ({selectedProducts.length})
-            </button>
-          )}
-
-          {/* Status Filter */}
-          <select
-            className="border shadow rounded-full px-3 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-400 text-primary font-poppins focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+          <button
+            onClick={handleBackToCategories}
+            className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-full transition"
           >
-            {["All Status", "In Stock", "Low Stock", "Stock Out"].map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back 
+          </button>
+          <h1 className="text-lg font-semibold font-helvetica">
+            Products in "{decodedCategoryName}"
+          </h1>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-auto rounded-xl shadow border bg-white">
-        <table className="w-full text-center text-md font-poppins">
-          <thead className="bg-gray-300 border-b">
-            <tr>
-              <th className="p-3">
-                <input 
-                  type="checkbox" 
-                  className="rounded w-4 h-4"
-                  checked={selectAll}
-                  onChange={handleSelectAllChange}
-                />
-              </th>
-              <th className="p-3">Product Name</th>
-              <th className="p-3">Category</th>
-              <th className="p-3">Barcode</th>
-              <th className="p-3">Stock Status</th>
-              <th className="p-3">Quantity</th>
-              <th className="p-3">Price</th>
-              <th className="p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedProducts.length === 0 ? (
+      {/* Summary Cards - Only show if products exist */}
+      {displayedProducts.length > 0 && (
+        <div className="flex gap-6 font-poppins mb-6">
+          <div className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-400 p-4 rounded-xl border shadow-md flex flex-col">
+            <span className="text-primary font-sans text-lg font-semibold mb-1">
+              Total Stock Value
+            </span>
+            <span className="text-lg font-semibold font-sans">
+              Rs {totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div className="flex-1 bg-gradient-to-r from-pink-500 to-red-300 p-4 rounded-xl border shadow-md flex flex-col">
+            <span className="text-primary font-sans text-lg mb-1 font-semibold">
+              Total Products
+            </span>
+            <span className="text-lg font-semibold font-sans">{totalProducts}</span>
+          </div>
+          <div className="flex-1 bg-gradient-to-r from-amber-500 to-orange-300 p-4 rounded-xl border shadow-md flex flex-col">
+            <span className="text-primary font-sans text-lg mb-1 font-semibold">
+              Low Stock
+            </span>
+            <span className="text-lg font-semibold font-sans">{lowStockCount}</span>
+          </div>
+          <div className="flex-1 bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-200 p-4 rounded-xl border shadow-md flex flex-col">
+            <span className="text-primary font-sans text-lg mb-1 font-semibold">
+              Out of Stock
+            </span>
+            <span className="text-lg font-semibold font-sans">{outOfStockCount}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      <div className="flex justify-between mb-4">
+        <input
+          type="search"
+          placeholder="Search Products..."
+          className="rounded-full px-4 py-2 w-96 border border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <select
+          className="border shadow rounded-full px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          {["All Status", "In Stock", "Low Stock", "Stock Out"].map((status) => (
+            <option key={status} value={status} className="bg-white text-black">
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Delete Selected Button */}
+      {selectedProducts.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={handleBulkDelete}
+            disabled={deleteLoading}
+            className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md"
+          >
+            Delete Selected ({selectedProducts.length})
+          </button>
+        </div>
+      )}
+
+      {/* No Products Message */}
+      {!loading && displayedProducts.length === 0 && (
+        <div className="text-center py-16 bg-white rounded-xl shadow">
+          <svg className="w-24 h-24 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          </svg>
+          <p className="text-gray-500 text-xl mb-2">No products found</p>
+          <p className="text-gray-400 mb-6">This category doesn't have any products yet.</p>
+        </div>
+      )}
+
+      {/* Products Table */}
+      {displayedProducts.length > 0 && (
+        <div className="overflow-auto rounded-xl shadow border bg-white">
+          <table className="w-full text-center text-md font-poppins">
+            <thead className="bg-gray-300 border-b">
               <tr>
-                <td colSpan="8" className="text-center p-4 text-gray-500">
-                  No products found.
-                </td>
+                <th className="p-3">
+                  <input 
+                    type="checkbox" 
+                    className="rounded w-4 h-4"
+                    checked={selectAll}
+                    onChange={handleSelectAllChange}
+                  />
+                </th>
+                <th className="p-3">Product Name</th>
+                <th className="p-3">Category</th>
+                <th className="p-3">Barcode</th>
+                <th className="p-3">Stock Status</th>
+                <th className="p-3">Quantity</th>
+                <th className="p-3">Price</th>
+                <th className="p-3">Actions</th>
               </tr>
-            ) : (
-              displayedProducts.map((product) => (
+            </thead>
+            <tbody>
+              {displayedProducts.map((product) => (
                 <tr key={product.id} className="border-b hover:bg-lightGreyColor transition">
-                  <td className="p-3">
+                  <td className="p-3 align-middle">
                     <input 
                       type="checkbox" 
                       className="rounded w-4 h-4"
@@ -433,22 +516,26 @@ const ViewProduct = () => {
                       onChange={() => handleCheckboxChange(product.id)}
                     />
                   </td>
-                  <td className="p-3 flex flex-col items-center gap-2">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-12 h-12 object-cover border shadow rounded-md"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/150";
-                      }}
-                    />
-                    <span className="text-sm">{limitWords(product.name, 16)}</span>
-                  </td>
-                  <td className="p-3">{product.category}</td>
-                  <td className="p-3">{product.barcode}</td>
                   <td className="p-3">
+                    <div className="flex items-center justify-center gap-3">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/150";
+                        }}
+                      />
+                      <span className="text-sm text-left break-words max-w-[200px]">
+                        {product.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 align-middle">{product.category_name}</td>
+                  <td className="p-3 align-middle">{product.barcode}</td>
+                  <td className="p-3 align-middle">
                     <span
-                      className={`px-4 py-2 rounded-full text-md font-light-bold ${
+                      className={`px-3 py-1 rounded-full text-sm inline-block ${
                         product.status === "In Stock"
                           ? "bg-green-100 text-green-700"
                           : product.status === "Low Stock"
@@ -459,40 +546,30 @@ const ViewProduct = () => {
                       {product.status}
                     </span>
                   </td>
-                  <td className="p-3">{product.quantity} pcs</td>
-                  <td className="p-3">Rs {product.price.toFixed(2)}</td>
-                  <td className="p-3">
+                  <td className="p-3 align-middle">{product.quantity} pcs</td>
+                  <td className="p-3 align-middle">Rs {product.price.toFixed(2)}</td>
+                  <td className="p-3 align-middle">
                     <div className="flex justify-center items-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(product)}
-                        className="gap-6"
-                        disabled={deleteLoading}
-                        title="Edit Product"
-                      >
-                        <img
-                          src={editIcon}
-                          alt="Edit"
-                          className="w-7 h-7 object-cover"
-                        />
+                      <button onClick={() => handleEditClick(product)} title="Edit Product">
+                        <img src={editIcon} alt="Edit" className="w-6 h-6" />
                       </button>
-                      
                       <DeleteConfirmButton
                         onConfirm={() => handleSingleDelete(product.id)}
                         title="Delete Product?"
                         message="Are you sure you want to delete this product?"
                         itemName={product.name}
-                        iconClassName="w-7 h-7" 
+                        iconClassName="w-6 h-6"
                       />
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      {/* Edit Product Modal */}
+      {/* Edit Product Modal - Restored to previous UI with image upload */}
       {modalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
           <div className="bg-primary p-8 rounded-xl shadow-xl w-96 max-w-full">
@@ -597,4 +674,4 @@ const ViewProduct = () => {
   );
 };
 
-export default ViewProduct;
+export default ViewProductsByCategory;

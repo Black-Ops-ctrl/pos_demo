@@ -1,7 +1,7 @@
 // src/api/companyApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/company";
+const API_URL = "http://84.16.235.111:2140/api/company";
 
 /**
  * Retrieves the 'module_id' (which corresponds to 'selectedBranchId') from sessionStorage.

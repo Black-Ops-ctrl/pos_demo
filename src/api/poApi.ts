@@ -1,11 +1,11 @@
 import axios from "axios";
-const Items_API_URL = "http://84.16.235.111:2135/api/items";
+const Items_API_URL = "http://84.16.235.111:2140/api/items";
 
 
 
-const vendor_new ="http://84.16.235.111:2135/api/getvendors";
+const vendor_new ="http://84.16.235.111:2140/api/getvendors";
 
-const API_URL = "http://84.16.235.111:2135/api/purchase-orders";
+const API_URL = "http://84.16.235.111:2140/api/purchase-orders";
 import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/getCustomerLedger";
-const image_URL = "http://84.16.235.111:2135/api/company";
+const API_URL = "http://84.16.235.111:2140/api/getCustomerLedger";
+const image_URL = "http://84.16.235.111:2140/api/company";
 
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {

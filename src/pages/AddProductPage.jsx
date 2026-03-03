@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/purity */
 import React, { useState, useEffect, useRef } from "react";
-import { createProduct } from "../core/services/api/createProduct";
-import Toast from "../components/common/Toast"; // Import Toast component
+import { createProduct, checkBarcodeExists } from "../core/services/api"; 
+import Toast from "../components/common/Toast"; 
 
 const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [barcode, setBarcode] = useState("");
@@ -13,9 +13,12 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     price: "",
   });
   const [loading, setLoading] = useState(false);
+  const [checkingBarcode, setCheckingBarcode] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); // Toast state
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [barcodeExists, setBarcodeExists] = useState(false); 
+  const [existingProductName, setExistingProductName] = useState(""); 
 
   const inputBuffer = useRef("");
   const lastTime = useRef(Date.now());
@@ -35,13 +38,16 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       }
       lastTime.current = now;
 
-      if (e.key !== "Enter") {
-        inputBuffer.current += e.key;
-      } else {
+      if (e.key === "Enter") {
         if (inputBuffer.current.length > 0) {
           setBarcode(inputBuffer.current);
+          checkDuplicateBarcode(inputBuffer.current);
         }
         inputBuffer.current = "";
+      } else if (e.key.length === 1) {
+        if (/[a-zA-Z0-9]/.test(e.key)) {
+          inputBuffer.current += e.key;
+        }
       }
     };
 
@@ -49,9 +55,46 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
 
+  const checkDuplicateBarcode = async (barcodeToCheck) => {
+    if (!barcodeToCheck) return;
+    
+    setCheckingBarcode(true);
+    try {
+      const result = await checkBarcodeExists(barcodeToCheck);
+      
+      if (result.exists) {
+        setBarcodeExists(true);
+        setExistingProductName(result.product?.product_name || "another product");
+        showToast(`Barcode already exists for product: ${result.product?.product_name}`, "warning");
+      } else {
+        setBarcodeExists(false);
+        setExistingProductName("");
+      }
+    } catch (error) {
+      console.error("Error checking barcode:", error);
+    } finally {
+      setCheckingBarcode(false);
+    }
+  };
+
+  const handleBarcodeChange = (e) => {
+    const newBarcode = e.target.value;
+    setBarcode(newBarcode);
+    if (newBarcode) {
+      checkDuplicateBarcode(newBarcode);
+    } else {
+      setBarcodeExists(false);
+      setExistingProductName("");
+    }
+  };
+
   /* ---------------- SHOW TOAST MESSAGE ---------------- */
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
+    
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: 'success' });
+    }, 3000);
   };
 
   const handleInputChange = (e) => {
@@ -62,8 +105,13 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validation checks
     if (!formData.productName || !formData.category || !formData.quantity || !barcode) {
       showToast("Please fill all required fields", "warning");
+      return;
+    }
+    if (barcodeExists) {
+      showToast(`Cannot create product. Barcode already used for: ${existingProductName}`, "error");
       return;
     }
 
@@ -78,6 +126,8 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       setFormData({ productName: "", category: "", quantity: "", price: "" });
       setBarcode("");
       setImage(null);
+      setBarcodeExists(false);
+      setExistingProductName("");
       
       if (onSuccess) onSuccess(result.data);     
       setTimeout(() => {
@@ -104,16 +154,47 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       )}
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Barcode */}
+        {/* Barcode - Made editable for manual entry */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary text-lg">Barcode *</label>
-          <input
-            type="text"
-            value={barcode}
-            placeholder="Scan the barcode"
-            readOnly
-            className="mt-2 px-4 py-3 border border-gray-500 rounded-md bg-gradient-to-r from-purple-500 to-indigo-300 text-primary placeholder-white"
-          />
+          <div className="relative mt-2">
+            <input
+              type="text"
+              value={barcode}
+              onChange={handleBarcodeChange}
+              placeholder="Scan or enter barcode"
+              className={`w-full px-4 py-3 border rounded-md pr-24 ${
+                barcodeExists 
+                  ? 'border-red-500 bg-red-50' 
+                  : barcode && !barcodeExists && !checkingBarcode
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-500'
+              }`}
+            />
+            {/* Status indicators - Now properly centered */}
+            <div className="absolute right-3 top-0 h-full flex items-center">
+              {checkingBarcode && (
+                <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              )}
+              {barcode && !checkingBarcode && (
+                <>
+                  {barcodeExists ? (
+                    <span className="text-red-500 text-sm font-medium">Already exists</span>
+                  ) : (
+                    <span className="text-green-500 text-sm font-medium flex items-center gap-1">
+                      <span>✓</span> Available
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          {/* Warning message */}
+          {barcodeExists && (
+            <p className="text-red-500 text-xs mt-1">
+              This barcode is already used for "{existingProductName}". Please use a different barcode.
+            </p>
+          )}
         </div>
 
         {/* Product Name */}
@@ -155,7 +236,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
           />
         </div>
 
-        {/* Category - Dynamic */}
+        {/* Category */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Category *</label>
           <select
@@ -189,12 +270,14 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       <div className="text-center">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || checkingBarcode || barcodeExists}
           className={`bg-gradient-to-r from-purple-500 to-indigo-400 text-white px-8 py-3 rounded-md ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+            loading || checkingBarcode || barcodeExists
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'hover:opacity-90'
           }`}
         >
-          {loading ? 'Saving...' : 'Save Product'}
+          {loading ? 'Saving...' : checkingBarcode ? 'Checking Barcode...' : 'Save Product'}
         </button>
       </div>
     </form>

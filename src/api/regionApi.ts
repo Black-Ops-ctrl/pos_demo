@@ -1,7 +1,7 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/regions";
+const API_URL = "http://84.16.235.111:2140/api/regions";
 const getModuleId = (): string => {
   return sessionStorage.getItem('selectedBranchId') || 'N/A';
 };

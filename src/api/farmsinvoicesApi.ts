@@ -1,8 +1,8 @@
 import axios from "axios";
-const Items_API_URL = "http://84.16.235.111:2135/api/items";
-const API_URL = "http://84.16.235.111:2135/api/so";
+const Items_API_URL = "http://84.16.235.111:2140/api/items";
+const API_URL = "http://84.16.235.111:2140/api/so";
 
-const image_URL = "http://84.16.235.111:2135/api/company";
+const image_URL = "http://84.16.235.111:2140/api/company";
 
 import { getCurrentUserId } from "@/components/security/LoginPage";
 

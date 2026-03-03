@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/vendors";
+const API_URL = "http://84.16.235.111:2140/api/vendors";
 
 
-const naya_url ="http://84.16.235.111:2135/api/getvendors"
+const naya_url ="http://84.16.235.111:2140/api/getvendors"
 
 
 

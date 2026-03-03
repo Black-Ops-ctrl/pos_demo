@@ -2,7 +2,7 @@
 import axios from "axios";
 import { getCurrentUserId } from "@/components/security/LoginPage";
 
-const API_URL = "http://84.16.235.111:2135/api/flock";
+const API_URL = "http://84.16.235.111:2140/api/flock";
 
 const getModuleId = (): string => {
   return sessionStorage.getItem('selectedBranchId') || 'N/A';

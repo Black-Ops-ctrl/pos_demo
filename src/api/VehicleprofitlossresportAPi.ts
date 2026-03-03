@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/getVehicleLedger";
+const API_URL = "http://84.16.235.111:2140/api/getVehicleLedger";
 
 // Handle errors
 const handleApiError = (error: any) => {

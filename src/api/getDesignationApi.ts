@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/getdesignations";
+const API_URL = "http://84.16.235.111:2140/api/getdesignations";
 
 export const getDesignations = async () => {
   const res = await axios.get(`${API_URL}`);

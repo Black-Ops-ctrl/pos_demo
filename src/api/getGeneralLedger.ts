@@ -1,9 +1,9 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/getGeneralLedgerRoute";
+const API_URL = "http://84.16.235.111:2140/api/getGeneralLedgerRoute";
 
 
-const image_URL = "http://84.16.235.111:2135/api/company";
+const image_URL = "http://84.16.235.111:2140/api/company";
 
 
 

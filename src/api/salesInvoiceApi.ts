@@ -1,12 +1,12 @@
 import axios from "axios";
 import { getCurrentUserId } from "@/components/security/LoginPage";
-const Items_API_URL = "http://84.16.235.111:2135/api/items";
+const Items_API_URL = "http://84.16.235.111:2140/api/items";
 
 
-const image_URL = "http://84.16.235.111:2135/api/company";
+const image_URL = "http://84.16.235.111:2140/api/company";
 
 
-const API_URL = "http://84.16.235.111:2135/api/sales-invoices";
+const API_URL = "http://84.16.235.111:2140/api/sales-invoices";
 
 const getModuleId = (): string | null => {
   return sessionStorage.getItem('selectedBranchId');

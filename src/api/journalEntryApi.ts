@@ -1,10 +1,10 @@
 import axios from "axios";
 import { getCurrentUserId } from "@/components/security/LoginPage";
 
-const API_URL = "http://84.16.235.111:2135/api/journal-entries";
+const API_URL = "http://84.16.235.111:2140/api/journal-entries";
 
 
-const image_URL = "http://84.16.235.111:2135/api/company";
+const image_URL = "http://84.16.235.111:2140/api/company";
 
 
 const getModuleId = (): string => {

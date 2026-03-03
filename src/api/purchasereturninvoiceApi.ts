@@ -2,9 +2,9 @@ import { getCurrentUserId } from "@/components/security/LoginPage";
 import axios from "axios";
 
 
-const API_URL = "http://84.16.235.111:2135/api/purchase-return";
-const image_URL = "http://84.16.235.111:2135/api/company";
-const Vehicle_URL = "http://84.16.235.111:2135/api/vehicles";
+const API_URL = "http://84.16.235.111:2140/api/purchase-return";
+const image_URL = "http://84.16.235.111:2140/api/company";
+const Vehicle_URL = "http://84.16.235.111:2140/api/vehicles";
 
 
 const user_id = getCurrentUserId();

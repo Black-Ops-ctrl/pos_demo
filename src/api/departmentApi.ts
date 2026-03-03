@@ -1,7 +1,7 @@
 // src/api/departmentApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2135/api/departments";
+const API_URL = "http://84.16.235.111:2140/api/departments";
 
 
 
