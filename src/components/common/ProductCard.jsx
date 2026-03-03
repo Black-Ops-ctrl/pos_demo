@@ -23,14 +23,14 @@ const ProductCard = ({ image, title, price, desc, barcode, onProductClick }) => 
         {title}
       </h3>
       
-      {desc && (
+      {/* {desc && (
         <p className="text-gray-500 mt-1 truncate text-[10px] sm:text-xs md:text-sm">
           {desc}
         </p>
-      )}
+      )} */}
       
       <p className="text-red-500 font-semibold mt-2 text-sm sm:text-sm md:text-base lg:text-lg">
-        ${price}
+        Rs {price}
       </p>
     </div>
   );

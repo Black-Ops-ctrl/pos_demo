@@ -1,29 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const categories = [
-  "Popular",
-  "Ice Cream",
-  "Rice Bowl",
-  "Coffee",
-  "Snack",
-  "Dessert",
-  "Salad",
-  "Beverages",
-  "Pastries",
-  "Sandwiches",
-  "Soups",
-  "Specials",
-  "Dessert",
-  "Salad",
-  "Beverages",
-  "Pastries",
-  "Sandwiches",
-  "Soups",
-  "Specials",
-];
-
-const CategoryTabs = ({ selectedCategory, onCategorySelect }) => {
+const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) => {
   const scrollContainerRef = useRef(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(false);
@@ -61,7 +39,7 @@ const CategoryTabs = ({ selectedCategory, onCategorySelect }) => {
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const scrollAmount = container.clientWidth * 0.8; // Scroll 80% of container width
+      const scrollAmount = container.clientWidth * 0.8;
       
       const targetScroll = direction === 'left' 
         ? container.scrollLeft - scrollAmount
@@ -78,62 +56,70 @@ const CategoryTabs = ({ selectedCategory, onCategorySelect }) => {
   const isTablet = windowWidth >= 640 && windowWidth < 1024;
   const isDesktop = windowWidth >= 1024;
 
-  // Button size classes
   const getButtonSizeClass = () => {
     if (isTablet) return "w-7 h-7";
     if (isDesktop) return "w-8 h-8";
-    return "w-6 h-6"; // Default
+    return "w-6 h-6";
   };
 
-  // Container padding classes - IMPORTANT: This creates space for buttons
   const getContainerPaddingClass = () => {
     if (isMobile) return "px-2";
-    return "px-8"; // Extra padding on sides for buttons on non-mobile
+    return "px-8";
   };
 
   const buttonSizeClass = getButtonSizeClass();
   const containerPaddingClass = getContainerPaddingClass();
 
+  if (categories.length === 0) {
+    return (
+      <div className="w-full max-w-full overflow-hidden">
+        <h2 className="font-semibold font-sans mb-1.5 xs:mb-1.5 sm:mb-2 md:mb-2.5 lg:mb-3 xl:mb-4 text-[10px] xs:text-xs sm:text-sm md:text-sm lg:text-base xl:text-md">
+          Choose Category
+        </h2>
+        <div className="flex gap-1 xs:gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 xl:gap-4 overflow-x-auto pb-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="px-4 py-2 rounded-full bg-gray-200 animate-pulse w-20 h-8"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-full overflow-hidden">
-      <h2 className={`font-semibold font-sans mb-1.5 xs:mb-1.5 sm:mb-2 md:mb-2.5 lg:mb-3 xl:mb-4 text-[10px] xs:text-xs sm:text-sm md:text-sm lg:text-base xl:text-md`}>
+      <h2 className="font-semibold font-sans mb-1.5 xs:mb-1.5 sm:mb-2 md:mb-2.5 lg:mb-3 xl:mb-4 text-[10px] xs:text-xs sm:text-sm md:text-sm lg:text-base xl:text-md">
         Choose Category
       </h2>
 
       <div className="relative">
-        {/* Left Scroll Button - Positioned absolutely but NOT overlapping */}
         {!isMobile && showLeftButton && (
           <>
             <button
               onClick={() => scroll('left')}
               className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center ${buttonSizeClass} bg-white rounded-full shadow-md hover:bg-gray-50 transition-all border border-gray-200`}
               aria-label="Scroll left"
-              style={{ marginLeft: '-12px' }} // Pull button slightly left
+              style={{ marginLeft: '-12px' }}
             >
               <ChevronLeft className={isDesktop ? "w-4 h-4" : "w-3.5 h-3.5"} />
             </button>
-            {/* Spacer div to push content */}
             <div className="absolute left-0 top-0 bottom-0 w-6 pointer-events-none"></div>
           </>
         )}
 
-        {/* Right Scroll Button - Positioned absolutely but NOT overlapping */}
         {!isMobile && showRightButton && (
           <>
             <button
               onClick={() => scroll('right')}
               className={`absolute right-0 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center ${buttonSizeClass} bg-white rounded-full shadow-md hover:bg-gray-50 transition-all border border-gray-200`}
               aria-label="Scroll right"
-              style={{ marginRight: '-12px' }} // Pull button slightly right
+              style={{ marginRight: '-12px' }}
             >
               <ChevronRight className={isDesktop ? "w-4 h-4" : "w-3.5 h-3.5"} />
             </button>
-            {/* Spacer div to push content */}
             <div className="absolute right-0 top-0 bottom-0 w-6 pointer-events-none"></div>
           </>
         )}
 
-        {/* Categories Container with padding for buttons */}
         <div
           ref={scrollContainerRef}
           className={`flex gap-1 xs:gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3 xl:gap-4 overflow-x-auto pb-1 xs:pb-1.5 sm:pb-2 md:pb-2.5 lg:pb-3 xl:pb-0 scrollbar-hide scroll-smooth ${containerPaddingClass}`}
@@ -158,7 +144,6 @@ const CategoryTabs = ({ selectedCategory, onCategorySelect }) => {
           ))}
         </div>
 
-        {/* Gradient Overlays - Adjusted to blend with padding */}
         {!isMobile && showLeftButton && (
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white via-white to-transparent pointer-events-none z-10"></div>
         )}
@@ -167,8 +152,7 @@ const CategoryTabs = ({ selectedCategory, onCategorySelect }) => {
         )}
       </div>
 
-      {/* Mobile Hint */}
-      {isMobile && (
+      {isMobile && categories.length > 0 && (
         <div className="text-center mt-2">
           <span className="text-[10px] xs:text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full inline-block">
             ← Swipe to scroll →

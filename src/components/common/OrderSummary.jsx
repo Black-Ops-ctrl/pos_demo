@@ -3,136 +3,80 @@ import React, { useState, useEffect, useRef } from "react";
 import deleteIcon from "/public/ic_delete_button.png";
 import { printReceipt } from "./../common/PrintReceipt"; 
 
-const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
+const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => {
   const [cartItems, setCartItems] = useState([]);
   const [receivedAmount, setReceivedAmount] = useState("");
   const [discountPercentage, setDiscountPercentage] = useState("2");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const scrollContainerRef = useRef(null);
 
-  const productDatabase = {
-    "M-MARK2212010015": { 
-      id: 1, 
-      title: "Thai Rice Bowl", 
-      desc: "Over Hard, Mild", 
-      price: 27.09, 
-      image: "/img_category.webp" 
-    },
-    "695240103033": { 
-      id: 2, 
-      title: "Smoke Salmon Rice Bowl", 
-      desc: "Over Hard, Mild", 
-      price: 27.09, 
-      image: "/img_categoryOne.webp" 
-    },
-    "4792210131204": { 
-      id: 3, 
-      title: "Healthy Rice Bowl", 
-      desc: "Over Hard, Mild", 
-      price: 27.09, 
-      image: "/img_categoryTwo.webp" 
-    },
-    "AIPI16002537": { 
-      id: 4, 
-      title: "Bibimbap Rice Bowl", 
-      desc: "Over Hard, Mild", 
-      price: 27.09, 
-      image: "/img_categoryThree.webp" 
-    },
-    "4057733899759": { 
-      id: 5, 
-      title: "Golden Beef Rice Bowl", 
-      desc: "Over Hard, Mild", 
-      price: 27.09, 
-      image: "/img_categoryFour.webp" 
-    },
-    "THAI2ND456": { 
-      id: 6, 
-      title: "Thai Rice Bowl", 
-      desc: "Extra Spicy", 
-      price: 27.09, 
-      image: "/img_category.webp" 
-    },
-    "SALM2ND789": { 
-      id: 7, 
-      title: "Smoke Salmon Rice Bowl", 
-      desc: "Extra Salmon", 
-      price: 27.09, 
-      image: "/img_categoryOne.webp" 
-    },
-    "HEALTH2345": { 
-      id: 8, 
-      title: "Healthy Rice Bowl", 
-      desc: "Vegan Option", 
-      price: 27.09, 
-      image: "/img_categoryTwo.webp" 
-    },
-    "BIBIM6789": { 
-      id: 9, 
-      title: "Bibimbap Rice Bowl", 
-      desc: "With Egg", 
-      price: 27.09, 
-      image: "/img_categoryThree.webp" 
-    },
-    "GBEEF345678": { 
-      id: 10, 
-      title: "Golden Beef Rice Bowl", 
-      desc: "Well Done", 
-      price: 27.09, 
-      image: "/img_categoryFour.webp" 
-    },
-    "THAI3RD901": { 
-      id: 11, 
-      title: "Thai Rice Bowl", 
-      desc: "Mild Spice", 
-      price: 27.09, 
-      image: "/img_category.webp" 
-    },
-    "SALM3RD234": { 
-      id: 12, 
-      title: "Smoke Salmon Rice Bowl", 
-      desc: "Light Salt", 
-      price: 27.09, 
-      image: "/img_categoryOne.webp" 
-    },
-    "HEALTH5678": { 
-      id: 13, 
-      title: "Healthy Rice Bowl", 
-      desc: "Gluten Free", 
-      price: 27.09, 
-      image: "/img_categoryTwo.webp" 
-    },
-  };
+  useEffect(() => {
+    console.log("OrderSummary received products:", products.length);
+    console.log("Product barcodes:", products.map(p => ({ title: p.title, barcode: p.barcode })));
+  }, [products]);
 
-  // Auto-scroll to bottom when new items added
+  const productDatabase = React.useMemo(() => {
+    const db = {};
+    console.log("Building product database...");
+    
+    products.forEach(product => {
+      if (product.barcode) {
+        db[product.barcode] = {
+          id: product.barcode,
+          title: product.title,
+          desc: product.desc || "",
+          price: Math.round(parseFloat(product.price) || 0),
+          image: product.image || "/img_category.webp"
+        };
+        console.log(`✅ Added product: ${product.title} with barcode: ${product.barcode}`);
+      } else {
+        console.log(`❌ Product ${product.title} has no barcode`);
+      }
+    });
+    
+    console.log("Final product database keys:", Object.keys(db));
+    return db;
+  }, [products]);
+
   useEffect(() => {
     if (scrollContainerRef.current && cartItems.length > 0) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [cartItems.length]);
 
-  // Handle scanned barcode
   useEffect(() => {
-    if (scannedBarcode && productDatabase[scannedBarcode]) {
-      addToCart(productDatabase[scannedBarcode]);
-      onBarcodeProcessed(); 
+    if (scannedBarcode) {
+      console.log("🔍 Looking for barcode:", scannedBarcode);
+      console.log("Available barcodes:", Object.keys(productDatabase));
+      
+      const foundProduct = productDatabase[scannedBarcode];
+      
+      if (foundProduct) {
+        console.log("✅ Product found:", foundProduct.title);
+        addToCart(foundProduct);
+        onBarcodeProcessed();
+      } else {
+        console.log("❌ No product found with barcode:", scannedBarcode);
+      }
     }
   }, [scannedBarcode, onBarcodeProcessed]);
 
   const addToCart = (product) => {
     setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.barcode === scannedBarcode);
+      const existingItem = prev.find((item) => item.barcode === product.id);
       
       if (existingItem) {
+        console.log(`🔄 Increasing quantity for ${product.title}`);
         return prev.map((item) =>
-          item.barcode === scannedBarcode
+          item.barcode === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
+        console.log(`🆕 Adding new item: ${product.title}`);
         return [...prev, { 
           ...product, 
-          barcode: scannedBarcode, 
+          barcode: product.id, 
           quantity: 1, 
           selected: false 
         }];
@@ -195,18 +139,17 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
     setPaymentMethod(method);
   };
 
-  // Calculations
-  const subtotal = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
+  // Calculations - all rounded to nearest integer
+  const subtotal = Math.round(
+    cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   );
 
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
-  const discountAmount = (subtotal * parsedDiscount) / 100;
-  const tax = 1.99;
+  const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
+  const tax = 199;
   const totalAfterDiscount = subtotal - discountAmount;
-  const totalAmount = totalAfterDiscount + tax;
-  const payback = receivedAmount && parseFloat(receivedAmount) - totalAmount;
+  const totalAmount = Math.round(totalAfterDiscount + tax);
+  const payback = receivedAmount && Math.round(parseFloat(receivedAmount) - totalAmount);
   const isAnySelected = cartItems.some((item) => item.selected);
   const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
 
@@ -220,20 +163,24 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
 
   const handlePrint = () => {
     const receiptData = {
-      cartItems,
+      cartItems: cartItems.map(item => ({
+        ...item,
+        price: Math.round(item.price)
+      })),
       subtotal,
       discountPercentage: parsedDiscount,
       discountAmount,
       tax,
       totalAmount,
       paymentMethod,
-      receivedAmount,
-      payback,
+      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+      payback: payback ? Math.round(payback) : 0,
       invoiceNo: generateInvoiceNo(),
       fbrInvoiceNo: generateFbrInvoiceNo(),
       shopName: "Smart Shop",
       shopAddress: "Abc Street, City, Country",
-      shopPhone: "+92-308-4416769"
+      shopPhone: "+92-308-4416769",
+      currency: "Rs"
     };
     
     printReceipt(receiptData);
@@ -273,7 +220,6 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
         )}
       </div>
 
-      {/* Scrollable Items - Fixed height with proper constraints */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto min-h-0"
@@ -318,7 +264,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
                   </div>
                 </div>
                 <p className="font-bold text-red-500 text-xs sm:text-sm whitespace-nowrap ml-1">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  Rs {Math.round(item.price * item.quantity)}
                 </p>
               </div>
             ))}
@@ -326,13 +272,12 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
         )}
       </div>
 
-      {/* Billing Section */}
       {cartItems.length > 0 && (
         <div className="p-3 sm:p-4 border-t border-gray-200 bg-white space-y-2 sm:space-y-3">
           <div className="space-y-1.5 sm:space-y-2">
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">${subtotal.toFixed(2)}</span>
+              <span className="font-medium">Rs {subtotal}</span>
             </div>
             
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -347,20 +292,20 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
                   placeholder="2"
                 />
                 <span className="text-red-500 text-xs sm:text-sm font-medium">
-                  -${discountAmount.toFixed(2)}
+                  -Rs {discountAmount}
                 </span>
               </div>
             </div>
             
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-gray-600">Tax</span>
-              <span className="font-medium">${tax.toFixed(2)}</span>
+              <span className="font-medium">Rs {tax}</span>
             </div>
             
             <div className="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
               <div className="flex justify-between font-bold text-sm sm:text-base">
                 <span>Total</span>
-                <span className="text-red-500">${totalAmount.toFixed(2)}</span>
+                <span className="text-red-500">Rs {totalAmount}</span>
               </div>
             </div>
           </div>
@@ -402,8 +347,8 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
                 onChange={handleReceivedAmountChange}
                 className="w-20 sm:w-24 p-1 sm:p-1.5 border border-gray-300 rounded text-xs sm:text-sm text-right"
                 min="0"
-                step="0.01"
-                placeholder="0.00"
+                step="1"
+                placeholder="0"
               />
             </div>
 
@@ -411,7 +356,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed }) => {
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-gray-600">Change</span>
                 <span className={payback < 0 ? "text-red-500" : "text-green-600 font-medium"}>
-                  ${payback.toFixed(2)}
+                  Rs {Math.abs(payback)} {payback < 0 ? "(Due)" : ""}
                 </span>
               </div>
             )}

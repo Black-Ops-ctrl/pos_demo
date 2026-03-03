@@ -24,7 +24,7 @@ export const printReceipt = (receiptData) => {
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
   
-  // Generate receipt HTML - FIXED version matching the image
+  // Generate receipt HTML - Updated with Rs currency and no decimals
   const receiptHTML = `
     <!DOCTYPE html>
     <html>
@@ -113,7 +113,7 @@ export const printReceipt = (receiptData) => {
             width: 100%;
           }
           
-          /* Fixed widths - matching the image */
+          /* Fixed widths */
           .desc-header { width: 38mm; text-align: left; }
           .qty-header { width: 10mm; text-align: center; }
           .price-header { width: 20mm; text-align: right; }
@@ -127,11 +127,6 @@ export const printReceipt = (receiptData) => {
           }
           .item-qty { width: 10mm; text-align: center; }
           .item-price { width: 20mm; text-align: right; }
-          
-          /* Format prices WITHOUT decimals (like in the image) */
-          .item-price, .total-value {
-            font-family: 'Courier New', monospace;
-          }
           
           /* Totals Section */
           .totals-section {
@@ -190,11 +185,6 @@ export const printReceipt = (receiptData) => {
           }
           
           .font-extra-bold { font-weight: 900; }
-          
-          /* Helper function to format prices without decimals when .00 */
-          .no-decimal {
-            /* This will be applied via JS formatting */
-          }
         </style>
       </head>
       <body>
@@ -235,42 +225,40 @@ export const printReceipt = (receiptData) => {
             <span class="price-header">PRICE</span>
           </div>
 
-          <!-- Items List - Format prices like in the image ($27. not $27.00) -->
+          <!-- Items List - Format prices with Rs and no decimals -->
           ${cartItems.map(item => {
             const itemName = item.title.length > 18 ? item.title.substring(0, 16) + '..' : item.title;
-            const itemTotal = item.price * item.quantity;
-            // Format price without decimals if it's a whole number
-            const formattedPrice = Number.isInteger(itemTotal) ? `$${itemTotal}.` : `$${itemTotal.toFixed(2)}`;
+            const itemTotal = Math.round(item.price * item.quantity);
             return `
               <div class="item-row">
                 <span class="item-desc" title="${item.title}">${itemName}</span>
                 <span class="item-qty">${item.quantity}</span>
-                <span class="item-price">${formattedPrice}</span>
+                <span class="item-price">Rs ${itemTotal}</span>
               </div>
             `;
           }).join('')}
 
-          <!-- Totals Section - Format like the image -->
+          <!-- Totals Section - Format with Rs and no decimals -->
           <div class="totals-section">
             <div class="total-row">
               <span class="total-label">Subtotal</span>
-              <span class="total-value">${Number.isInteger(subtotal) ? `$${subtotal}.` : `$${subtotal.toFixed(2)}`}</span>
+              <span class="total-value">Rs ${Math.round(subtotal)}</span>
             </div>
 
             <div class="total-row">
               <span class="total-label">Tax</span>
-              <span class="total-value">${Number.isInteger(tax) ? `$${tax}.` : `$${tax.toFixed(2)}`}</span>
+              <span class="total-value">Rs ${Math.round(tax)}</span>
             </div>
 
             <div class="total-row">
               <span class="total-label">Discount (${discountPercentage}%)</span>
-              <span class="total-value">-${Number.isInteger(discountAmount) ? `$${discountAmount}.` : `$${discountAmount.toFixed(2)}`}</span>
+              <span class="total-value">-Rs ${Math.round(discountAmount)}</span>
             </div>
 
             <!-- FINAL TOTAL -->
             <div class="total-row final">
               <span class="total-label">TOTAL</span>
-              <span class="total-value">${Number.isInteger(totalAmount) ? `$${totalAmount}.` : `$${totalAmount.toFixed(2)}`}</span>
+              <span class="total-value">Rs ${Math.round(totalAmount)}</span>
             </div>
 
             <!-- PAYMENT METHOD -->
@@ -282,14 +270,21 @@ export const printReceipt = (receiptData) => {
             ${paymentMethod === "cash" && receivedAmount ? `
               <div class="total-row">
                 <span class="total-label">Cash</span>
-                <span class="total-value">${Number.isInteger(parseFloat(receivedAmount)) ? `$${parseFloat(receivedAmount)}` : `$${parseFloat(receivedAmount).toFixed(2)}`}</span>
+                <span class="total-value">Rs ${Math.round(parseFloat(receivedAmount))}</span>
               </div>
             ` : ''}
 
             ${paymentMethod === "cash" && receivedAmount && payback >= 0 ? `
               <div class="total-row" style="font-weight: 900;">
                 <span class="total-label">Change Return</span>
-                <span class="total-value">${Number.isInteger(payback) ? `$${payback}.` : `$${payback.toFixed(2)}`}</span>
+                <span class="total-value">Rs ${Math.round(payback)}</span>
+              </div>
+            ` : ''}
+            
+            ${paymentMethod === "cash" && receivedAmount && payback < 0 ? `
+              <div class="total-row" style="font-weight: 900; color: #ff0000;">
+                <span class="total-label">Amount Due</span>
+                <span class="total-value">Rs ${Math.abs(Math.round(payback))}</span>
               </div>
             ` : ''}
           </div>

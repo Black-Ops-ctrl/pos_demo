@@ -5,9 +5,12 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || "");
   const inputBuffer = useRef("");
   const lastTime = useRef(0);
+  const barcodeTimeout = useRef(null);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
+      
       if (
         activeElement?.tagName === "INPUT" ||
         activeElement?.tagName === "TEXTAREA" ||
@@ -19,42 +22,76 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
         return;
       }
 
-      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta" || e.key === "Tab") {
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta" || e.key === "Tab" || e.key === "CapsLock") {
         return;
       }
 
       const now = Date.now();
+      
       if (now - lastTime.current > 100) {
+        if (inputBuffer.current.length > 0) {
+          console.log("Barcode timeout - clearing buffer:", inputBuffer.current);
+        }
         inputBuffer.current = "";
       }
       lastTime.current = now;
 
-      if (e.key === "Enter") {
-        e.preventDefault();
+      if (barcodeTimeout.current) {
+        clearTimeout(barcodeTimeout.current);
       }
 
-      if (e.key !== "Enter") {
-        if (e.key.length === 1) {
-          inputBuffer.current += e.key;
-        }
-      } else {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        
         if (inputBuffer.current.length > 0) {
           const scannedBarcode = inputBuffer.current;
-          console.log("Barcode scanned:", scannedBarcode);
+          console.log("📦 Barcode captured on Enter:", scannedBarcode);
+          console.log("Raw barcode length:", scannedBarcode.length);
+          console.log("Raw barcode chars:", scannedBarcode.split('').map(c => c.charCodeAt(0)));
           
           const cleanBarcode = scannedBarcode.replace(/[^\x20-\x7E]/g, '').trim();
+          console.log("Cleaned barcode:", cleanBarcode);
+          console.log("Cleaned barcode length:", cleanBarcode.length);
           
-          setLocalSearchTerm(cleanBarcode);
-          setSearchTerm(cleanBarcode);
-          onBarcodeScanned(cleanBarcode);
+          if (cleanBarcode) {
+            setLocalSearchTerm(cleanBarcode);
+            setSearchTerm(cleanBarcode);
+            onBarcodeScanned(cleanBarcode);
+          }
           
           inputBuffer.current = "";
         }
+      } else if (e.key.length === 1) {
+        inputBuffer.current += e.key;
+        console.log("Adding char to buffer:", e.key, "Current buffer:", inputBuffer.current);
+        
+        barcodeTimeout.current = setTimeout(() => {
+          if (inputBuffer.current.length > 0) {
+            const scannedBarcode = inputBuffer.current;
+            console.log("📦 Barcode captured after timeout:", scannedBarcode);
+            
+            const cleanBarcode = scannedBarcode.replace(/[^\x20-\x7E]/g, '').trim();
+            console.log("Cleaned barcode from timeout:", cleanBarcode);
+            
+            if (cleanBarcode) {
+              setLocalSearchTerm(cleanBarcode);
+              setSearchTerm(cleanBarcode);
+              onBarcodeScanned(cleanBarcode);
+            }
+            
+            inputBuffer.current = "";
+          }
+        }, 200);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      if (barcodeTimeout.current) {
+        clearTimeout(barcodeTimeout.current);
+      }
+    };
   }, [onBarcodeScanned, setSearchTerm]);
 
   const handleInputChange = (e) => {
@@ -66,21 +103,27 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      onSearch(localSearchTerm);
       
-      if (onEnterPress) {
-        onEnterPress(localSearchTerm);
+      if (localSearchTerm.trim()) {
+        console.log("Manual search triggered:", localSearchTerm);
+        onSearch(localSearchTerm);
+        
+        if (onEnterPress) {
+          onEnterPress(localSearchTerm);
+        }
       }
     }
   };
 
   const handleSearchClick = () => {
-    onSearch(localSearchTerm);
+    if (localSearchTerm.trim()) {
+      console.log("Search icon clicked:", localSearchTerm);
+      onSearch(localSearchTerm);
+    }
   };
 
   return (
     <div className="flex items-center justify-between gap-2 sm:gap-3 w-full">
-      {/* Search Bar - Responsive width */}
       <div className="relative flex-1 max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
         <Search 
           className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-red-500 transition-colors" 
@@ -94,11 +137,10 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
           onChange={handleInputChange}
           onKeyDown={handleKeyPress}
           placeholder="Search or scan barcode..."
-          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-full bg-gray-100 focus:outline-none focus:ring- focus:ring-gray-300 border border-transparent focus:border-gray-300 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm"
+          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-300 border border-transparent focus:border-red-300 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm"
         />
       </div>
 
-      {/* User Info - Responsive */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         <img
           src="/img_category.webp"

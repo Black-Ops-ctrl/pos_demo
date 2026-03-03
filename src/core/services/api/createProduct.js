@@ -20,7 +20,6 @@ export const createProduct = async (formData, categories, barcode) => {
       p_quantity: parseInt(formData.quantity),
       p_price: parseFloat(formData.price) || 0,
       p_bar_code: barcode,
-      // Add optional fields with defaults if needed
       p_image_ext: "jpg", // Default value, you can make this dynamic later
       p_description: formData.description || formData.productName, // Optional
       p_status: "CREATED", // Default status
