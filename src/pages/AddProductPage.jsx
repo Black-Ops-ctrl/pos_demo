@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createProduct, checkBarcodeExists } from "../core/services/api"; 
 import Toast from "../components/common/Toast"; 
-
 const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [barcode, setBarcode] = useState("");
   const [image, setImage] = useState(null);
@@ -19,49 +18,47 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [barcodeExists, setBarcodeExists] = useState(false); 
   const [existingProductName, setExistingProductName] = useState(""); 
-
+  // Refs for handling barcode scanner input
   const inputBuffer = useRef("");
   const lastTime = useRef(Date.now());
-
+  // Effect to handle barcode scanner input by capturing rapid key presses
   useEffect(() => {
     const handleKeyPress = (e) => {
       const activeElement = document.activeElement;
+      // Ignore keypress if user is typing in a form field
       if (
         activeElement.tagName === "INPUT" ||
         activeElement.tagName === "TEXTAREA" ||
         activeElement.tagName === "SELECT"
       ) return; 
-
+      // Reset buffer if keys are pressed too slowly (not from scanner)
       const now = Date.now();
       if (now - lastTime.current > 100) {
         inputBuffer.current = "";
       }
       lastTime.current = now;
-
+      // Handle Enter key as end of barcode scan
       if (e.key === "Enter") {
         if (inputBuffer.current.length > 0) {
           setBarcode(inputBuffer.current);
           checkDuplicateBarcode(inputBuffer.current);
         }
         inputBuffer.current = "";
-      } else if (e.key.length === 1) {
+      } else if (e.key.length === 1) { // Accumulate alphanumeric characters from scanner
         if (/[a-zA-Z0-9]/.test(e.key)) {
           inputBuffer.current += e.key;
         }
       }
     };
-
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, []);
-
+  // Function to check if barcode already exists in database
   const checkDuplicateBarcode = async (barcodeToCheck) => {
     if (!barcodeToCheck) return;
-    
     setCheckingBarcode(true);
     try {
       const result = await checkBarcodeExists(barcodeToCheck);
-      
       if (result.exists) {
         setBarcodeExists(true);
         setExistingProductName(result.product?.product_name || "another product");
@@ -76,7 +73,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       setCheckingBarcode(false);
     }
   };
-
+  // Handler for manual barcode input changes
   const handleBarcodeChange = (e) => {
     const newBarcode = e.target.value;
     setBarcode(newBarcode);
@@ -87,47 +84,54 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       setExistingProductName("");
     }
   };
-
-  /* ---------------- SHOW TOAST MESSAGE ---------------- */
+  // Function to show toast notifications
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
-    
     setTimeout(() => {
       setToast({ show: false, message: '', type: 'success' });
     }, 3000);
   };
-
+  // Handler for all form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation checks
+    // Validate required fields
     if (!formData.productName || !formData.category || !formData.quantity || !barcode) {
       showToast("Please fill all required fields", "warning");
       return;
     }
+    // Check if barcode is already taken
     if (barcodeExists) {
       showToast(`Cannot create product. Barcode already used for: ${existingProductName}`, "error");
       return;
     }
-
     setLoading(true);
     setError("");
     setSuccessMessage("");
     
-    const result = await createProduct(formData, categories, barcode);
-
+    // Pass the image file to createProduct
+    const result = await createProduct(formData, categories, barcode, image);
+    
     if (result.success) {
       showToast(result.message, "success");
+      console.log("✅ Product created:", result.data);
+      if (result.data.image_path) {
+        console.log("🖼️ Image saved at:", result.data.image_path);
+      }
+      
+      // Reset form after successful submission
       setFormData({ productName: "", category: "", quantity: "", price: "" });
       setBarcode("");
       setImage(null);
       setBarcodeExists(false);
       setExistingProductName("");
+      
+      // Reset the file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
       
       if (onSuccess) onSuccess(result.data);     
       setTimeout(() => {
@@ -136,15 +140,13 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     } else {
       showToast(result.message, "error");
     }
-
     setLoading(false);
   };
-
+  // Reusable input class for consistent styling
   const inputClass = "mt-2 px-4 py-3 border-2 border-gray-200 rounded-md bg-white text-gray-600 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-indigo-400";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 font-poppins">
-      {/* Toast Message */}
       {toast.show && (
         <Toast 
           message={toast.message} 
@@ -152,9 +154,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
           onClose={() => setToast({ show: false, message: '', type: 'success' })}
         />
       )}
-      
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Barcode - Made editable for manual entry */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary text-lg">Barcode *</label>
           <div className="relative mt-2">
@@ -171,7 +171,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
                   : 'border-gray-500'
               }`}
             />
-            {/* Status indicators - Now properly centered */}
             <div className="absolute right-3 top-0 h-full flex items-center">
               {checkingBarcode && (
                 <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
@@ -189,15 +188,12 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
               )}
             </div>
           </div>
-          {/* Warning message */}
           {barcodeExists && (
             <p className="text-red-500 text-xs mt-1">
               This barcode is already used for "{existingProductName}". Please use a different barcode.
             </p>
           )}
         </div>
-
-        {/* Product Name */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Product Name *</label>
           <input
@@ -209,8 +205,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             className={inputClass}
           />
         </div>
-
-        {/* Quantity */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Quantity *</label>
           <input
@@ -222,8 +216,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             className={inputClass}
           />
         </div>
-
-        {/* Price */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Price *</label>
           <input
@@ -235,8 +227,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             className={inputClass}
           />
         </div>
-
-        {/* Category */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Category *</label>
           <select
@@ -253,8 +243,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             ))}
           </select>
         </div>
-
-        {/* Product Image */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Product Image</label>
           <input
@@ -265,8 +253,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
           />
         </div>
       </div>
-
-      {/* Save Button */}
       <div className="text-center">
         <button
           type="submit"
@@ -283,5 +269,4 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     </form>
   );
 };
-
 export default AddProductPage;

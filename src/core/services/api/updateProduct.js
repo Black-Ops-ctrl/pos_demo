@@ -1,62 +1,68 @@
 import api, { ERROR_MESSAGES, SUCCESS_MESSAGES, DEBUG_MESSAGES } from './config';
-
-export const updateProduct = async (productId, updateData) => {
+// API function to update an existing product with partial data
+export const updateProduct = async (productId, updateData, imageFile) => {
   console.log(DEBUG_MESSAGES.UPDATE_REQUEST, { productId, updateData });
   console.log(DEBUG_MESSAGES.API_CALL_START, new Date().toISOString());
   
   try {
-    const requestBody = {
-      p_operation: 3,
-      p_product_id: productId,
-      p_updated_by: 1 
-    };
-
+    // Create FormData object
+    const formDataObj = new FormData();
+    
+    // Required fields
+    formDataObj.append('p_operation', '3');
+    formDataObj.append('p_product_id', productId);
+    formDataObj.append('p_updated_by', 1);
+    
+    // Conditionally add fields only if they are provided in updateData
     if (updateData.productName !== undefined) {
-      requestBody.p_product_name = updateData.productName;
+      formDataObj.append('p_product_name', updateData.productName);
     }
     
     if (updateData.price !== undefined) {
-      requestBody.p_price = parseFloat(updateData.price);
+      formDataObj.append('p_price', parseFloat(updateData.price));
     }
     
     if (updateData.quantity !== undefined) {
-      requestBody.p_quantity = parseInt(updateData.quantity);
+      formDataObj.append('p_quantity', parseInt(updateData.quantity));
     }
     
     if (updateData.category !== undefined) {
-      requestBody.p_category = updateData.category;
+      formDataObj.append('p_category', updateData.category);
     }
     
     if (updateData.barcode !== undefined) {
-      requestBody.p_bar_code = updateData.barcode;
+      formDataObj.append('p_bar_code', updateData.barcode);
+    }
+    
+    // Add new image if provided
+    if (imageFile) {
+      formDataObj.append('image', imageFile);
+      const fileExt = imageFile.name.split('.').pop() || 'jpg';
+      formDataObj.append('p_image_ext', fileExt);
     }
 
-    console.log("Update Request Body:", requestBody);
-
-    const response = await api.post('/products', requestBody);
+    console.log("Update FormData with image:", imageFile ? 'Yes' : 'No');
+    
+    // Make API call
+    const response = await api.post('/products', formDataObj, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     
     console.log(DEBUG_MESSAGES.UPDATE_SUCCESS, response.data);
-    console.log(DEBUG_MESSAGES.SERVER_RESPONSE, response.status);
-    console.log(DEBUG_MESSAGES.API_CALL_END, new Date().toISOString());
     
     return { 
       success: true, 
       data: response.data,
-      message: SUCCESS_MESSAGES.UPDATE || "Product updated successfully!"
+      message: "Product updated successfully!"
     };
     
   } catch (error) {
     console.log(DEBUG_MESSAGES.UPDATE_FAILURE, error.message);
-    
-    if (!error.response) {
-      console.log(DEBUG_MESSAGES.NETWORK_ISSUE, 'No response from server');
-    }
-    
-    console.log(DEBUG_MESSAGES.API_CALL_END, new Date().toISOString());
-    
     return { 
       success: false, 
-      message: error.response?.data?.message || ERROR_MESSAGES.UPDATE || "Failed to update product",
+      message: error.response?.data?.message || "Failed to update product",
       error: error
     };
   }

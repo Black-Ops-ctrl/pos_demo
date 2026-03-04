@@ -7,8 +7,6 @@ import AddProductPage from "../pages/AddProductPage";
 import Toast from "../components/common/Toast"; 
 import { createCategory, fetchCategories, deleteCategory } from "../core/services/api";
 import { fetchProducts } from "../core/services/api"; 
-
-
 const CreateCategoryPage = () => {
   const [categories, setCategories] = useState([]);
   const [open, setOpen] = useState(false);
@@ -30,16 +28,15 @@ const CreateCategoryPage = () => {
     if (showLoadingToast) {
       showToast("Loading categories...", "info");
     }
-    
     try {
+      // Fetch both categories and products in parallel
       const [categoriesData, productsData] = await Promise.all([
         fetchCategories(),
         fetchProducts() 
       ]);
-      
-      // Fix: Ensure productsData is an array before using reduce
+      // Ensure productsData is an array before using reduce
       const productsList = Array.isArray(productsData) ? productsData : [];
-      
+      // Calculate product count per category for display
       const productCountByCategory = productsList.reduce((acc, product) => {
         const catId = product.category_id;
         if (catId) {
@@ -47,10 +44,9 @@ const CreateCategoryPage = () => {
         }
         return acc;
       }, {});
-      
-      // Fix: Ensure categoriesData is an array before using map
+      // Ensure categoriesData is an array before using map
       const categoriesList = Array.isArray(categoriesData) ? categoriesData : [];
-      
+      // Transform API data to component-friendly format
       const transformedCategories = categoriesList.map(cat => ({
         id: cat.category_id,
         name: cat.category_name,
@@ -60,7 +56,6 @@ const CreateCategoryPage = () => {
         created_date: cat.created_date,
         updated_date: cat.updated_date
       }));
-      
       setCategories(transformedCategories);
     } catch (error) {
       showToast(error.message || "Failed to load categories", "error");
@@ -89,19 +84,16 @@ const CreateCategoryPage = () => {
       showToast("Please enter category name", "warning");
       return;
     }
-
     setApiLoading(prev => ({ ...prev, create: true }));
     setLoading(true);
-
     try {
       const updatedCategories = await createCategory({
         category_name: name.trim(),
         description: name.trim() 
       });
-      
-      // Fix: Ensure updatedCategories is an array
+      // Ensure updatedCategories is an array
       const categoriesList = Array.isArray(updatedCategories) ? updatedCategories : [];
-      
+      // Transform the response data
       const transformedCategories = categoriesList.map(cat => ({
         id: cat.category_id,
         name: cat.category_name,
@@ -111,7 +103,6 @@ const CreateCategoryPage = () => {
         created_date: cat.created_date,
         updated_date: cat.updated_date
       }));
-
       setCategories(transformedCategories);
       showToast(`Category "${name.trim()}" created successfully!`, "success");
       setName("");
@@ -132,14 +123,14 @@ const CreateCategoryPage = () => {
   const handleDelete = async (id) => {
     const categoryToDelete = categories.find(c => c.id === id);
     const categoryName = categoryToDelete?.name;
+    // Optimistically remove category from UI
     setCategories((prev) => prev.filter((c) => c.id !== id));
     setApiLoading(prev => ({ ...prev, delete: true }));
     try {
       const updatedCategories = await deleteCategory(id);
-      
-      // Fix: Ensure updatedCategories is an array
+      // Ensure updatedCategories is an array
       const categoriesList = Array.isArray(updatedCategories) ? updatedCategories : [];
-      
+      // Transform the response data
       const transformedCategories = categoriesList.map(cat => ({
         id: cat.category_id,
         name: cat.category_name,
@@ -149,10 +140,10 @@ const CreateCategoryPage = () => {
         created_date: cat.created_date,
         updated_date: cat.updated_date
       }));
-
       setCategories(transformedCategories);
       showToast(`Category "${categoryName}" deleted successfully!`, "success");
     } catch (error) {
+      // Revert optimistic update on error
       setCategories((prev) => [...prev, categoryToDelete]);
       showToast(error.message || "Failed to delete category", "error");
     } finally {
@@ -407,5 +398,4 @@ const CreateCategoryPage = () => {
     </div>
   );
 };
-
 export default CreateCategoryPage;

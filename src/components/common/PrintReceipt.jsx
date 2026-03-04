@@ -1,3 +1,4 @@
+// PrintReceipt.js
 export const printReceipt = (receiptData) => {
   const { 
     cartItems, 
@@ -16,26 +17,19 @@ export const printReceipt = (receiptData) => {
     shopPhone
   } = receiptData;
 
-  // Format date
   const currentDate = new Date();
-  const formattedDate = currentDate.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+  const formattedDate = currentDate.toLocaleDateString('en-GB'); 
   const formattedTime = currentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Create a new window for printing
   const printWindow = window.open('', '_blank');
   
-  // Generate receipt HTML - Updated with Rs currency and no decimals
   const receiptHTML = `
     <!DOCTYPE html>
     <html>
       <head>
         <title>Receipt</title>
         <style>
-          @page {
-            margin: 0;
-            size: 80mm auto;
-          }
-          
+          @page { margin: 0; size: 80mm auto; }
           body {
             margin: 0;
             padding: 2mm;
@@ -44,32 +38,11 @@ export const printReceipt = (receiptData) => {
             font-size: 10px;
             font-weight: bold;
             background: white;
-            box-sizing: border-box;
           }
-          
-          .receipt {
-            width: 100%;
-            max-width: 70mm;
-            margin: 0 auto;
-          }
-          
-          .shop-header {
-            text-align: center;
-            margin-bottom: 5px;
-          }
-          
-          .shop-name {
-            font-weight: 900;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-          }
-          
-          .shop-details {
-            font-size: 11px;
-            line-height: 1.2;
-          }
-          
+          .receipt { width: 100%; max-width: 70mm; margin: 0 auto; }
+          .shop-header { text-align: center; margin-bottom: 5px; }
+          .shop-name { font-weight: 900; font-size: 18px; text-transform: uppercase; }
+          .shop-details { font-size: 11px; line-height: 1.2; }
           .receipt-title {
             text-align: center;
             font-weight: 900;
@@ -79,22 +52,9 @@ export const printReceipt = (receiptData) => {
             padding: 4px 0;
             margin: 8px 0;
             text-transform: uppercase;
-            letter-spacing: 1px;
           }
-          
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            width: 100%;
-          }
-          
-          .invoice-section {
-            padding: 2px 0;
-            margin: 5px 0;
-          }
-          
-          /* Items Header */
+          .info-row { display: flex; justify-content: space-between; padding: 2px 0; }
+          .invoice-section { padding: 2px 0; margin: 5px 0; }
           .items-header {
             display: flex;
             justify-content: space-between;
@@ -103,48 +63,18 @@ export const printReceipt = (receiptData) => {
             border-bottom: 2px solid #000;
             padding: 4px 0;
             margin-top: 5px;
-            width: 100%;
           }
-          
-          .item-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            width: 100%;
-          }
-          
-          /* Fixed widths */
+          .item-row { display: flex; justify-content: space-between; padding: 2px 0; }
           .desc-header { width: 38mm; text-align: left; }
           .qty-header { width: 10mm; text-align: center; }
           .price-header { width: 20mm; text-align: right; }
-          
-          .item-desc { 
-            width: 38mm; 
-            text-align: left; 
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
+          .item-desc { width: 38mm; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .item-qty { width: 10mm; text-align: center; }
           .item-price { width: 20mm; text-align: right; }
-          
-          /* Totals Section */
-          .totals-section {
-            margin-top: 10px;
-            border-top: 2px solid #000;
-            padding-top: 5px;
-          }
-          
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-            width: 100%;
-          }
-          
+          .totals-section { margin-top: 10px; border-top: 2px solid #000; padding-top: 5px; }
+          .total-row { display: flex; justify-content: space-between; padding: 3px 0; }
           .total-label { width: 40mm; text-align: left; }
           .total-value { width: 28mm; text-align: right; }
-          
           .total-row.final {
             font-weight: 900;
             font-size: 14px;
@@ -153,7 +83,6 @@ export const printReceipt = (receiptData) => {
             padding: 6px 0;
             margin: 5px 0;
           }
-          
           .payment-row {
             display: flex;
             justify-content: space-between;
@@ -162,46 +91,23 @@ export const printReceipt = (receiptData) => {
             font-weight: bold;
             border-bottom: 2px solid #000;
             margin-top: 5px;
-            width: 100%;
           }
-          
           .payment-label { width: 40mm; text-align: left; }
           .payment-value { width: 28mm; text-align: right; text-transform: uppercase; }
-          
-          .thank-you {
-            text-align: center;
-            font-weight: 900;
-            font-size: 18px;
-            margin: 15px 0 5px 0;
-            letter-spacing: 1px;
-          }
-          
-          .cut-line {
-            text-align: center;
-            margin-top: 15px;
-            border-top: 2px dashed #000;
-            padding-top: 5px;
-            font-size: 10px;
-          }
-          
-          .font-extra-bold { font-weight: 900; }
+          .thank-you { text-align: center; font-weight: 900; font-size: 18px; margin: 15px 0 5px 0; }
+          .cut-line { text-align: center; margin-top: 15px; border-top: 2px dashed #000; padding-top: 5px; font-size: 10px; }
         </style>
       </head>
       <body>
         <div class="receipt">
-          <!-- Shop Header -->
           <div class="shop-header">
             <div class="shop-name">${shopName}</div>
             <div class="shop-details">${shopAddress}</div>
             <div class="shop-details">Tel: ${shopPhone}</div>
           </div>
 
-          <!-- Receipt Title -->
-          <div class="receipt-title">
-            CASH RECEIPT
-          </div>
+          <div class="receipt-title">CASH RECEIPT</div>
 
-          <!-- Date and Invoice Info -->
           <div class="info-row">
             <span>Date: ${formattedDate}</span>
             <span>${formattedTime}</span>
@@ -218,14 +124,12 @@ export const printReceipt = (receiptData) => {
             </div>
           </div>
 
-          <!-- Items Header -->
           <div class="items-header">
             <span class="desc-header">DESCRIPTION</span>
             <span class="qty-header">QTY</span>
             <span class="price-header">PRICE</span>
           </div>
 
-          <!-- Items List - Format prices with Rs and no decimals -->
           ${cartItems.map(item => {
             const itemName = item.title.length > 18 ? item.title.substring(0, 16) + '..' : item.title;
             const itemTotal = Math.round(item.price * item.quantity);
@@ -238,7 +142,6 @@ export const printReceipt = (receiptData) => {
             `;
           }).join('')}
 
-          <!-- Totals Section - Format with Rs and no decimals -->
           <div class="totals-section">
             <div class="total-row">
               <span class="total-label">Subtotal</span>
@@ -255,13 +158,11 @@ export const printReceipt = (receiptData) => {
               <span class="total-value">-Rs ${Math.round(discountAmount)}</span>
             </div>
 
-            <!-- FINAL TOTAL -->
             <div class="total-row final">
               <span class="total-label">TOTAL</span>
               <span class="total-value">Rs ${Math.round(totalAmount)}</span>
             </div>
 
-            <!-- PAYMENT METHOD -->
             <div class="payment-row">
               <span class="payment-label">PAYMENT METHOD</span>
               <span class="payment-value">${paymentMethod.toUpperCase()}</span>
@@ -289,43 +190,25 @@ export const printReceipt = (receiptData) => {
             ` : ''}
           </div>
 
-          <!-- Thank You Message -->
-          <div class="thank-you">
-            THANK YOU!
-          </div>
-          
-          <!-- Cut line -->
-          <div class="cut-line">
-            • • • • • CUT HERE • • • • •
-          </div>
+          <div class="thank-you">THANK YOU!</div>
+          <div class="cut-line">• • • • • CUT HERE • • • • •</div>
         </div>
         
         <script>
-          let printClicked = false;
+          // Auto print
+          window.onload = function() {
+            window.print();
+          };
           
-          function safeClose() {
-            setTimeout(() => window.close(), 100);
-          }
+          // Close after printing or after 3 seconds
+          window.onafterprint = function() {
+            window.close();
+          };
           
-          window.onafterprint = () => printClicked = true;
-          
-          window.onload = () => setTimeout(() => window.print(), 300);
-          
-          let hasFocus = true;
-          window.addEventListener('blur', () => hasFocus = false);
-          window.addEventListener('focus', () => {
-            if (!printClicked && !hasFocus) safeClose();
-            hasFocus = true;
-          });
-          
-          document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'w') {
-              e.preventDefault();
-              safeClose();
-            }
-          });
-          
-          setTimeout(() => !window.closed && safeClose(), 30000);
+          // Fallback: close after 3 seconds if print dialog is canceled
+          setTimeout(function() {
+            window.close();
+          }, 3000);
         </script>
       </body>
     </html>
@@ -333,5 +216,4 @@ export const printReceipt = (receiptData) => {
 
   printWindow.document.write(receiptHTML);
   printWindow.document.close();
-  printWindow.focus();
 };

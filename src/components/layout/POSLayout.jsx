@@ -14,90 +14,96 @@ const POSLayout = () => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); 
 
+  // Load categories on component mount
   useEffect(() => {
     loadCategories();
   }, []);
 
+  // Load products after categories are loaded
   useEffect(() => {
     if (categories.length > 0) {
       loadProducts();
     }
-  }, [categories]);
+  }, [categories, refreshTrigger]); 
 
+  // Fetch categories from API and process response
   const loadCategories = async () => {
     try {
       const response = await fetchCategories();
-      console.log("Raw categories response:", response);
       
       const categoriesData = Array.isArray(response) ? response : (response?.data || []);
-      console.log("Categories data array:", categoriesData);
       
+      // Extract category names from various possible field names
       const categoryNames = Array.isArray(categoriesData) 
         ? categoriesData.map(cat => {
-            console.log("Individual category object:", cat);
             return cat?.category_name || cat?.name || cat?.title || cat?.catName || "Unknown";
           }).filter(name => name !== "Unknown") 
         : [];
       
-      console.log("Final category names:", categoryNames);
       setCategories(categoryNames);
       
+      // Set default selected category to first category
       if (categoryNames.length > 0) {
         setSelectedCategory(categoryNames[0]);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
+      // Fallback categories if API fails
       setCategories(["Popular", "Ice Cream", "Rice Bowl", "Coffee", "Snack"]);
       setSelectedCategory("Rice Bowl");
     }
   };
 
+  // Fetch products from API and format them for display
   const loadProducts = async () => {
     setLoading(true);
     try {
       const response = await fetchProducts();
-      console.log("Raw products response:", response);
       
-      // ✅ FIXED: Check response structure properly
+      // Handle different response formats properly
       let productsData = [];
       
-      // Agar response direct array hai
+      // If response is direct array
       if (Array.isArray(response)) {
-        console.log("✅ Response is direct array");
         productsData = response;
       } 
-      // Agar response mein data property hai jo array hai
+      // If response has data property that is an array
       else if (response?.data && Array.isArray(response.data)) {
-        console.log("✅ Response has data array");
         productsData = response.data;
       }
-      // Agar response mein data property hai lekin array nahi
+      // If response has data property but not array
       else if (response?.data) {
-        console.log("⚠️ Response.data is not an array:", response.data);
         productsData = [response.data];
       }
       else {
-        console.log("❌ Unknown response format:", response);
         productsData = [];
       }
       
-      console.log("Final products data array:", productsData);
-      console.log("Products count:", productsData.length);
+      console.log("Products data for POS:", productsData);
       
+      // Format each product for consistent structure
       const formattedProducts = Array.isArray(productsData) ? productsData.map((prod, index) => {
-        console.log(`Product ${index}:`, {
-          id: prod.product_id,
-          name: prod.product_name,
-          bar_code: prod.bar_code,
-          product_code: prod.product_code,
-          price: prod.price
-        });
         
-        // Image URL construct karo
-        const imageUrl = prod.image_ext && prod.product_id
-          ? `/uploads/${prod.product_id}.${prod.image_ext}` 
-          : "/img_categoryFive.webp";
+        // Construct image URL from API response
+        let imageUrl = "/img_categoryFive.webp"; // Default fallback
+        
+        // Check for image_url from API (your API now returns this)
+        if (prod.image_url) {
+          imageUrl = prod.image_url;
+        } 
+        // Construct from image_ext and product_id if available
+        else if (prod.image_ext && prod.product_id) {
+          imageUrl = `http://84.16.235.111:2140/uploads/products/prod_${prod.product_id}.${prod.image_ext}`;
+        }
+        // Construct from product_id only (assuming png)
+        else if (prod.product_id) {
+          imageUrl = `http://84.16.235.111:2140/uploads/products/prod_${prod.product_id}.png`;
+        }
+        
+        // Parse quantity to number
+        const quantity = parseInt(prod.quantity) || 0;
         
         return {
           id: prod.product_id || index,
@@ -107,18 +113,15 @@ const POSLayout = () => {
           barcode: prod.bar_code || prod.product_code || `PROD-${index}`,
           desc: prod.description || "",
           category: prod.category_name || "",
-          category_id: prod.category_id
+          category_id: prod.category_id,
+          quantity: quantity,
+          stockStatus: quantity <= 0 ? "out" : quantity < 5 ? "low" : "in",
+          image_ext: prod.image_ext,
+          image_url: prod.image_url
         };
       }) : [];
       
-      console.log("✅ Formatted products count:", formattedProducts.length);
-      console.log("Formatted products with barcodes:", 
-        formattedProducts.map(p => ({ 
-          title: p.title, 
-          barcode: p.barcode,
-          category: p.category 
-        })));
-      
+      console.log("Formatted products for POS:", formattedProducts);
       setProducts(formattedProducts);
     } catch (error) {
       console.error("Error loading products:", error);
@@ -127,22 +130,28 @@ const POSLayout = () => {
     }
   };
 
+  // Function to refresh products
+  const refreshProducts = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Handle barcode scanned from TopBar
   const handleBarcodeScanned = (barcode) => {
-    console.log("Barcode scanned in POSLayout:", barcode);
     setScannedBarcode(barcode);
     setSearchTerm("");
   };
 
+  // Handle product selection from grid
   const handleProductSelect = (barcode) => {
-    console.log("Product selected with barcode:", barcode);
     setScannedBarcode(barcode);
   };
 
+  // Handle search term changes
   const handleSearch = (term) => {
-    console.log("Search term:", term);
     setSearchTerm(term);
   };
 
+  // Handle Enter key press - auto-select product if search matches
   const handleEnterPress = (searchTerm) => {
     if (!searchTerm.trim()) return;
     
@@ -154,27 +163,31 @@ const POSLayout = () => {
     );
     
     if (matchedProduct) {
-      console.log("Enter pressed - auto-selecting product:", matchedProduct.title);
       setScannedBarcode(matchedProduct.barcode);
       setSearchTerm("");
     }
   };
 
+  // Reset scanned barcode after processing
   const handleBarcodeProcessed = () => {
-    console.log("Barcode processed");
     setScannedBarcode(null);
   };
 
+  // Handle category selection change
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
-    console.log("Selected category:", category);
   };
 
   return (
     <div className="h-screen bg-rose-50 p-2 sm:p-3 md:p-4 overflow-hidden">
+      {/* Main container with responsive padding */}
       <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-xl h-full flex flex-col lg:flex-row overflow-hidden">
+        {/* Sidebar navigation */}
         <Sidebar />
+        
+        {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Top bar with search and user profile */}
           <div className="p-2 sm:p-3 md:p-4 lg:p-5 pb-1 sm:pb-2 md:pb-2 lg:pb-3">
             <TopBar 
               searchTerm={searchTerm}
@@ -184,7 +197,8 @@ const POSLayout = () => {
               onEnterPress={handleEnterPress}
             />
           </div>
-
+          
+          {/* Category tabs for filtering */}
           <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3 md:pb-4">
             <CategoryTabs 
               categories={categories}
@@ -192,8 +206,10 @@ const POSLayout = () => {
               onCategorySelect={handleCategorySelect}
             />
           </div>
-
+          
+          {/* Main content split: Product grid and Order summary */}
           <div className="flex-1 flex flex-col lg:flex-row min-h-0 px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 gap-4 overflow-hidden">
+            {/* Product grid - takes remaining space */}
             <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
               <ProductGrid 
                 onProductSelect={handleProductSelect}
@@ -203,12 +219,14 @@ const POSLayout = () => {
                 loading={loading}
               />
             </div>
-
+            
+            {/* Order summary sidebar - fixed width */}
             <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 h-full overflow-hidden">
               <OrderSummary 
                 scannedBarcode={scannedBarcode}
                 onBarcodeProcessed={handleBarcodeProcessed}
                 products={products}
+                onRefreshProducts={refreshProducts} 
               />
             </div>
           </div>

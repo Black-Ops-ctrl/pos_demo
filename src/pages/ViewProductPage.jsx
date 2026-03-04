@@ -6,9 +6,11 @@ import Toast from "../components/common/Toast";
 import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
 
 const ViewProductsByCategory = () => {
+  // Get category name from URL parameters and initialize navigation
   const { categoryName } = useParams();
   const navigate = useNavigate();
   
+  // State management for products and filtering
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -16,18 +18,23 @@ const ViewProductsByCategory = () => {
   const [error, setError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   
+  // Toast notification state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
+  // Selection state for bulk operations
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   
+  // Edit modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [originalProduct, setOriginalProduct] = useState(null); 
-
+  
+  // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
-
+  
+  // Delete confirmation dialog state
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
     type: 'single', 
@@ -36,19 +43,20 @@ const ViewProductsByCategory = () => {
     count: 0
   });
 
-  // Decode the category name
+  // Decode the category name from URL
   const decodedCategoryName = decodeURIComponent(categoryName);
-
+  
+  // Load products and categories when component mounts or category changes
   useEffect(() => {
     loadProductsAndCategories();
   }, [categoryName]);
-
+  
+  // Function to fetch products and categories from API
   const loadProductsAndCategories = async () => {
     setLoading(true);
     setError("");
-    
     try {
-      // Fetch both products and categories
+      // Fetch both products and categories in parallel
       const [productsResult, categoriesResult] = await Promise.all([
         fetchProducts(),
         fetchCategories()
@@ -57,7 +65,7 @@ const ViewProductsByCategory = () => {
       console.log("Products Result:", productsResult);
       console.log("Categories Result:", categoriesResult);
       
-      // Handle products data
+      // Handle products data - extract from various response formats
       let productsList = [];
       if (productsResult?.success && productsResult.data) {
         productsList = productsResult.data.data || productsResult.data;
@@ -65,7 +73,7 @@ const ViewProductsByCategory = () => {
         productsList = productsResult;
       }
       
-      // Handle categories data
+      // Handle categories data - extract from various response formats
       let categoriesList = [];
       if (Array.isArray(categoriesResult)) {
         categoriesList = categoriesResult;
@@ -76,7 +84,7 @@ const ViewProductsByCategory = () => {
       setCategories(categoriesList);
       console.log("Processed categories:", categoriesList);
       
-      // Find the current category ID
+      // Find the current category ID by matching name
       const currentCategory = categoriesList.find(
         cat => cat.category_name?.toLowerCase() === decodedCategoryName.toLowerCase()
       );
@@ -84,23 +92,27 @@ const ViewProductsByCategory = () => {
       console.log("Current category from URL:", decodedCategoryName);
       console.log("Found category:", currentCategory);
       
-      // Transform products with category names
+      // Transform products with category names and images for display
       const transformedProducts = productsList.map((item) => {
         // Find category name from categories list
         const productCategory = categoriesList.find(
           cat => cat.category_id === item.category_id
         );
         
+        // Get image URL from the API response
+        const imageUrl = item.image_url || `http://84.16.235.111:2140/uploads/products/prod_${item.product_id}.png`;
+        
         return {
           id: item?.product_id,
           name: item?.product_name || "Unknown Product",
           category_id: item?.category_id,
-          category_name: productCategory?.category_name || item?.category || "Uncategorized",
+          category_name: productCategory?.category_name || item?.category_name || "Uncategorized",
           barcode: item?.bar_code || "N/A",
           status: getStockStatus(parseInt(item?.quantity) || 0),
           quantity: parseInt(item?.quantity) || 0,
           price: parseFloat(item?.price) || 0,
-          image: "https://via.placeholder.com/150",
+          image: imageUrl,
+          image_ext: item?.image_ext,
           description: item?.description || "",
           productCode: item?.product_code,
         };
@@ -109,7 +121,7 @@ const ViewProductsByCategory = () => {
       setProducts(transformedProducts);
       console.log("Transformed products:", transformedProducts);
       
-      // Filter products by current category (using category_id)
+      // Filter products by current category using category_id
       let filtered = [];
       if (currentCategory) {
         filtered = transformedProducts.filter(
@@ -126,47 +138,42 @@ const ViewProductsByCategory = () => {
       setFilteredProducts(filtered);
       setSelectedProducts([]);
       setSelectAll(false);
-      
     } catch (err) {
       console.error("Error loading data:", err);
       setError("An error occurred while loading products");
     }
-    
     setLoading(false);
   };
-
+  
+  // Refresh products data
   const refreshProducts = async () => {
     await loadProductsAndCategories();
   };
-
+  
+  // Show toast notification
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
-    
     setTimeout(() => {
       setToast({ show: false, message: '', type: 'success' });
     }, 3000);
   };
-
+  
+  // Determine stock status based on quantity
   const getStockStatus = (quantity) => {
     if (quantity <= 0) return "Stock Out";
     if (quantity < 5) return "Low Stock";
     return "In Stock";
   };
-
-  const limitWords = (str, limit) => {
-    if (!str) return "";
-    if (str.length <= limit) return str;
-    return str.slice(0, limit) + "...";
-  };
-
-  // Apply search and status filters
+  
+  // Apply search and status filters to displayed products
   const displayedProducts = filteredProducts.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus =
       statusFilter === "All Status" || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
-
+  
+  // Update select all checkbox state based on selections
   useEffect(() => {
     if (displayedProducts.length > 0) {
       setSelectAll(selectedProducts.length === displayedProducts.length);
@@ -174,12 +181,12 @@ const ViewProductsByCategory = () => {
       setSelectAll(false);
     }
   }, [selectedProducts, displayedProducts]);
-
+  
+  // Handle single product deletion
   const handleSingleDelete = async (productId) => {
     setDeleteLoading(true);
     try {
       const result = await deleteProduct(productId);
-      
       if (result?.success) {
         showToast("Product deleted successfully!", "success");
         await refreshProducts();
@@ -191,18 +198,18 @@ const ViewProductsByCategory = () => {
     }
     setDeleteLoading(false);
   };
-
+  
+  // Handle bulk deletion of selected products
   const handleBulkDelete = async () => {
     if (selectedProducts.length === 0) {
       showToast("Please select products to delete", "warning");
       return;
     }
-
     setDeleteLoading(true);
-    
     let successCount = 0;
     let failCount = 0;
-
+    
+    // Delete each selected product sequentially
     for (const productId of selectedProducts) {
       try {
         const result = await deleteProduct(productId);
@@ -215,22 +222,21 @@ const ViewProductsByCategory = () => {
         failCount++;
       }
     }
-
+    
     if (successCount > 0) {
       showToast(`${successCount} product(s) deleted successfully!`, "success");
       await refreshProducts();
     }
-    
     if (failCount > 0) {
       showToast(`Failed to delete ${failCount} product(s)`, "error");
     }
-    
     setSelectedProducts([]);
     setSelectAll(false);
     setDeleteLoading(false);
     setDeleteDialog({ ...deleteDialog, isOpen: false });
   };
-
+  
+  // Handle individual checkbox selection
   const handleCheckboxChange = (productId) => {
     setSelectedProducts(prev => {
       if (prev.includes(productId)) {
@@ -240,7 +246,8 @@ const ViewProductsByCategory = () => {
       }
     });
   };
-
+  
+  // Handle select all checkbox
   const handleSelectAllChange = () => {
     if (selectAll) {
       setSelectedProducts([]);
@@ -248,13 +255,15 @@ const ViewProductsByCategory = () => {
       setSelectedProducts(displayedProducts.map(p => p.id));
     }
   };
-
+  
+  // Open edit modal with selected product data
   const handleEditClick = (product) => {
     setSelectedProduct({ ...product });
     setOriginalProduct({ ...product }); 
     setModalOpen(true);
   };
-
+  
+  // Handle input changes in edit form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setSelectedProduct((prevProduct) => ({
@@ -262,7 +271,8 @@ const ViewProductsByCategory = () => {
       [name]: value,
     }));
   };
-
+  
+  // Handle image file selection and preview
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -270,36 +280,38 @@ const ViewProductsByCategory = () => {
       reader.onloadend = () => {
         setSelectedProduct((prevProduct) => ({
           ...prevProduct,
-          image: reader.result,
+          newImage: reader.result, // For preview
+          imageFile: file, // Store actual file for upload
         }));
       };
       reader.readAsDataURL(file);
     }
   };
-
+  
+  // Save edited product changes
   const handleSaveClick = async () => {
     if (!selectedProduct || !originalProduct) return;
-    
     setDeleteLoading(true);
     const updateData = {};
     
+    // Compare and track only changed fields
     if (selectedProduct.name !== originalProduct.name) {
       updateData.productName = selectedProduct.name;
     }
-    
     if (selectedProduct.price !== originalProduct.price) {
       updateData.price = selectedProduct.price;
     }
-    
     if (selectedProduct.quantity !== originalProduct.quantity) {
       updateData.quantity = selectedProduct.quantity;
     }
-    
     if (selectedProduct.barcode !== originalProduct.barcode) {
       updateData.barcode = selectedProduct.barcode;
     }
     
-    if (Object.keys(updateData).length === 0) {
+    // Check if any changes were made (including image)
+    const hasChanges = Object.keys(updateData).length > 0 || selectedProduct.imageFile;
+    
+    if (!hasChanges) {
       showToast("No changes to save", "warning");
       setModalOpen(false);
       setSelectedProduct(null);
@@ -307,11 +319,17 @@ const ViewProductsByCategory = () => {
       setDeleteLoading(false);
       return;
     }
-
-    console.log("Updating only changed fields:", updateData);
+    
+    console.log("Updating fields:", updateData);
+    console.log("New image:", selectedProduct.imageFile ? selectedProduct.imageFile.name : 'No new image');
     
     try {
-      const result = await updateProduct(selectedProduct.id, updateData);
+      // Pass both updateData and image file to updateProduct
+      const result = await updateProduct(
+        selectedProduct.id, 
+        updateData, 
+        selectedProduct.imageFile // Pass the image file if selected
+      );
       
       if (result?.success) {
         showToast("Product updated successfully!", "success");
@@ -323,22 +341,25 @@ const ViewProductsByCategory = () => {
         showToast(`Failed to update product: ${result?.message}`, "error");
       }
     } catch (err) {
+      console.error("Update error:", err);
       showToast("Failed to update product", "error");
     }
-    
     setDeleteLoading(false);
   };
-
+  
+  // Cancel edit and close modal
   const handleCancelClick = () => {
     setModalOpen(false);
     setSelectedProduct(null);
     setOriginalProduct(null);
   };
-
+  
+  // Navigate back to previous page
   const handleBackToCategories = () => {
     navigate(-1);
   };
-
+  
+  // Calculate summary statistics
   const totalStockValue = displayedProducts.reduce(
     (sum, p) => sum + (p.price * p.quantity),
     0
@@ -346,7 +367,8 @@ const ViewProductsByCategory = () => {
   const totalProducts = displayedProducts.length;
   const lowStockCount = displayedProducts.filter((p) => p.status === "Low Stock").length;
   const outOfStockCount = displayedProducts.filter((p) => p.status === "Stock Out").length;
-
+  
+  // Loading state UI
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -357,7 +379,8 @@ const ViewProductsByCategory = () => {
       </div>
     );
   }
-
+  
+  // Error state UI
   if (error) {
     return (
       <div className="p-6 bg-lightGreyColor font-sans">
@@ -444,7 +467,6 @@ const ViewProductsByCategory = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-
         <select
           className="border shadow rounded-full px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={statusFilter}
@@ -479,6 +501,12 @@ const ViewProductsByCategory = () => {
           </svg>
           <p className="text-gray-500 text-xl mb-2">No products found</p>
           <p className="text-gray-400 mb-6">This category doesn't have any products yet.</p>
+          <button
+            onClick={() => navigate('/add-product')}
+            className="bg-gradient-to-r from-purple-500 to-indigo-400 text-white px-6 py-2 rounded-full hover:opacity-90 transition"
+          >
+            Add Product
+          </button>
         </div>
       )}
 
@@ -523,7 +551,8 @@ const ViewProductsByCategory = () => {
                         alt={product.name}
                         className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
                         onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/150";
+                          console.log('Image failed to load:', product.image);
+                          e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
                         }}
                       />
                       <span className="text-sm text-left break-words max-w-[200px]">
@@ -569,14 +598,13 @@ const ViewProductsByCategory = () => {
         </div>
       )}
 
-      {/* Edit Product Modal - Restored to previous UI with image upload */}
+      {/* Edit Product Modal */}
       {modalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
           <div className="bg-primary p-8 rounded-xl shadow-xl w-96 max-w-full">
             <h2 className="text-xl font-semibold text-secondary font-poppins mb-4 text-start">
               Edit Product
             </h2>
-            
             <div className="space-y-4">
               {/* Product Name */}
               <div>
@@ -639,12 +667,32 @@ const ViewProductsByCategory = () => {
                   onChange={handleImageChange}
                   className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
                 />
-                {selectedProduct.image && (
-                  <img 
-                    src={selectedProduct.image} 
-                    alt="Preview" 
-                    className="mt-2 w-20 h-20 object-cover rounded border"
-                  />
+                
+                {/* Show current image */}
+                {selectedProduct.image && !selectedProduct.newImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 mb-1">Current Image:</p>
+                    <img 
+                      src={selectedProduct.image} 
+                      alt={selectedProduct.name}
+                      className="w-20 h-20 object-cover rounded border"
+                      onError={(e) => {
+                        e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {/* Show new image preview if selected */}
+                {selectedProduct.newImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-green-600 mb-1">New Image Preview:</p>
+                    <img 
+                      src={selectedProduct.newImage} 
+                      alt="New preview" 
+                      className="w-20 h-20 object-cover rounded border border-green-500"
+                    />
+                  </div>
                 )}
               </div>
 

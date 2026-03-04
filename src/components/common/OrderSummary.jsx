@@ -1,82 +1,117 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
 import deleteIcon from "/public/ic_delete_button.png";
-import { printReceipt } from "./../common/PrintReceipt"; 
+import { printReceipt } from "./../common/PrintReceipt";
+import { updateStockAfterSale } from "../../core/services/api/updateStock";
+import Toast from "./../common/Toast"; 
 
-const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => {
+const OrderSummary = ({ 
+  scannedBarcode, 
+  onBarcodeProcessed, 
+  products = [],
+  onRefreshProducts
+}) => {
+  // State management
   const [cartItems, setCartItems] = useState([]);
   const [receivedAmount, setReceivedAmount] = useState("");
   const [discountPercentage, setDiscountPercentage] = useState("2");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); 
+  
   const scrollContainerRef = useRef(null);
 
-  useEffect(() => {
-    console.log("OrderSummary received products:", products.length);
-    console.log("Product barcodes:", products.map(p => ({ title: p.title, barcode: p.barcode })));
-  }, [products]);
+  // Show toast function
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
 
+  // Hide toast function
+  const hideToast = () => {
+    setToast({ show: false, message: '', type: 'success' });
+  };
+
+  // Create product lookup database
   const productDatabase = React.useMemo(() => {
     const db = {};
-    console.log("Building product database...");
-    
     products.forEach(product => {
       if (product.barcode) {
         db[product.barcode] = {
-          id: product.barcode,
+          id: product.id,
+          barcode: product.barcode,
           title: product.title,
           desc: product.desc || "",
           price: Math.round(parseFloat(product.price) || 0),
-          image: product.image || "/img_category.webp"
+          image: product.image || "/img_category.webp",
+          quantity: product.quantity || 0
         };
-        console.log(`✅ Added product: ${product.title} with barcode: ${product.barcode}`);
-      } else {
-        console.log(`❌ Product ${product.title} has no barcode`);
       }
     });
-    
-    console.log("Final product database keys:", Object.keys(db));
     return db;
   }, [products]);
 
+  // Auto-scroll to bottom when new items are added
   useEffect(() => {
     if (scrollContainerRef.current && cartItems.length > 0) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [cartItems.length]);
 
+  // Handle barcode scanning
   useEffect(() => {
     if (scannedBarcode) {
-      console.log("🔍 Looking for barcode:", scannedBarcode);
-      console.log("Available barcodes:", Object.keys(productDatabase));
-      
       const foundProduct = productDatabase[scannedBarcode];
       
       if (foundProduct) {
-        console.log("✅ Product found:", foundProduct.title);
         addToCart(foundProduct);
-        onBarcodeProcessed();
       } else {
-        console.log("❌ No product found with barcode:", scannedBarcode);
+        showToast(`Product with barcode ${scannedBarcode} not found!`, 'error');
       }
+      onBarcodeProcessed();
     }
-  }, [scannedBarcode, onBarcodeProcessed]);
+  }, [scannedBarcode]);
 
+  // Check stock availability
+  const checkStockAvailability = (product, requestedQuantity) => {
+    const productInDB = productDatabase[product.barcode] || product;
+    
+    if (!productInDB) {
+      return { available: false, currentStock: 0 };
+    }
+
+    const currentStock = productInDB.quantity || 0;
+    return {
+      available: currentStock >= requestedQuantity,
+      currentStock: currentStock
+    };
+  };
+
+  // Add to cart with stock validation
   const addToCart = (product) => {
+    const existingItem = cartItems.find((item) => item.barcode === product.barcode);
+    const requestedQuantity = existingItem ? existingItem.quantity + 1 : 1;
+
+    const stockCheck = checkStockAvailability(product, requestedQuantity);
+    
+    if (!stockCheck.available) {
+      showToast(`Only ${stockCheck.currentStock} ${product.title} available in stock!`, 'warning');
+      return;
+    }
+
     setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.barcode === product.id);
+      const existingItem = prev.find((item) => item.barcode === product.barcode);
       
       if (existingItem) {
-        console.log(`🔄 Increasing quantity for ${product.title}`);
         return prev.map((item) =>
-          item.barcode === product.id
+          item.barcode === product.barcode
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        console.log(`🆕 Adding new item: ${product.title}`);
         return [...prev, { 
           ...product, 
-          barcode: product.id, 
+          id: product.id,
+          barcode: product.barcode, 
           quantity: 1, 
           selected: false 
         }];
@@ -84,6 +119,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
     });
   };
 
+  // Toggle selection of individual cart item
   const handleSelect = (barcode) => {
     setCartItems((prev) =>
       prev.map((item) => 
@@ -94,6 +130,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
     );
   };
 
+  // Toggle select all items in cart
   const handleSelectAll = () => {
     const allSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
     setCartItems((prev) =>
@@ -101,20 +138,37 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
     );
   };
 
+  // Delete selected items from cart
   const handleDelete = () => {
     setCartItems((prev) => prev.filter((item) => !item.selected));
+    showToast('Selected items removed from cart', 'info');
   };
 
+  // Handle quantity change
   const handleQuantityChange = (barcode, delta) => {
+    const item = cartItems.find(i => i.barcode === barcode);
+    const newQuantity = item.quantity + delta;
+    
+    if (newQuantity < 1) return;
+    
+    if (delta > 0) {
+      const stockCheck = checkStockAvailability(item, newQuantity);
+      if (!stockCheck.available) {
+        showToast(`Only ${stockCheck.currentStock} ${item.title} available in stock!`, 'warning');
+        return;
+      }
+    }
+    
     setCartItems((prev) =>
       prev.map((item) =>
         item.barcode === barcode
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          ? { ...item, quantity: newQuantity }
           : item
       )
     );
   };
 
+  // Handle received amount
   const handleReceivedAmountChange = (e) => {
     const value = e.target.value;
     if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
@@ -122,6 +176,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
     }
   };
 
+  // Handle discount change
   const handleDiscountChange = (e) => {
     const value = e.target.value;
     if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
@@ -129,21 +184,22 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
     }
   };
 
+  // Handle discount blur
   const handleDiscountBlur = () => {
     if (discountPercentage === "" || discountPercentage === "0") {
       setDiscountPercentage("2");
     }
   };
 
+  // Handle payment method
   const handlePaymentMethodChange = (method) => {
     setPaymentMethod(method);
   };
 
-  // Calculations - all rounded to nearest integer
+  // Calculations
   const subtotal = Math.round(
     cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
   );
-
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
   const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
   const tax = 199;
@@ -153,41 +209,120 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
   const isAnySelected = cartItems.some((item) => item.selected);
   const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
 
+  // Generate invoice number
   const generateInvoiceNo = () => {
     return `INV-${Date.now().toString().slice(-8)}`;
   };
 
+  // Generate FBR invoice number
   const generateFbrInvoiceNo = () => {
     return `FBR-${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`;
   };
 
-  const handlePrint = () => {
-    const receiptData = {
-      cartItems: cartItems.map(item => ({
-        ...item,
-        price: Math.round(item.price)
-      })),
-      subtotal,
-      discountPercentage: parsedDiscount,
-      discountAmount,
-      tax,
-      totalAmount,
-      paymentMethod,
-      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-      payback: payback ? Math.round(payback) : 0,
-      invoiceNo: generateInvoiceNo(),
-      fbrInvoiceNo: generateFbrInvoiceNo(),
-      shopName: "Smart Shop",
-      shopAddress: "Abc Street, City, Country",
-      shopPhone: "+92-308-4416769",
-      currency: "Rs"
-    };
+  // Final stock validation
+  const validateFinalStock = () => {
+    for (const item of cartItems) {
+      const productInInventory = productDatabase[item.barcode];
+      
+      if (!productInInventory) {
+        showToast(`Product ${item.title} not found in inventory!`, 'error');
+        return false;
+      }
+      
+      if (productInInventory.quantity < item.quantity) {
+        showToast(`Only ${productInInventory.quantity} ${item.title} available! You have ${item.quantity} in cart.`, 'warning');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Handle print receipt
+  const handlePrint = async () => {
+    if (isProcessing) return;
     
-    printReceipt(receiptData);
+    if (cartItems.length === 0) {
+      showToast("Cart is empty!", 'warning');
+      return;
+    }
+
+    if (paymentMethod === "cash") {
+      if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
+        showToast("Please enter valid received amount!", 'warning');
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+
+    try {
+      if (!validateFinalStock()) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const receiptData = {
+        cartItems: cartItems.map(item => ({
+          ...item,
+          price: Math.round(item.price),
+          id: item.id || item.barcode
+        })),
+        subtotal,
+        discountPercentage: parsedDiscount,
+        discountAmount,
+        tax,
+        totalAmount,
+        paymentMethod,
+        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+        payback: payback ? Math.round(payback) : 0,
+        invoiceNo: generateInvoiceNo(),
+        fbrInvoiceNo: generateFbrInvoiceNo(),
+        shopName: "Smart Shop",
+        shopAddress: "Abc Street, City, Country",
+        shopPhone: "+92-308-4416769",
+        currency: "Rs"
+      };
+
+      const stockUpdateResult = await updateStockAfterSale(receiptData, products);
+      
+      if (stockUpdateResult.success) {
+        printReceipt(receiptData);
+        
+        setCartItems([]);
+        setReceivedAmount("");
+        
+        showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
+        
+        if (onRefreshProducts) {
+          onRefreshProducts();
+        }
+      } else {
+        const failedItems = stockUpdateResult.failed || [];
+        if (failedItems.length > 0) {
+          const errorMsg = failedItems.map(f => `${f.product}: ${f.reason}`).join('\n');
+          showToast(`Stock update failed:\n${errorMsg}`, 'error');
+        } else {
+          showToast(stockUpdateResult.message || "Failed to update stock", 'error');
+        }
+      }
+    } catch (error) {
+      showToast("An error occurred while processing the sale", 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border">
+      {/* Toast Notification */}
+      {toast.show && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={hideToast}
+        />
+      )}
+
       {/* Header */}
       <div className="p-3 sm:p-4 border-b bg-primary">
         <div className="flex justify-between items-center">
@@ -196,9 +331,9 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
           </h2>
           <button
             onClick={handleDelete}
-            disabled={!isAnySelected}
+            disabled={!isAnySelected || isProcessing}
             className={`rounded-lg transition-colors ${
-              isAnySelected 
+              isAnySelected && !isProcessing
                 ? "" 
                 : "opacity-30 cursor-not-allowed"
             }`}
@@ -206,20 +341,21 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
             <img src={deleteIcon} alt="delete" className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
-
         {cartItems.length > 0 && (
           <div className="flex items-center gap-2 mt-2 sm:mt-3">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={handleSelectAll}
+              disabled={isProcessing}
               className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-red-500 cursor-pointer rounded"
             />
-            <span className="text-xs sm:text-sm text-gray-500">Delete All</span>
+            <span className="text-xs sm:text-sm text-gray-500">Select All</span>
           </div>
         )}
       </div>
 
+      {/* Cart Items */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto min-h-0"
@@ -237,6 +373,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                   type="checkbox"
                   checked={item.selected}
                   onChange={() => handleSelect(item.barcode)}
+                  disabled={isProcessing}
                   className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-red-500 cursor-pointer flex-shrink-0"
                 />
                 <img 
@@ -250,14 +387,16 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                   <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-2">
                     <button
                       onClick={() => handleQuantityChange(item.barcode, -1)}
-                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0"
+                      disabled={isProcessing}
+                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0 disabled:opacity-50"
                     >
                       -
                     </button>
                     <span className="text-xs sm:text-sm font-medium w-5 sm:w-6 text-center">{item.quantity}</span>
                     <button
                       onClick={() => handleQuantityChange(item.barcode, 1)}
-                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0"
+                      disabled={isProcessing}
+                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0 disabled:opacity-50"
                     >
                       +
                     </button>
@@ -272,6 +411,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
         )}
       </div>
 
+      {/* Checkout Section */}
       {cartItems.length > 0 && (
         <div className="p-3 sm:p-4 border-t border-gray-200 bg-white space-y-2 sm:space-y-3">
           <div className="space-y-1.5 sm:space-y-2">
@@ -288,6 +428,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                   value={discountPercentage}
                   onChange={handleDiscountChange}
                   onBlur={handleDiscountBlur}
+                  disabled={isProcessing}
                   className="w-10 sm:w-12 p-1 border border-gray-300 rounded text-center text-xs sm:text-sm"
                   placeholder="2"
                 />
@@ -321,6 +462,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                     value="cash"
                     checked={paymentMethod === "cash"}
                     onChange={() => handlePaymentMethodChange("cash")}
+                    disabled={isProcessing}
                     className="accent-red-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
                   />
                   <span className="text-xs sm:text-sm">Cash</span>
@@ -332,6 +474,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                     value="card"
                     checked={paymentMethod === "card"}
                     onChange={() => handlePaymentMethodChange("card")}
+                    disabled={isProcessing}
                     className="accent-red-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
                   />
                   <span className="text-xs sm:text-sm">Card</span>
@@ -345,6 +488,7 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
                 type="number"
                 value={receivedAmount}
                 onChange={handleReceivedAmountChange}
+                disabled={isProcessing}
                 className="w-20 sm:w-24 p-1 sm:p-1.5 border border-gray-300 rounded text-xs sm:text-sm text-right"
                 min="0"
                 step="1"
@@ -363,9 +507,12 @@ const OrderSummary = ({ scannedBarcode, onBarcodeProcessed, products = [] }) => 
 
             <button 
               onClick={handlePrint}
-              className="w-full bg-red-500 text-white py-2 sm:py-3 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm sm:text-base mt-1 sm:mt-2"
+              disabled={isProcessing || cartItems.length === 0}
+              className={`w-full bg-red-500 text-white py-2 sm:py-3 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm sm:text-base mt-1 sm:mt-2 ${
+                isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
-              Print Receipt
+              {isProcessing ? "Processing..." : "Print Receipt"}
             </button>
           </div>
         </div>

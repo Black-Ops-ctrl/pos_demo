@@ -1,6 +1,6 @@
 import React from "react";
 import { Home, ShoppingCart, Settings, Grid } from "lucide-react";
-
+// Sidebar component that adapts between horizontal top bar (mobile) and vertical sidebar (desktop)
 const Sidebar = () => {
   return (
     <div className="
@@ -30,7 +30,7 @@ const Sidebar = () => {
       /* 2XL screens */
       2xl:w-20 2xl:py-5
     ">
-      {/* Logo - slightly smaller */}
+      {/* Logo - circle symbol that scales with screen size */}
       <div className="
         text-red-500 font-bold
         text-base sm:text-lg md:text-xl
@@ -41,7 +41,7 @@ const Sidebar = () => {
         ◎
       </div>
       
-      {/* Navigation Icons Container */}
+      {/* Navigation Icons Container - switches from row to column on large screens */}
       <div className="
         flex flex-row items-center gap-2
         sm:gap-3 md:gap-4
@@ -49,6 +49,7 @@ const Sidebar = () => {
         xl:gap-4
         2xl:gap-5
       ">
+        {/* Home icon - hover effect changes color to red */}
         <Home className="
           text-gray-400 hover:text-red-500 cursor-pointer transition-colors
           w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4 md:h-4
@@ -57,6 +58,7 @@ const Sidebar = () => {
           2xl:w-5 2xl:h-5
         " />
         
+        {/* Grid/Categories icon */}
         <Grid className="
           text-gray-400 hover:text-red-500 cursor-pointer transition-colors
           w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4 md:h-4
@@ -65,6 +67,7 @@ const Sidebar = () => {
           2xl:w-5 2xl:h-5
         " />
         
+        {/* Shopping cart icon */}
         <ShoppingCart className="
           text-gray-400 hover:text-red-500 cursor-pointer transition-colors
           w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4 md:h-4
@@ -73,6 +76,7 @@ const Sidebar = () => {
           2xl:w-5 2xl:h-5
         " />
         
+        {/* Settings icon - with margin auto on large screens to push to bottom */}
         <Settings className="
           text-gray-400 hover:text-red-500 cursor-pointer transition-colors
           w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4 md:h-4
@@ -84,5 +88,4 @@ const Sidebar = () => {
     </div>
   );
 };
-
 export default Sidebar;
