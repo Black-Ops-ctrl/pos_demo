@@ -202,9 +202,11 @@ const OrderSummary = ({
   );
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
   const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
-  const tax = 199;
-  const totalAfterDiscount = subtotal - discountAmount;
-  const totalAmount = Math.round(totalAfterDiscount + tax);
+
+  // Dynamic tax based on payment method
+  const taxPercentage = paymentMethod === "cash" ? 16 : 7;
+  const taxAmount = Math.round((subtotal - discountAmount) * taxPercentage / 100);
+  const totalAmount = Math.round(subtotal - discountAmount + taxAmount);
   const payback = receivedAmount && Math.round(parseFloat(receivedAmount) - totalAmount);
   const isAnySelected = cartItems.some((item) => item.selected);
   const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
@@ -262,26 +264,26 @@ const OrderSummary = ({
       }
 
       const receiptData = {
-        cartItems: cartItems.map(item => ({
-          ...item,
-          price: Math.round(item.price),
-          id: item.id || item.barcode
-        })),
-        subtotal,
-        discountPercentage: parsedDiscount,
-        discountAmount,
-        tax,
-        totalAmount,
-        paymentMethod,
-        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-        payback: payback ? Math.round(payback) : 0,
-        invoiceNo: generateInvoiceNo(),
-        fbrInvoiceNo: generateFbrInvoiceNo(),
-        shopName: "Smart Shop",
-        shopAddress: "Abc Street, City, Country",
-        shopPhone: "+92-308-4416769",
-        currency: "Rs"
-      };
+      cartItems: cartItems.map(item => ({
+        ...item,
+        price: Math.round(item.price),
+        id: item.id || item.barcode
+      })),
+      subtotal,
+      discountPercentage: parsedDiscount,
+      discountAmount,
+      tax: taxAmount, // Changed from tax to taxAmount
+      totalAmount,
+      paymentMethod,
+      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+      payback: payback ? Math.round(payback) : 0,
+      invoiceNo: generateInvoiceNo(),
+      fbrInvoiceNo: generateFbrInvoiceNo(),
+      shopName: "Smart Shop",
+      shopAddress: "Abc Street, City, Country",
+      shopPhone: "+92-308-4416769",
+      currency: "Rs"
+    };
 
       const stockUpdateResult = await updateStockAfterSale(receiptData, products);
       
@@ -439,8 +441,8 @@ const OrderSummary = ({
             </div>
             
             <div className="flex justify-between text-xs sm:text-sm">
-              <span className="text-gray-600">Tax</span>
-              <span className="font-medium">Rs {tax}</span>
+              <span className="text-gray-600">Tax ({taxPercentage}%)</span>
+              <span className="font-medium">Rs {taxAmount}</span>
             </div>
             
             <div className="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">

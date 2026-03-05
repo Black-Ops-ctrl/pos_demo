@@ -1,47 +1,55 @@
-import api, { DEBUG_MESSAGES, ERROR_MESSAGES, SUCCESS_MESSAGES } from './config';
+import api from './config';
+
 /**
- * Create a new category
+ * Create a new category with optional image
  * @param {Object} categoryData - Category data
  * @param {string} categoryData.category_name - Name of the category
  * @param {string} categoryData.description - Category description
- * @returns {Promise<Array>} Updated list of all categories
+ * @param {File|null} imageFile - Image file to upload
+ * @returns {Promise<Object>} Created category data
  */
-export const createCategory = async (categoryData) => {
-  console.log(DEBUG_MESSAGES.API_CALL_START);
-  console.log(DEBUG_MESSAGES.CATEGORY_CREATE_REQUEST, categoryData);
-
+export const createCategory = async (categoryData, imageFile = null) => {
+  console.log('📝 Creating category:', categoryData);
+  
   try {
-    // Make API call to create new category with operation type 2
-    const response = await api.post('/itemCategories', {
-      operation: 2,
-      category_name: categoryData.category_name,
-      account_id: 1, // Hardcoded as per requirement
-      description: categoryData.description,
-      module_id: 1 // Hardcoded as per requirement
+    // Create FormData for multipart upload
+    const formData = new FormData();
+    formData.append('p_operation', '2');
+    formData.append('p_category_name', categoryData.category_name);
+    formData.append('p_description', categoryData.description || categoryData.category_name);
+    formData.append('p_account_id', '1');
+    formData.append('p_module_id', '1');
+    
+    // Append image if provided
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    // Make API call with multipart/form-data
+    const response = await api.post('/itemCategories', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
 
-    console.log(DEBUG_MESSAGES.SERVER_RESPONSE, response.data);
-    console.log(DEBUG_MESSAGES.CATEGORY_CREATE_SUCCESS, response.data?.length || 0);
-    console.log(DEBUG_MESSAGES.API_CALL_END);
+    console.log("✅ Category created:", response.data);
     
-    // Return the updated categories list from server
-    return response.data; 
+    // Return the created category data
+    return response.data;
+    
   } catch (error) {
-    console.error(DEBUG_MESSAGES.CATEGORY_CREATE_FAILURE, error.message);
+    console.error('❌ Category creation failed:', error);
     
-    // Handle network connectivity issues
     if (!error.response) {
-      console.error(DEBUG_MESSAGES.NETWORK_ISSUE, error.message);
-      throw new Error(ERROR_MESSAGES.NETWORK);
+      throw new Error('Network error. Please check your connection.');
     }
     
-    // Handle server-side errors (500+ status codes)
     if (error.response?.status >= 500) {
-      throw new Error(ERROR_MESSAGES.SERVER);
+      throw new Error('Server error. Please try again later.');
     }
     
-    // Handle other errors with server-provided message or default
-    throw new Error(error.response?.data?.message || ERROR_MESSAGES.CATEGORY_CREATE);
+    throw new Error(error.response?.data?.message || 'Failed to create category');
   }
 };
+
 export default createCategory;

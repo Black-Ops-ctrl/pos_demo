@@ -11,8 +11,8 @@ export const deleteCategory = async (categoryId) => {
   try {
     // Make API call to delete category with operation type 4
     const response = await api.post('/itemCategories', {
-      operation: 4,
-      category_id: parseInt(categoryId) // Convert to integer for API
+      p_operation: 4,
+      p_category_id: parseInt(categoryId) // Convert to integer for API
     });
 
     console.log(DEBUG_MESSAGES.SERVER_RESPONSE, response.data);

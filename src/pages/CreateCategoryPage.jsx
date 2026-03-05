@@ -7,12 +7,15 @@ import AddProductPage from "../pages/AddProductPage";
 import Toast from "../components/common/Toast"; 
 import { createCategory, fetchCategories, deleteCategory } from "../core/services/api";
 import { fetchProducts } from "../core/services/api"; 
+
 const CreateCategoryPage = () => {
   const [categories, setCategories] = useState([]);
   const [open, setOpen] = useState(false);
   const [openProductModal, setOpenProductModal] = useState(false);
   const [name, setName] = useState("");
-  const [image, setImage] = useState(null);
+  const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [loading, setLoading] = useState(false);
   const [apiLoading, setApiLoading] = useState({
@@ -28,15 +31,27 @@ const CreateCategoryPage = () => {
     if (showLoadingToast) {
       showToast("Loading categories...", "info");
     }
+    
     try {
       // Fetch both categories and products in parallel
-      const [categoriesData, productsData] = await Promise.all([
+      const [categoriesData, productsData] = await Promise.allSettled([
         fetchCategories(),
         fetchProducts() 
       ]);
-      // Ensure productsData is an array before using reduce
-      const productsList = Array.isArray(productsData) ? productsData : [];
-      // Calculate product count per category for display
+      
+      // Handle categories data
+      let categoriesList = [];
+      if (categoriesData.status === 'fulfilled') {
+        categoriesList = categoriesData.value || [];
+      }
+      
+      // Handle products data
+      let productsList = [];
+      if (productsData.status === 'fulfilled') {
+        productsList = Array.isArray(productsData.value) ? productsData.value : [];
+      }
+      
+      // Calculate product count per category
       const productCountByCategory = productsList.reduce((acc, product) => {
         const catId = product.category_id;
         if (catId) {
@@ -44,21 +59,22 @@ const CreateCategoryPage = () => {
         }
         return acc;
       }, {});
-      // Ensure categoriesData is an array before using map
-      const categoriesList = Array.isArray(categoriesData) ? categoriesData : [];
+      
       // Transform API data to component-friendly format
       const transformedCategories = categoriesList.map(cat => ({
         id: cat.category_id,
         name: cat.category_name,
         description: cat.description,
-        image: null,
+        image: cat.image_url, // This will now show the uploaded image
         products: productCountByCategory[cat.category_id] || 0, 
         created_date: cat.created_date,
         updated_date: cat.updated_date
       }));
+      
       setCategories(transformedCategories);
     } catch (error) {
-      showToast(error.message || "Failed to load categories", "error");
+      console.error('Error loading categories:', error);
+      showToast("Failed to load categories", "error");
       setCategories([]);
     } finally {
       setApiLoading(prev => ({ ...prev, fetch: false }));
@@ -78,41 +94,51 @@ const CreateCategoryPage = () => {
     }, 3000);
   };
 
+  /* ---------------- HANDLE IMAGE SELECTION ---------------- */
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
+  };
+
   /* ---------------- CREATE CATEGORY ---------------- */
   const handleCreate = async () => {
     if (!name.trim()) {
       showToast("Please enter category name", "warning");
       return;
     }
+    
     setApiLoading(prev => ({ ...prev, create: true }));
     setLoading(true);
+    
     try {
-      const updatedCategories = await createCategory({
-        category_name: name.trim(),
-        description: name.trim() 
-      });
-      // Ensure updatedCategories is an array
-      const categoriesList = Array.isArray(updatedCategories) ? updatedCategories : [];
-      // Transform the response data
-      const transformedCategories = categoriesList.map(cat => ({
-        id: cat.category_id,
-        name: cat.category_name,
-        description: cat.description,
-        image: null,
-        products: 0,
-        created_date: cat.created_date,
-        updated_date: cat.updated_date
-      }));
-      setCategories(transformedCategories);
+      // Create category with image
+      await createCategory(
+        {
+          category_name: name.trim(),
+          description: description.trim() || name.trim()
+        },
+        imageFile // Pass the image file
+      );
+      
+      // Refresh categories list
+      await loadCategories();
+      
       showToast(`Category "${name.trim()}" created successfully!`, "success");
+      
+      // Reset form
       setName("");
-      setImage(null);
+      setDescription("");
+      setImageFile(null);
+      setImagePreview(null);
       setOpen(false);
+      
     } catch (error) {
       showToast(error.message || "Failed to create category", "error");
-      setName("");
-      setImage(null);
-      setOpen(false);
     } finally {
       setApiLoading(prev => ({ ...prev, create: false }));
       setLoading(false);
@@ -123,25 +149,18 @@ const CreateCategoryPage = () => {
   const handleDelete = async (id) => {
     const categoryToDelete = categories.find(c => c.id === id);
     const categoryName = categoryToDelete?.name;
+    
     // Optimistically remove category from UI
     setCategories((prev) => prev.filter((c) => c.id !== id));
     setApiLoading(prev => ({ ...prev, delete: true }));
+    
     try {
-      const updatedCategories = await deleteCategory(id);
-      // Ensure updatedCategories is an array
-      const categoriesList = Array.isArray(updatedCategories) ? updatedCategories : [];
-      // Transform the response data
-      const transformedCategories = categoriesList.map(cat => ({
-        id: cat.category_id,
-        name: cat.category_name,
-        description: cat.description,
-        image: null,
-        products: 0,
-        created_date: cat.created_date,
-        updated_date: cat.updated_date
-      }));
-      setCategories(transformedCategories);
+      await deleteCategory(id);
+      
+      // Refresh categories to get updated list
+      await loadCategories();
       showToast(`Category "${categoryName}" deleted successfully!`, "success");
+      
     } catch (error) {
       // Revert optimistic update on error
       setCategories((prev) => [...prev, categoryToDelete]);
@@ -235,12 +254,17 @@ const CreateCategoryPage = () => {
               key={cat.id}
               className="bg-lightGreyColor px-4 py-4 rounded-xl shadow flex flex-col items-center border border-purple-500 hover:shadow-lg transition"
             >
-              {/* Image */}
+              {/* Image - Now showing actual uploaded image */}
               {cat.image ? (
                 <img
                   src={cat.image}
                   alt={cat.name}
                   className="w-32 h-32 object-cover rounded-xl mb-3"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = ''; // Hide broken image
+                    e.target.style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="w-32 h-32 bg-gray-200 border border-blackColor mb-3 flex items-center rounded-xl justify-center text-gray-500 font-poppins">
@@ -316,6 +340,16 @@ const CreateCategoryPage = () => {
               autoFocus
             />
 
+            {/* Description (optional) */}
+            <input
+              type="text"
+              placeholder="Enter description (optional)"
+              className="w-full border border-blackColor rounded-lg p-2 mb-4 font-poppins focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={apiLoading.create}
+            />
+
             {/* Image picker */}
             <label className="block mb-4 cursor-pointer font-poppins">
               <span className="text-sm text-greyColor font-sans">
@@ -325,19 +359,20 @@ const CreateCategoryPage = () => {
                 type="file"
                 accept="image/*"
                 className="mt-2 w-full text-sm"
-                onChange={(e) => {
-                  if (e.target.files[0]) {
-                    setImage(URL.createObjectURL(e.target.files[0]));
-                  }
-                }}
+                onChange={handleImageChange}
                 disabled={apiLoading.create}
               />
             </label>
 
             {/* Image preview if selected */}
-            {image && (
+            {imagePreview && (
               <div className="mb-4">
-                <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-lg mx-auto" />
+                <p className="text-sm text-greyColor mb-2">Preview:</p>
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-32 h-32 object-cover rounded-lg mx-auto border-2 border-purple-500"
+                />
               </div>
             )}
 
@@ -347,7 +382,9 @@ const CreateCategoryPage = () => {
                 onClick={() => {
                   setOpen(false);
                   setName("");
-                  setImage(null);
+                  setDescription("");
+                  setImageFile(null);
+                  setImagePreview(null);
                 }}
                 disabled={apiLoading.create}
                 className="px-4 py-2 border-2 border-gray-300 rounded-lg shadow font-poppins hover:bg-gray-50 disabled:opacity-50 transition"
@@ -398,4 +435,5 @@ const CreateCategoryPage = () => {
     </div>
   );
 };
+
 export default CreateCategoryPage;

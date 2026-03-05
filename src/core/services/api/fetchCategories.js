@@ -1,36 +1,40 @@
 import api, { ERROR_MESSAGES, SUCCESS_MESSAGES, DEBUG_MESSAGES } from './config';
-// API function to fetch all categories from the server
+
 export const fetchCategories = async () => {
   console.log(DEBUG_MESSAGES.API_CALL_START, 'GET /api/itemCategories');
   console.log(DEBUG_MESSAGES.CATEGORY_FETCH_REQUEST);
 
   try {
-    // Make API call to fetch categories with operation type 1 (read operation)
     const response = await api.post('/itemCategories', {
-      operation: 1
+      p_operation: 1
     });
 
-    console.log(DEBUG_MESSAGES.SERVER_RESPONSE, response.data);
-    console.log(DEBUG_MESSAGES.CATEGORY_FETCH_SUCCESS, response.data?.length || 0);
+    console.log("Categories API raw response:", response.data);
+    console.log(DEBUG_MESSAGES.SERVER_RESPONSE, response.status);
+    
+    let categoriesList = [];
+    
+    if (response.data?.data && Array.isArray(response.data.data)) {
+      categoriesList = response.data.data;
+    } else if (Array.isArray(response.data)) {
+      categoriesList = response.data;
+    } else if (response.data?.categories && Array.isArray(response.data.categories)) {
+      categoriesList = response.data.categories;
+    }
+    
+    console.log("✅ Categories fetched successfully. Count:", categoriesList.length, "categories");
+    console.log("Processed categories list:", categoriesList);
     console.log(DEBUG_MESSAGES.API_CALL_END, 'GET /api/itemCategories');
     
-    // Return categories array or empty array if no data
-    return response.data || [];
+    return categoriesList; 
+    
   } catch (error) {
     console.error(DEBUG_MESSAGES.CATEGORY_FETCH_FAILURE, error.message);
-    
-    // Handle network connectivity issues
-    if (!error.response) {
-      console.error(DEBUG_MESSAGES.NETWORK_ISSUE, error.message);
-      throw new Error(ERROR_MESSAGES.NETWORK);
+    console.error("Error response:", error.response?.data);
+        if (!error.response) {
+      console.error(DEBUG_MESSAGES.NETWORK_ISSUE, 'No response from server');
     }
-    
-    // Handle server-side errors (500+ status codes)
-    if (error.response?.status >= 500) {
-      throw new Error(ERROR_MESSAGES.SERVER);
-    }
-    
-    // Handle other errors with server-provided message or default
-    throw new Error(error.response?.data?.message || ERROR_MESSAGES.CATEGORY_FETCH);
+    console.log(DEBUG_MESSAGES.API_CALL_END, 'GET /api/itemCategories');
+    return [];
   }
 };

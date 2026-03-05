@@ -458,8 +458,8 @@ const ViewProductsByCategory = () => {
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="flex justify-between mb-4">
+            {/* Search and Filters */}
+      <div className="flex justify-between items-center mb-4">
         <input
           type="search"
           placeholder="Search Products..."
@@ -467,31 +467,32 @@ const ViewProductsByCategory = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <select
-          className="border shadow rounded-full px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          {["All Status", "In Stock", "Low Stock", "Stock Out"].map((status) => (
-            <option key={status} value={status} className="bg-white text-black">
-              {status}
-            </option>
-          ))}
-        </select>
-      </div>
 
-      {/* Delete Selected Button */}
-      {selectedProducts.length > 0 && (
-        <div className="mb-4">
-          <button
-            onClick={handleBulkDelete}
-            disabled={deleteLoading}
-            className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md"
+        <div className="flex items-center gap-2">
+          {/* Delete Selected Button */}
+          {selectedProducts.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleteLoading}
+              className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition shadow-md whitespace-nowrap"
+            >
+              Delete Selected ({selectedProducts.length})
+            </button>
+          )}
+          
+          <select
+            className="border shadow rounded-full px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            Delete Selected ({selectedProducts.length})
-          </button>
+            {["All Status", "In Stock", "Low Stock", "Stock Out"].map((status) => (
+              <option key={status} value={status} className="bg-white text-black">
+                {status}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
+      </div>
 
       {/* No Products Message */}
       {!loading && displayedProducts.length === 0 && (
