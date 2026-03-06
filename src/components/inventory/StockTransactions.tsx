@@ -171,7 +171,7 @@ const StockTransactions: React.FC = () => {
             <CardTitle>Stock Transactions</CardTitle>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600">
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary">
                   <Plus className="h-4 w-4 mr-2" />
                   New Transaction
                 </Button>

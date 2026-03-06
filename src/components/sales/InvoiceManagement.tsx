@@ -827,7 +827,7 @@ const handlePrint = (invoice: SalesInvoice) => {
         <Button
             onClick={handleApplyDateFilter}
             disabled={!startDate || !endDate || isLoading}
-            className="bg-blue-500 hover:bg-blue-600"
+            className="bg-blue-500 hover:bg-blue-600 text-primary"
         >
             {isLoading ? "Loading..." : "Apply Date Filter"}
         </Button>
@@ -1531,22 +1531,22 @@ return (
     <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 overflow-hidden flex items-center justify-center p-2">
         <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden ">
             {/* Header - Compact */}
-           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 border-b border-blue-800 flex-shrink-0 ">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base md:text-lg font-bold">
-                            {editingInvoice ? '✏️ Edit Invoice' : '📄 Create Invoice'}
-                        </h2>
-                        <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={onClose}
-                            className="h-7 w-7 text-white hover:bg-white hover:text-black"
-                        >
-                            <X className="h-3 w-3" />
-                        </Button>
-                    </div>
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 py-2 border-b border-blue-800 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-base md:text-lg font-bold">
+                        {editingInvoice ? '✏️ Edit Invoice' : '📄 Create Invoice'}
+                    </h2>
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={onClose}
+                        className="h-7 w-7 text-white hover:bg-white hover:text-black"
+                    >
+                        <X className="h-3 w-3" />
+                    </Button>
                 </div>
+            </div>
 
             {/* Form Container */}
             <div className="flex-1 overflow-hidden p-3">
@@ -1554,56 +1554,8 @@ return (
                     <div className="overflow-y-auto pr-1 flex-1 space-y-3">
                         {/* Company & Branch - Compact */}
                         <div className="p-3 border border-blue-100 rounded-lg bg-blue-50 space-y-3">
-                            {/* <h3 className="text-sm font-semibold text-blue-800">
-                                📋 Company & Branch
-                            </h3> */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                    <label className="block text-xs font-medium text-gray-700">
-                                        <span className="flex items-center gap-1">
-                                            <Building className="h-3 w-3" /> Company
-                                        </span>
-                                    </label>
-                                    {Array.isArray(companies) && companies.length === 1 ? (
-                                        <Input 
-                                            readOnly 
-                                            value={companyName} 
-                                            className="h-8 text-sm bg-gray-50 border border-gray-200"
-                                        />
-                                    ) : (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button 
-                                                    type="button" 
-                                                    variant="outline" 
-                                                    className="h-8 w-full justify-between text-sm border hover:border-blue-500"
-                                                >
-                                                    {companyName || 'Select Company'}
-                                                    <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] max-h-[200px] overflow-auto p-0">
-                                                <Command>
-                                                    <CommandInput placeholder="Search..." className="h-8 text-sm" />
-                                                    <CommandEmpty>No company found</CommandEmpty>
-                                                    <CommandGroup className="max-h-[150px] overflow-auto">
-                                                        {companies.map((comp) => (
-                                                            <CommandItem 
-                                                                key={comp.id ?? comp.company_id} 
-                                                                onSelect={() => setCompanyName(comp.name ?? comp.company_name ?? '')}
-                                                                className="text-sm h-8"
-                                                            >
-                                                                <Building className="mr-2 h-3 w-3" />
-                                                                {comp.name ?? comp.company_name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                    )}
-                                </div>
-
+                                {/* BRANCH - First */}
                                 <div className="space-y-1">
                                     <label className="block text-xs font-medium text-gray-700">
                                         <span className="flex items-center gap-1">
@@ -1652,14 +1604,67 @@ return (
                                         </PopoverContent>
                                     </Popover>
                                 </div>
+
+                                {/* COMPANY - Second */}
+                                <div className="space-y-1">
+                                    <label className="block text-xs font-medium text-gray-700">
+                                        <span className="flex items-center gap-1">
+                                            {/* <Building className="h-3 w-3" /> Company */}
+                                        </span>
+                                    </label>
+                                    {Array.isArray(companies) && companies.length === 1 ? (
+                                        <Input 
+                                            readOnly 
+                                            value={companyName} 
+                                            className="h-8 text-sm bg-gray-50 border border-gray-200"
+                                        />
+                                    ) : (
+                                        <Popover>
+                                            {/* <PopoverTrigger asChild>
+                                                <Button 
+                                                    type="button" 
+                                                    variant="outline" 
+                                                    className="h-8 w-full justify-between text-sm border hover:border-blue-500"
+                                                >
+                                                    {companyName || 'Select Company'}
+                                                    <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger> */}
+                                            <PopoverContent className="w-[300px] max-h-[200px] overflow-auto p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search..." className="h-8 text-sm" />
+                                                    <CommandEmpty>No company found</CommandEmpty>
+                                                    <CommandGroup className="max-h-[150px] overflow-auto">
+                                                        {companies.map((comp) => (
+                                                            <CommandItem 
+                                                                key={comp.id ?? comp.company_id} 
+                                                                onSelect={() => {
+                                                                    setCompanyName(comp.name ?? comp.company_name ?? '');
+                                                                    setCompany_id(Number(comp.company_id ?? 0));
+                                                                }}
+                                                                className="text-sm h-8"
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-3 w-3",
+                                                                        company_id === Number(comp.company_id) ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                <Building className="mr-2 h-3 w-3" />
+                                                                {comp.name ?? comp.company_name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
                         {/* Invoice Details - Compact */}
                         <div className="p-3 border border-green-100 rounded-lg bg-green-50 space-y-3">
-                            {/* <h3 className="text-sm font-semibold text-green-800">
-                                📅 Invoice Details
-                            </h3> */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="block text-xs font-medium text-gray-700">
@@ -1766,41 +1771,33 @@ return (
                         {/* Items Table - Compact */}
                         <div className="p-3 border border-purple-100 rounded-lg bg-purple-50 space-y-2">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold text-purple-800">
-                                    🛒 Items
+                                <h3 className="text-sm font-semibold text-purple-800 flex items-center gap-1">
+                                    <Package className="h-4 w-4" /> Items
                                 </h3>
-                                <Button 
-                                    type="button" 
-                                    variant="secondary" 
-                                    onClick={addItemRow}
-                                    className="h-7 text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white"
-                                >
-                                    <Plus className="mr-1 h-3 w-3" /> Add
-                                </Button>
                             </div>
 
                             {/* Table Container */}
                             <div className="border border-gray-200 rounded overflow-hidden">
-                                <div className="overflow-auto max-h-[180px]">
-                                    <div className="min-w-[1000px]">
+                                <div className="overflow-auto max-h-[200px]">
+                                    <div className="min-w-[1100px]">
                                         {/* Table Header */}
                                         <div className="grid grid-cols-12 gap-1 bg-gray-50 p-2 text-xs font-bold text-gray-700 border-b border-gray-200 sticky top-0 z-10">
-                                            <div className="col-span-3 text-xs">Item</div>
-                                            <div className="col-span-1 text-center text-xs">Qty</div>
-                                            <div className="col-span-1 text-center text-xs">Rate</div>
-                                            <div className="col-span-1 text-center text-xs">Disc%</div>
-                                            <div className="col-span-1 text-center text-xs">Disc</div>
-                                            <div className="col-span-1 text-center text-xs">Tax</div>
-                                            <div className="col-span-1 text-center text-xs">Comm%</div>
-                                            <div className="col-span-1 text-center text-xs">Comm</div>
-                                            <div className="col-span-1 text-center text-xs">Total</div>
-                                            <div className="col-span-1 text-center text-xs">Action</div>
+                                            <div className="col-span-3 text-left pl-2">Item</div>
+                                            <div className="col-span-1 text-center">Qty</div>
+                                            <div className="col-span-1 text-center">Rate</div>
+                                            <div className="col-span-1 text-center">Disc%</div>
+                                            <div className="col-span-1 text-center">Disc Amt</div>
+                                            <div className="col-span-1 text-center">Tax</div>
+                                            <div className="col-span-1 text-center">Comm%</div>
+                                            <div className="col-span-1 text-center">Comm Amt</div>
+                                            <div className="col-span-1 text-center">Total</div>
+                                            <div className="col-span-1 text-center">Action</div>
                                         </div>
 
                                         {/* Table Rows */}
                                         <div className="divide-y divide-gray-100">
                                             {siItems.map((row, idx) => (
-                                                <div key={idx} className="grid grid-cols-12 gap-1 items-center p-1 hover:bg-gray-50 min-h-[40px]">
+                                                <div key={idx} className="grid grid-cols-12 gap-1 items-center p-1 hover:bg-gray-50 min-h-[45px]">
                                                     {/* Item Selector */}
                                                     <div className="col-span-3">
                                                         <Popover open={itemDropdown === idx} onOpenChange={(open) => setItemDropdown(open ? idx : null)}>
@@ -1808,7 +1805,7 @@ return (
                                                                 <Button 
                                                                     type="button" 
                                                                     variant="outline" 
-                                                                    className="h-7 w-full justify-between text-xs border hover:border-purple-500"
+                                                                    className="h-8 w-full justify-between text-xs border hover:border-purple-500"
                                                                 >
                                                                     {row.item_id ? (
                                                                         <span className="truncate text-xs">
@@ -1817,7 +1814,7 @@ return (
                                                                     ) : (
                                                                         'Select Item'
                                                                     )}
-                                                                    <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50" />
+                                                                    <ChevronsUpDown className="ml-1 h-3 w-3 opacity-50 shrink-0" />
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-[250px] max-h-[200px] overflow-auto p-0">
@@ -1850,7 +1847,7 @@ return (
                                                             step="0.01"
                                                             value={row.quantity}
                                                             onChange={(e) => handleChangeRow(idx, "quantity", Number(e.target.value))}
-                                                            className="h-7 text-xs text-center border"
+                                                            className="h-8 text-xs text-center border"
                                                         />
                                                     </div>
 
@@ -1861,7 +1858,7 @@ return (
                                                             step="0.01"
                                                             value={row.rate || 0}
                                                             onChange={(e) => handleChangeRow(idx, "rate", e.target.value)}
-                                                            className="h-7 text-xs text-center border"
+                                                            className="h-8 text-xs text-center border"
                                                         />
                                                     </div>
 
@@ -1873,12 +1870,12 @@ return (
                                                             step="0.01"
                                                             value={row.discount_percentage || 0}
                                                             onChange={(e) => handleChangeRow(idx, "discount_percentage", e.target.value)}
-                                                            className="h-7 text-xs text-center border"
+                                                            className="h-8 text-xs text-center border"
                                                         />
                                                     </div>
 
                                                     <div className="col-span-1">
-                                                        <div className="h-7 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs">
+                                                        <div className="h-8 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs">
                                                             {Number(row.discount_amount || 0).toFixed(2)}
                                                         </div>
                                                     </div>
@@ -1890,7 +1887,7 @@ return (
                                                             step="0.01"
                                                             value={row.tax || 0}
                                                             onChange={(e) => handleChangeRow(idx, "tax", e.target.value)}
-                                                            className="h-7 text-xs text-center border"
+                                                            className="h-8 text-xs text-center border"
                                                         />
                                                     </div>
 
@@ -1902,18 +1899,18 @@ return (
                                                             step="0.01"
                                                             value={row.commission_percentge || 0}
                                                             onChange={(e) => handleChangeRow(idx, "commission_percentge", e.target.value)}
-                                                            className="h-7 text-xs text-center border"
+                                                            className="h-8 text-xs text-center border"
                                                         />
                                                     </div>
 
                                                     <div className="col-span-1">
-                                                        <div className="h-7 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs">
+                                                        <div className="h-8 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs">
                                                             {Number(row.commission_amount || 0).toFixed(2)}
                                                         </div>
                                                     </div>
 
                                                     <div className="col-span-1">
-                                                        <div className="h-7 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs font-medium">
+                                                        <div className="h-8 px-1 border border-gray-200 rounded bg-gray-50 flex items-center justify-center text-xs font-medium">
                                                             {Number(row.row_total || 0).toFixed(2)}
                                                         </div>
                                                     </div>
@@ -1936,6 +1933,18 @@ return (
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            
+                            {/* Add Item Button - Moved below the table, left-aligned */}
+                            <div className="flex justify-start mt-2">
+                                <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    onClick={addItemRow}
+                                    className="h-7 text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white"
+                                >
+                                    <Plus className="mr-1 h-3 w-3" /> Add Item
+                                </Button>
                             </div>
                         </div>
 

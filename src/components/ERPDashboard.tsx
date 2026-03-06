@@ -209,11 +209,11 @@ const permissions = (() => {
     icon: TrendingUp,
   },
   
-  permissions.hr_read === 1 && {
-    id: 'hr',
-    name: 'HR & Payroll',
-    icon: UserCheck,
-  },
+  // permissions.hr_read === 1 && {
+  //   id: 'hr',
+  //   name: 'HR & Payroll',
+  //   icon: UserCheck,
+  // },
 
   permissions.security_read === 1 && {
     id: 'security',

@@ -414,7 +414,7 @@ const handleSaveEntry = async (payload: {
               )}
             </div>
             <Button
-              className="bg-gradient-to-r from-green-500 to-green-600"
+              className="bg-gradient-to-r from-green-500 to-green-600 text-primary"
               onClick={() => setShowForm(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -850,312 +850,321 @@ const CPVForm: React.FC<CPVFormProps> = ({ onClose, onSave, entry }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-  <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <Card className="w-full max-w-4xl max-h-[98vh] overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 shadow-2xl flex flex-col">
 
-    {/* HEADER */}
-    <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-t-3xl mb-4">
-      <CardTitle className="text-xl font-bold tracking-wide text-white">
-        {entry ? 'Edit CPV Entry' : 'New CPV Entry'}
-      </CardTitle>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onClose}
-        className="text-white hover:bg-white/20 rounded-full"
-      >
-        <X className="h-5 w-5" />
-      </Button>
-    </CardHeader>
-
-    <CardContent>
-      <form onSubmit={handleSubmit} className="space-y-4">
-
-        {/* TOP FORM */}
-        <div className="rounded-2xl p-6 bg-gradient-to-br from-white to-indigo-50 border border-indigo-200 shadow-md">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-
-            {/* DATE */}
-            <div>
-              <Label className="text-indigo-700">Date</Label>
-              <Input
-                type="date"
-                value={entry_date}
-                onChange={(e) => setEntryDate(e.target.value)}
-                required
-                className="mt-1 bg-white border-indigo-300 focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
-              />
-            </div>
-
-            {/* VOUCHER */}
-            <div>
-              <Label className="text-indigo-700">Voucher Type</Label>
-              <select
-                value={voucher_id || ""}
-                onChange={(e) => setVoucherId(parseInt(e.target.value) || 0)}
-                required
-                className="mt-1 h-10 w-full rounded-md border border-indigo-300 bg-white px-3 text-sm
-                           focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
-              >
-                <option value="" disabled>Select voucher</option>
-                {vouchers
-                  .filter(v => v.voucher_name === "CPV")
-                  .map(v => (
-                    <option key={v.voucher_id} value={String(v.voucher_id)}>
-                      {v.voucher_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {/* BRANCH */}
-            <div>
-              <Label className="text-indigo-700">
-                Branch <span className="text-red-500">*</span>
-              </Label>
-              <Popover open={branchOpen} onOpenChange={setBranchOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className={cn(
-                      "w-full justify-between mt-1 bg-gradient-to-r from-indigo-100 to-purple-100 border-indigo-300",
-                      !branch_id && "border-red-400 focus:ring-red-400"
-                    )}
-                  >
-                    {branch_id
-                      ? branches.find(br => br.branch_id === branch_id)?.branch_name
-                      : 'Select Branch'}
-                    <ChevronsUpDown className="h-4 w-4 opacity-60" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="max-h-[300px] overflow-auto bg-white">
-                  <Command>
-                    <CommandInput placeholder="Search branch..." />
-                    <CommandGroup>
-                      {branches.map(br => (
-                        <CommandItem
-                          key={br.branch_id}
-                          onSelect={() => {
-                            setBranchId(br.branch_id);
-                            setBranchOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4 text-green-500",
-                              branch_id === br.branch_id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {br.branch_name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* CREDIT ACCOUNT */}
-            <div>
-              <Label className="text-indigo-700">Credit Account</Label>
-              <Popover open={accountOpen} onOpenChange={setAccountOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className={cn(
-                      "w-full justify-between mt-1 bg-gradient-to-r from-pink-100 to-indigo-100 border-indigo-300",
-                      !creditAccountId && "border-red-400 focus:ring-red-400"
-                    )}
-                  >
-                    {creditAccountId
-                      ? `${accounts.find(a => a.account_id === creditAccountId)?.account_name}
-                         (${accounts.find(a => a.account_id === creditAccountId)?.account_code})`
-                      : 'Select Credit Account'}
-                    <ChevronsUpDown className="h-4 w-4 opacity-60" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="max-h-[300px] overflow-auto bg-white">
-                  <Command>
-                    <CommandInput placeholder="Search accounts..." />
-                    <CommandGroup>
-                      {accounts.filter(a => allowedAccountIds.includes(a.account_id))
-                        .map(a => (
-                          <CommandItem
-                            key={a.account_id}
-                            onSelect={() => {
-                              setCreditAccountId(a.account_id);
-                              setAccountOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4 text-green-500',
-                                creditAccountId === a.account_id ? 'opacity-100' : 'opacity-0'
-                              )}
-                            />
-                            {`${a.account_code} - ${a.account_name}`}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* DESCRIPTION */}
-            <div className="md:col-span-2">
-              <Label className="text-indigo-700">Description</Label>
-              <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                className="mt-1 bg-white border-indigo-300 focus:ring-2 focus:ring-purple-400"
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* DEBIT ENTRIES */}
-        <div>
-          <h3 className="text-lg font-bold text-purple-700 mb-1">
-            Debit Entries
-          </h3>
-
-          <div className="rounded-2xl overflow-hidden border border-purple-200 bg-white shadow-md">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gradient-to-r from-purple-500 to-indigo-500">
-                  <TableHead className="text-white">Debit Account</TableHead>
-                  <TableHead className="text-white">Description</TableHead>
-                  <TableHead className="text-white">Debit Amount</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {entryLines.map((line, index) => (
-                  <TableRow key={index} className="hover:bg-purple-50">
-                    <TableCell>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button className="w-full justify-between bg-indigo-50 border-indigo-300 text-black">
-                            {line.account_id
-                              ? `${accounts.find(a => a.account_id === line.account_id)?.account_name}
-                                 (${accounts.find(a => a.account_id === line.account_id)?.account_code})`
-                              : 'Select Debit Account'}
-                            <ChevronsUpDown className="h-4 w-4 opacity-60" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="bg-white">
-                          <Command>
-                            <CommandGroup>
-                              {accounts.map(a => (
-                                <CommandItem
-                                  key={a.account_id}
-                                  onSelect={() => updateLine(index, 'account_id', a.account_id)}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4 text-green-500",
-                                      line.account_id === a.account_id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {a.account_code} - {a.account_name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </TableCell>
-
-                    <TableCell>
-                      <Input
-                        value={line.description}
-                        onChange={(e) => updateLine(index, 'description', e.target.value)}
-                        className="bg-indigo-50"
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={line.debit || ''}
-                        onChange={(e) => updateLine(index, 'debit', e.target.value)}
-                        className="bg-indigo-50"
-                        onWheel={(e) => e.currentTarget.blur()}
-                      />
-                    </TableCell>
-
-                    <TableCell>
-                      {entryLines.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          onClick={() => removeLine(index)}
-                          className="text-red-500 hover:bg-red-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
+        {/* HEADER - Fixed at top */}
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white rounded-t-3xl px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
+          <CardTitle className="text-lg sm:text-xl font-bold tracking-wide text-white">
+            {entry ? 'Edit CPV Entry' : 'Cash Payment Voucher'}
+          </CardTitle>
           <Button
-            type="button"
-            onClick={addLine}
-            className="mt-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Debit Entry
-          </Button>
-
-          {/* TOTALS */}
-          <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-center shadow-lg">
-            <div className="flex justify-center gap-10 font-semibold">
-              <span>Total Debit: Rs.{totalDebit.toFixed(2)}</span>
-              <span>Total Credit: Rs.{totalCredit.toFixed(2)}</span>
-            </div>
-
-            {showBalanceError && (
-              <div className="mt-2 text-sm text-yellow-200">
-                Please select a credit account and enter at least one debit amount.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex gap-3 pt-4">
-          <Button
-            type="submit"
-            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-lg shadow-xl"
-            disabled={!isValid || isSaving}
-          >
-            {isSaving ? 'Saving...' : 'Save Journal Entry'}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            disabled={isSaving}
-            className="border-red-400 text-red-500 hover:bg-red-50"
+            className="text-white hover:bg-white/20 rounded-full h-8 w-8 p-0"
           >
-            Cancel
+            <X className="h-4 w-4" />
           </Button>
-        </div>
+        </CardHeader>
 
-      </form>
-    </CardContent>
-  </Card>
-</div>
+        {/* CONTENT - Scrollable area */}
+        <CardContent className="flex-grow overflow-y-auto px-3 sm:px-6 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* TOP FORM SECTION */}
+            <div className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-white to-indigo-50 border border-indigo-200 shadow-md">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+                {/* DATE */}
+                <div>
+                  <Label className="text-indigo-700 text-xs sm:text-sm">Date</Label>
+                  <Input
+                    type="date"
+                    value={entry_date}
+                    onChange={(e) => setEntryDate(e.target.value)}
+                    required
+                    className="mt-1 bg-white border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 h-9 sm:h-10 text-sm"
+                  />
+                </div>
+
+                {/* VOUCHER */}
+                <div>
+                  <Label className="text-indigo-700 text-xs sm:text-sm">Voucher Type</Label>
+                  <select
+                    value={voucher_id || ""}
+                    onChange={(e) => setVoucherId(parseInt(e.target.value) || 0)}
+                    required
+                    className="mt-1 h-9 sm:h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm
+                               focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+                  >
+                    <option value="" disabled>Select voucher</option>
+                    {vouchers
+                      .filter(v => v.voucher_name === "CPV")
+                      .map(v => (
+                        <option key={v.voucher_id} value={String(v.voucher_id)}>
+                          {v.voucher_name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* BRANCH */}
+                <div>
+                  <Label className="text-indigo-700 text-xs sm:text-sm">
+                    Branch <span className="text-red-500">*</span>
+                  </Label>
+                  <Popover open={branchOpen} onOpenChange={setBranchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between mt-1 bg-gradient-to-r from-indigo-100 to-purple-100 border border-gray-300 h-9 sm:h-10 text-sm",
+                          !branch_id && "border-red-400 focus:ring-red-400"
+                        )}
+                      >
+                        {branch_id
+                          ? branches.find(br => br.branch_id === branch_id)?.branch_name
+                          : 'Select Branch'}
+                        <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-60" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="max-h-[250px] overflow-auto bg-white w-[250px] sm:w-[300px]">
+                      <Command>
+                        <CommandInput placeholder="Search branch..." className="text-sm" />
+                        <CommandGroup>
+                          {branches.map(br => (
+                            <CommandItem
+                              key={br.branch_id}
+                              onSelect={() => {
+                                setBranchId(br.branch_id);
+                                setBranchOpen(false);
+                              }}
+                              className="text-sm"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500",
+                                  branch_id === br.branch_id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {br.branch_name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* CREDIT ACCOUNT */}
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <Label className="text-indigo-700 text-xs sm:text-sm">Credit Account</Label>
+                  <Popover open={accountOpen} onOpenChange={setAccountOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between mt-1 bg-gradient-to-r from-pink-100 to-indigo-100 border border-gray-300 h-9 sm:h-10 text-sm",
+                          !creditAccountId && "border-red-400 focus:ring-red-400"
+                        )}
+                      >
+                        {creditAccountId
+                          ? `${accounts.find(a => a.account_id === creditAccountId)?.account_name}`
+                          : 'Select Credit Account'}
+                        <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-60" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="max-h-[250px] overflow-auto bg-white w-[250px] sm:w-[350px]">
+                      <Command>
+                        <CommandInput placeholder="Search accounts..." className="text-sm" />
+                        <CommandGroup>
+                          {accounts
+                            .filter(a => allowedAccountIds.includes(a.account_id))
+                            .map(a => (
+                              <CommandItem
+                                key={a.account_id}
+                                onSelect={() => {
+                                  setCreditAccountId(a.account_id);
+                                  setAccountOpen(false);
+                                }}
+                                className="text-sm"
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500',
+                                    creditAccountId === a.account_id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {`${a.account_code} - ${a.account_name}`}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* DESCRIPTION */}
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <Label className="text-indigo-700 text-xs sm:text-sm">Description</Label>
+                  <Input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                    className="mt-1 bg-white border border-gray-300 focus:ring-2 focus:ring-purple-400 h-9 sm:h-10 text-sm"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            {/* DEBIT ENTRIES SECTION */}
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-purple-700 mb-2">
+                Debit Entries
+              </h3>
+
+              <div className="rounded-2xl overflow-hidden border border-purple-200 bg-white shadow-md">
+                <div className="max-h-[200px] sm:max-h-[250px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10">
+                      <TableRow className="bg-gradient-to-r from-purple-500 to-indigo-500">
+                        <TableHead className="text-white py-2 text-xs sm:text-sm whitespace-nowrap">Debit Account</TableHead>
+                        <TableHead className="text-white py-2 text-xs sm:text-sm">Description</TableHead>
+                        <TableHead className="text-white py-2 text-xs sm:text-sm">Debit Amount</TableHead>
+                        <TableHead className="text-white py-2 text-xs sm:text-sm w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {entryLines.map((line, index) => (
+                        <TableRow key={index} className="hover:bg-purple-50">
+                          <TableCell className="py-1 px-1 sm:px-2">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button className="w-full justify-between bg-indigo-50 border border border-purple-500 text-black h-8 sm:h-9 text-xs sm:text-sm px-2">
+                                  {line.account_id
+                                    ? `${accounts.find(a => a.account_id === line.account_id)?.account_name}`
+                                    : 'Select Debit Account'}
+                                  <ChevronsUpDown className="h-3 w-3 sm:h-4 sm:w-4 opacity-60 ml-1" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="bg-white w-[200px] sm:w-[250px]">
+                                <Command>
+                                  <CommandGroup className="max-h-[200px] overflow-auto">
+                                    {accounts.map(a => (
+                                      <CommandItem
+                                        key={a.account_id}
+                                        onSelect={() => updateLine(index, 'account_id', a.account_id)}
+                                        className="text-xs sm:text-sm"
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500",
+                                            line.account_id === a.account_id ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {a.account_code} - {a.account_name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </TableCell>
+
+                          <TableCell className="py-1 px-1 sm:px-2">
+                            <Input
+                              value={line.description}
+                              onChange={(e) => updateLine(index, 'description', e.target.value)}
+                              disabled={!line.account_id}
+                              className="bg-indigo-50 h-8 sm:h-9 text-xs sm:text-sm border border border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </TableCell>
+
+                          <TableCell className="py-1 px-1 sm:px-2">
+                            <Input
+                              type="number"
+                              value={line.debit || ''}
+                              onChange={(e) => updateLine(index, 'debit', e.target.value)}
+                              disabled={!line.account_id}
+                              className="bg-indigo-50 h-8 sm:h-9 text-xs sm:text-sm border border border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              onWheel={(e) => e.currentTarget.blur()}
+                            />
+                          </TableCell>
+
+                          <TableCell className="py-1 px-1 sm:px-2">
+                            {entryLines.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                onClick={() => removeLine(index)}
+                                className="text-red-500 hover:bg-red-100 h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={addLine}
+                className="mt-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg h-8 sm:h-9 text-xs sm:text-sm"
+                size="sm"
+              >
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Add Debit Entry
+              </Button>
+
+              {/* TOTALS */}
+              <div className="mt-3 p-2 sm:p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-center shadow-md">
+                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-5 font-semibold text-xs sm:text-sm">
+                  <span>Total Debit: Rs.{totalDebit.toFixed(2)}</span>
+                  <span className="hidden sm:inline">|</span>
+                  <span>Total Credit: Rs.{totalCredit.toFixed(2)}</span>
+                </div>
+
+                {showBalanceError && (
+                  <div className="mt-1 text-xs sm:text-sm text-yellow-200">
+                    Please select a credit account and enter at least one debit amount.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex gap-2 sm:gap-3 pt-2">
+              <Button
+                type="submit"
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm sm:text-base shadow-xl h-9 sm:h-10"
+                disabled={!isValid || isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Journal Entry'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSaving}
+                className="border-red-400 text-red-500 hover:bg-red-50 h-9 sm:h-10 text-sm sm:text-base"
+              >
+                Cancel
+              </Button>
+            </div>
+
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

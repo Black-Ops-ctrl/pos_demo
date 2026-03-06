@@ -4,6 +4,8 @@ import editIcon from '../assets/png/ic_edit_button.png';
 import { fetchProducts, deleteProduct, updateProduct, fetchCategories } from "../core/services/api"; 
 import Toast from "../components/common/Toast";
 import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
+import { Plus } from "lucide-react";
+import AddProductPage from "../pages/AddProductPage";
 
 const ViewProductsByCategory = () => {
   // Get category name from URL parameters and initialize navigation
@@ -33,6 +35,7 @@ const ViewProductsByCategory = () => {
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [openProductModal, setOpenProductModal] = useState(false);
   
   // Delete confirmation dialog state
   const [deleteDialog, setDeleteDialog] = useState({
@@ -458,7 +461,7 @@ const ViewProductsByCategory = () => {
         </div>
       )}
 
-            {/* Search and Filters */}
+      {/* Search and Filters */}
       <div className="flex justify-between items-center mb-4">
         <input
           type="search"
@@ -469,6 +472,15 @@ const ViewProductsByCategory = () => {
         />
 
         <div className="flex items-center gap-2">
+          {/* Add Product Button */}
+          <button
+            onClick={() => setOpenProductModal(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-400 text-white px-4 py-2 rounded-full hover:shadow-lg transition"
+          >
+            <Plus size={16} />
+            Add Product
+          </button>
+          
           {/* Delete Selected Button */}
           {selectedProducts.length > 0 && (
             <button
@@ -502,12 +514,6 @@ const ViewProductsByCategory = () => {
           </svg>
           <p className="text-gray-500 text-xl mb-2">No products found</p>
           <p className="text-gray-400 mb-6">This category doesn't have any products yet.</p>
-          <button
-            onClick={() => navigate('/add-product')}
-            className="bg-gradient-to-r from-purple-500 to-indigo-400 text-white px-6 py-2 rounded-full hover:opacity-90 transition"
-          >
-            Add Product
-          </button>
         </div>
       )}
 
@@ -715,6 +721,43 @@ const ViewProductsByCategory = () => {
                   {deleteLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Modal - Add New Product */}
+      {openProductModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-5xl rounded-xl shadow-xl overflow-auto max-h-[90vh] border border-gray-300">
+            {/* Modal Header with Border */}
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-500 to-indigo-400 p-4 border-b border-purple-600 rounded-t-xl">
+              <div className="flex justify-center items-center">
+                <h2 className="text-lg font-medium text-white font-sans justify">Add New Product</h2>
+              </div>
+            </div>
+            
+            {/* Content Area with Border */}
+            <div className="p-6 border-x border-gray-200 bg-white">
+              <AddProductPage 
+                categories={categories}
+                onSuccess={() => {
+                  showToast("Product added successfully!", "success");
+                  setOpenProductModal(false);
+                  loadCategories();
+                }}
+                onClose={() => setOpenProductModal(false)}
+              />
+            </div>
+            
+            {/* Optional Footer with Border */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-end rounded-b-xl">
+              <button
+                onClick={() => setOpenProductModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg shadow font-poppins hover:bg-gray-100 transition"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

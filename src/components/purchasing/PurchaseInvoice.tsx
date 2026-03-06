@@ -735,7 +735,7 @@ const filteredInvoices = Invoices.filter(
                                     Unapprove ({selectedInvoices.length})
                                 </Button>
                             )}
-                            <Button onClick={handleAddInvoice} className="bg-gradient-to-r from-purple-500 to-purple-600">
+                            <Button onClick={handleAddInvoice} className="bg-gradient-to-r from-purple-500 to-purple-600 text-primary">
                                 <Plus className="h-4 w-4 mr-2" /> Create Invoice
                             </Button>
                         </div>
@@ -766,7 +766,7 @@ const filteredInvoices = Invoices.filter(
   <Button
     onClick={handleApplyDateFilter}
     disabled={!startDate || !endDate}
-    className="bg-blue-500 hover:bg-blue-600"
+    className="bg-blue-500 hover:bg-blue-600 text-primary"
   >
     Apply Date Filter
   </Button>
@@ -1730,7 +1730,7 @@ const handleItemChange = (
                         </Button>
 <Button
     type="submit"
-    className="bg-gradient-to-r from-blue-500 to-blue-600"
+    className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
     disabled={isLoading || !selectedPO || !branch_id || !vendor_id || poItems.length === 0}
 >
     {isLoading ? (

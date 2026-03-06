@@ -115,7 +115,7 @@ const City: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Citys</CardTitle>
-            <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAddCity}>
+            <Button className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary" onClick={handleAddCity}>
               <Plus className="h-4 w-4 mr-2" />
               Add City
             </Button>
@@ -239,7 +239,7 @@ const CityForm: React.FC<{
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-blue-600"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
             >
               Save
             </Button>

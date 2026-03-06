@@ -64,6 +64,7 @@ const GeneralLedger: React.FC = () => {
   const [account_id, setAccountId] = useState<number>(0);
   const [start_date, setStartDate] = useState('');
   const [end_date, setEndDate] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Format date to DD-MMM-YYYY
   const formatDate = (dateString: string | Date): string => {
@@ -110,6 +111,7 @@ const GeneralLedger: React.FC = () => {
 
   // Load ledger data
   const loadgeneralLedgers = async () => {
+    setLoading(true); // Set loading to true when starting
     try {
       const data = await getGeneralLedger(
         account_id,
@@ -119,6 +121,9 @@ const GeneralLedger: React.FC = () => {
       setLedger(data);
     } catch (error) {
       console.error('Error loading General ledgers', error);
+      // Optional: Show error toast here
+    } finally {
+      setLoading(false); // Set loading to false when done (whether success or error)
     }
   };
 
@@ -404,13 +409,29 @@ const GeneralLedger: React.FC = () => {
               />
 
               {/* Load Button */}
-              <Button onClick={loadgeneralLedgers}>Load</Button>
-              <Button onClick={handlePrint} variant="secondary">
-                Print
-              </Button>
+            <Button 
+              onClick={loadgeneralLedgers}
+              className="bg-blue-500 text-primary hover:bg-blue-500 border border-gray-300"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent"></span>
+                  Loading...
+                </>
+              ) : (
+                'Load'
+              )}
+            </Button>
+            <Button 
+              onClick={handlePrint} 
+              variant="secondary"
+              className="bg-blue-500 text-primary hover:bg-blue-500 border border-gray-300"
+            >
+              Print
+            </Button>
             </div>
-          </div>
-
+            </div>
           {/* Search Input */}
           <div className="relative mt-4">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -421,8 +442,7 @@ const GeneralLedger: React.FC = () => {
               className="pl-10"
             />
           </div>
-        </CardHeader>
-
+        </CardHeader> 
         <CardContent>
           <div className="overflow-auto">
             <Table>

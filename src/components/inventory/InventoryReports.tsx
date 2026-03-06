@@ -136,7 +136,7 @@ const InventoryReports: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button className="bg-gradient-to-r from-green-500 to-green-600">
+              <Button className="bg-gradient-to-r from-green-500 to-green-600 text-primary">
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>

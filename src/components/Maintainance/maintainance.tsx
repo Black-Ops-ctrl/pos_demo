@@ -52,7 +52,7 @@ const Maintainance: React.FC = () => {
                    <ColorfulTabsList
                         className="grid w-full grid-cols-5 mb-4 overflow-hidden"
                         >
-                        <ColorfulTabsTrigger value="company" icon={Building}>Company</ColorfulTabsTrigger>
+                        {/* <ColorfulTabsTrigger value="company" icon={Building}>Company</ColorfulTabsTrigger> */}
 
                         <ColorfulTabsTrigger value="branches" icon={Sun}>
                             {/* {getBranchesTabName()} */}

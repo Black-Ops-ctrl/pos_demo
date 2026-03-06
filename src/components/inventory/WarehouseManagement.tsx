@@ -116,7 +116,7 @@ const Warehouses: React.FC = () => {
             </CardTitle>
             <Button
               onClick={handleAddWarehouse}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Store
@@ -219,7 +219,7 @@ const WarehouseForm: React.FC<{
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600">
+            <Button type="submit" className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-primary">
               Save
             </Button>
           </div>

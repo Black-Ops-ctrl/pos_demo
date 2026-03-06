@@ -53,8 +53,10 @@ const TrialBalance: React.FC = () => {
   const [start_date, setStartDate] = useState('');
   const [end_date, setEndDate] = useState('');
   const [level, setLevel] = React.useState<number | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
   // Load ledger data
   const loadgeneralLedgers = async () => {
+    setLoading(true); // Set loading to true when starting
     try {
       const data = await getTrialBalance(
         level,
@@ -66,6 +68,8 @@ const TrialBalance: React.FC = () => {
       setBalances(data);
     } catch (error) {
       console.error('Error loading TrilaBalance', error);
+    } finally {
+      setLoading(false); 
     }
   };
 
@@ -330,14 +334,29 @@ const TrialBalance: React.FC = () => {
     </div>
 
     {/* 6. Buttons - aligned to the bottom */}
-    {/* items-end in the parent ensures these buttons align with the bottom of the date inputs */}
     <div className="flex gap-3 mt-auto pt-4 md:pt-0">
-        <Button onClick={loadgeneralLedgers} className="h-10">Load</Button>
-        <Button onClick={handlePrint} variant="secondary" className="h-10">
-            Print
-        </Button>
-    </div>
-</div>
+      <Button 
+        onClick={loadgeneralLedgers} 
+        className="bg-blue-500 text-white hover:bg-blue-600 h-10"
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+            Loading...
+          </>
+        ) : (
+          'Load'
+        )}
+      </Button>
+      <Button 
+        onClick={handlePrint} 
+        className="bg-blue-500 text-white hover:bg-blue-600 h-10"
+      >
+        Print
+      </Button>
+        </div>
+         </div>
 
           {/* Search Input */}
           <div className="relative mt-4">

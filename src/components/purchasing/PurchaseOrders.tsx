@@ -1412,7 +1412,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             </div>
 
             {/* Flock selector - Conditionally rendered */}
-            {showFlockField && (
+            {/* {showFlockField && (
               <div className="flex flex-col flex-1">
                 <span className="text-sm font-medium text-gray-700">Flock</span>
                 <Popover open={flockOpen} onOpenChange={setFlockOpen}>
@@ -1452,7 +1452,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                   </PopoverContent>
                 </Popover>
               </div>
-            )}
+            )} */}
 
             {/* Vehicle Number - Only for module_id 2, replaced with select dropdown */}
             {showVehicleNumberField && (

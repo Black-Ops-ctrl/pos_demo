@@ -1635,8 +1635,8 @@ export const SalesInvoiceReturnForm: React.FC<SalesInvoiceReturnFormProps> = ({
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" className="w-full justify-between">
                         {flock_id
-                          ? flocks.find((f) => Number(f.flock_id) === flock_id)?.flock_name ?? "Select Flock"
-                          : "Select Flock"}
+                          ? flocks.find((f) => Number(f.flock_id) === flock_id)?.flock_name ?? "2140"
+                          : "2140"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>

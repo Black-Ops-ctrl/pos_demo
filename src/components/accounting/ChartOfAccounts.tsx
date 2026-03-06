@@ -178,7 +178,7 @@ const AccountForm: React.FC<{
           <div className="flex gap-2">
             <Button 
               type="submit" 
-              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-primary "
               disabled={isLoading}
             >
               {isLoading ? (
@@ -526,7 +526,7 @@ const ChartOfAccounts: React.FC = () => {
                 Print Accounts
               </Button>
               <Button
-                className="bg-gradient-to-r from-blue-500 to-blue-600"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
                 onClick={() => handleAddAccount(null)}
               >
                 <Plus className="h-4 w-4 mr-2" />

@@ -120,18 +120,28 @@ const StockValuation: React.FC = () => {
                   <SelectItem value="WAC">Weighted Average</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-gradient-to-r from-green-500 to-green-600">
+              <Button className="bg-gradient-to-r from-green-500 to-green-600 text-primary">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Post to GL
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="current" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="current">Current Valuation</TabsTrigger>
-              <TabsTrigger value="comparison">Method Comparison</TabsTrigger>
+            <CardContent>
+            <Tabs defaultValue="current" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 p-1 rounded-lg">
+              <TabsTrigger 
+                value="current" 
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:text-black data-[state=inactive]:hover:bg-gray-100 rounded-md transition-all"
+              >
+                Current Valuation
+              </TabsTrigger>
+              <TabsTrigger 
+                value="comparison" 
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=inactive]:text-black data-[state=inactive]:hover:bg-gray-100 rounded-md transition-all"
+              >
+                Method Comparison
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="current" className="mt-4">

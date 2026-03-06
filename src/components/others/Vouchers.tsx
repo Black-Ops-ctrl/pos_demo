@@ -69,7 +69,7 @@ const Vouchers: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Vouchers</CardTitle>
-            <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAddVoucher}>
+            <Button className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary" onClick={handleAddVoucher}>
               <Plus className="h-4 w-4 mr-2" />
               Add Voucher
             </Button>
@@ -141,7 +141,7 @@ const VoucherForm: React.FC<{
           <Input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="bg-gradient-to-r from-blue-500 to-blue-600">Save</Button>
+            <Button type="submit" className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary">Save</Button>
           </div>
         </form>
       </div>

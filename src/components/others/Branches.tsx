@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -296,7 +297,7 @@ const filteredBranches = useMemo(() => {
                 Approve Selected ({selectedUnapprovedCount})
               </Button>
               <Button
-                className="bg-gradient-to-r from-blue-500 to-blue-600"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
                 onClick={handleAddBranch}
                 disabled={loading}
               >
@@ -918,7 +919,7 @@ const BranchForm: React.FC<{
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-blue-600"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
               disabled={loadingCities || loadingAccounts || saving}
             >
               {saving ? (

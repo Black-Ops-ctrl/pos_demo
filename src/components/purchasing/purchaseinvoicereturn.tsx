@@ -754,7 +754,7 @@ console.log(`Approve button should show: ${allSelectedInvoicesCreated}`); // Deb
                         <Button
                             onClick={handleApplyDateFilter}
                             disabled={!startDate || !endDate}
-                            className="bg-blue-500 hover:bg-blue-600"
+                            className="bg-blue-500 hover:bg-blue-600 text-white"
                         >
                             Apply Date Filter
                         </Button>

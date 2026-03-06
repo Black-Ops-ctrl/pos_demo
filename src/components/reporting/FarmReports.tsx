@@ -953,7 +953,7 @@ const formatDate = (dateString: string) => {
                     {flock_id
                       ? flocks.find((fl: any) => fl.flock_id === flock_id)
                           ?.flock_name
-                      : "Select Flock"}
+                      : "2140"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>

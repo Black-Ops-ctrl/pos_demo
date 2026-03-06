@@ -186,7 +186,7 @@ const SalesPersons: React.FC = () => {
             </CardTitle>
             <Button
               onClick={handleAddSalesPerson}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Sale Person
@@ -207,50 +207,50 @@ const SalesPersons: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Father Name</TableHead>
+                {/* <TableHead>Father Name</TableHead> */}
                 <TableHead>Phone</TableHead>
                 {/* <TableHead>Designation</TableHead> */}
                 <TableHead>Branch</TableHead>
-                <TableHead>Company</TableHead>
+                {/* <TableHead>Company</TableHead> */}
                 <TableHead className="invisible">Account</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredSalesPersons.map((sp) => (
-                <TableRow key={sp.sales_person_id}>
-                  <TableCell className="font-medium">{sp.sales_person_name}</TableCell>
-                  <TableCell>{sp.father_name}</TableCell>
-                  <TableCell>{sp.phone}</TableCell>
-                  {/* <TableCell>{sp.designation_name}</TableCell> */}
-                  <TableCell>{sp.branch_name}</TableCell>
-                  <TableCell>{sp.company_name}</TableCell>
-                  <TableCell className="invisible">{sp.account_name}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => handleEditSalesPerson(sp)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => handleDeleteSalesPerson(sp.sales_person_id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredSalesPersons.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-sm text-gray-500">
-                    No sales persons found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
+            {filteredSalesPersons.map((sp) => (
+              <TableRow key={sp.sales_person_id}>
+                <TableCell className="font-medium">{sp.sales_person_name}</TableCell>
+                {/* <TableCell>{sp.father_name}</TableCell> - Commented out as per header */}
+                <TableCell>{sp.phone}</TableCell>
+                {/* <TableCell>{sp.designation_name}</TableCell> - Commented out as per header */}
+                <TableCell>{sp.branch_name}</TableCell>
+                {/* <TableCell>{sp.company_name}</TableCell> - Commented out as per header */}
+                <TableCell className="invisible">{sp.account_name}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => handleEditSalesPerson(sp)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteSalesPerson(sp.sales_person_id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filteredSalesPersons.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-sm text-gray-500">
+                  No sales persons found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
           </Table>
         </CardContent>
       </Card>
@@ -396,14 +396,14 @@ const SalesPersonForm: React.FC<{
                 placeholder="Sales Person Name"
               />
             </div>
-            <div className="flex flex-col flex-1">
+            {/* <div className="flex flex-col flex-1">
               <span className="text-sm font-medium text-gray-700">Father Name</span>
               <Input
                 value={father_name}
                 onChange={(e) => setFatherName(e.target.value)}
                 placeholder="Father Name"
               />
-            </div>
+            </div> */}
             <div className="flex flex-col flex-1">
               <span className="text-sm font-medium text-gray-700">Phone</span>
               <Input
@@ -453,7 +453,7 @@ const SalesPersonForm: React.FC<{
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="flex flex-col flex-1 ">
+            {/* <div className="flex flex-col flex-1 ">
               <span className="text-sm font-medium text-gray-700">Company</span>
               <Input
                   value={selectedCompanyName}
@@ -461,7 +461,7 @@ const SalesPersonForm: React.FC<{
                   className="bg-gray-100 cursor-not-allowed" // Add styling to indicate it's not editable
                   placeholder="Company Name"
               />
-            </div>
+            </div> */}
             <div className="flex flex-col flex-1 invisible">
                 <span className="text-sm font-medium text-gray-700">Account</span>
                 <Popover open={accountOpen} onOpenChange={setAccountOpen}>
@@ -555,7 +555,7 @@ const SalesPersonForm: React.FC<{
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-2 bg-gradient-to-r from-blue-500 to-blue-600">
+            <Button type="submit" className="flex-2 bg-gradient-to-r from-blue-500 to-blue-600 text-primary">
               Save
             </Button>
           </div>

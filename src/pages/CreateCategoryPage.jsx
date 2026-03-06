@@ -281,9 +281,9 @@ const CreateCategoryPage = () => {
               <h3 className="font-sans font-semibold text-lg">{cat.name}</h3>
 
               {/* Description */}
-              {cat.description && cat.description !== cat.name && (
+              {/* {cat.description && cat.description !== cat.name && (
                 <p className="text-xs text-gray-400 text-center mt-1">{cat.description}</p>
-              )}
+              )} */}
 
               {/* Count */}
               <p className="text-gray-500 text-base mb-4 font-poppins">
@@ -341,14 +341,14 @@ const CreateCategoryPage = () => {
             />
 
             {/* Description (optional) */}
-            <input
+            {/* <input
               type="text"
               placeholder="Enter description (optional)"
               className="w-full border border-blackColor rounded-lg p-2 mb-4 font-poppins focus:outline-none focus:ring-2 focus:ring-purple-500"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={apiLoading.create}
-            />
+            /> */}
 
             {/* Image picker */}
             <label className="block mb-4 cursor-pointer font-poppins">
@@ -410,25 +410,36 @@ const CreateCategoryPage = () => {
       {/* ================= PRODUCT MODAL ================= */}
       {openProductModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-5xl rounded-xl p-6 shadow-xl overflow-auto max-h-[90vh]">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold font-sans">Add New Product</h2>
+          <div className="bg-white w-full max-w-5xl rounded-xl shadow-xl overflow-auto max-h-[90vh] border border-gray-300">
+            {/* Modal Header with Border */}
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-500 to-indigo-400 p-4 border-b border-purple-600 rounded-t-xl">
+              <div className="flex justify-center items-center">
+                <h2 className="text-lg font-medium text-white font-sans justify">Add New Product</h2>
+              </div>
+            </div>
+            
+            {/* Content Area with Border */}
+            <div className="p-6 border-x border-gray-200 bg-white">
+              <AddProductPage 
+                categories={categories}
+                onSuccess={() => {
+                  showToast("Product added successfully!", "success");
+                  setOpenProductModal(false);
+                  loadCategories();
+                }}
+                onClose={() => setOpenProductModal(false)}
+              />
+            </div>
+            
+            {/* Optional Footer with Border */}
+            <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-end rounded-b-xl">
               <button
-                className="text-gray-500 hover:text-gray-700 font-bold text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
                 onClick={() => setOpenProductModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg shadow font-poppins hover:bg-gray-100 transition"
               >
-                ✕
+                Close
               </button>
             </div>
-            <AddProductPage 
-              categories={categories}
-              onSuccess={() => {
-                showToast("Product added successfully!", "success");
-                setOpenProductModal(false);
-                loadCategories();
-              }}
-              onClose={() => setOpenProductModal(false)}
-            />
           </div>
         </div>
       )}
