@@ -763,17 +763,17 @@ const CRVForm: React.FC<CRVFormProps> = ({ onClose, onSave, entry }) => {
             getVouchers(),
           ]);
 
-        const approvedBranches = branchData.filter(
-          (branch: Branch) =>
-            branch.status === "APPROVED" && branch.branch_id === 1
+        // FIX: Show both CREATED and APPROVED branches
+        const availableBranches = branchData.filter(
+          (branch: Branch) => branch.status === "APPROVED" || branch.status === "CREATED"
         );
 
-        setBranches(approvedBranches);
+        setBranches(availableBranches);
 
-        // Default branch = Head Office
-        if (!entry && approvedBranches.length > 0) {
-          setBranchId(approvedBranches[0].branch_id); 
-        }
+        // Default branch = first available branch
+        if (!entry && availableBranches.length > 0) {
+          setBranchId(availableBranches[0].branch_id); 
+}
 
         setAccounts(accountsData);
         setVouchers(vouchersData);
@@ -1596,7 +1596,8 @@ const CRVPrintView: React.FC<CRVPrintViewProps> = ({ entry, onClose, companyData
                        <TableRow key={index}>
                          <TableCell className="border-black">{accountInfo.code}</TableCell>
                          <TableCell className="border-black">{accountInfo.name.toUpperCase()}</TableCell>
-                         <TableCell className="border-black">{(line.description || entry.description || "").toUpperCase()}</TableCell>             <TableCell className="border-black text-right">  {formatNumber(line.debit)}</TableCell>
+                         <TableCell className="border-black">{(line.description || entry.description || "").toUpperCase()}</TableCell>             
+                         <TableCell className="border-black text-right">  {formatNumber(line.debit)}</TableCell>
                          <TableCell className="border-black text-left">  {formatNumber(line.credit)}</TableCell>
                        </TableRow>
                      );
@@ -1617,29 +1618,29 @@ const CRVPrintView: React.FC<CRVPrintViewProps> = ({ entry, onClose, companyData
                  </div>
                </div>
  
-<div className="signature-block flex justify-between gap-8 mt-10 text-sm text-gray-700">
-  
-  <div className="signature-item text-center min-w-[140px]">
-    <span>{entry.created_by}</span>
-                   <div className="signature-line"></div>
-    <span>Prepared By</span>
-  </div>
+                <div className="signature-block flex justify-between gap-8 mt-10 text-sm text-gray-700">
+                  
+                  <div className="signature-item text-center min-w-[140px]">
+                    <span>{entry.created_by}</span>
+                                  <div className="signature-line"></div>
+                    <span>Prepared By</span>
+                  </div>
 
 
 
-  <div className="signature-item text-center min-w-[140px]">
-    <span>{entry.updated_by}</span>
-                   <div className="signature-line"></div>
-    <span>Approved By</span>
-  </div>
+                  <div className="signature-item text-center min-w-[140px]">
+                    <span>{entry.updated_by}</span>
+                                  <div className="signature-line"></div>
+                    <span>Approved By</span>
+                  </div>
 
-  <div className="signature-item text-center min-w-[140px]">
-   
-                   <div className="signature-line"></div>
-    <span>Received By</span>
-  </div>
+                  <div className="signature-item text-center min-w-[140px]">
+                  
+                                  <div className="signature-line"></div>
+                    <span>Received By</span>
+                  </div>
 
-</div>
+                </div>
 
  
                <p className="text-sm mt-10 text-gray-500 text-center">**This is a system generated voucher and does not require a signature or stamp.**</p>

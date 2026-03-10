@@ -10,9 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Eye, Check, X, Edit, Trash2, Search, Package, ChevronsUpDown, CheckSquare, ArrowUp, Printer, Loader2 } from 'lucide-react';
 import { useAppContext, Vendor } from '@/contexts/AppContext';
-import { getPurchaseOrders, createPurchaseOrder, UpdatePOStatus, updatePurchaseOrder, UpdateNewPOStatus, getItemsfordiscount,deletePurchaseOrder } from '@/api/poApi';
+import { getPurchaseOrders, createPurchaseOrder, UpdatePOStatus, updatePurchaseOrder, UpdateNewPOStatus, getItemsfordiscount, deletePurchaseOrder } from '@/api/poApi';
 import { getVendors } from '@/api/vendorsApi';
 import { getCurrentUserId } from "@/components/security/LoginPage";
+import { fetchProducts } from '@/core/services/api/fetchProducts'; 
+import { getUOM } from '@/api/departmentApi';
 import {
   Popover,
   PopoverContent,
@@ -48,9 +50,12 @@ const module_id = getModuleId();
 const permissions = JSON.parse(
   sessionStorage.getItem('role_permissions') || '{}'
 );
+
 // --- Interfaces ---
 interface POItem {
   item_id: number;
+  item_name?: string;
+  item_code?: string;
   quantity: number;
   unit_price: number;
   uom_id?: number;
@@ -69,18 +74,17 @@ interface PO {
   vendor_name?: string;
   total_price?: number;
   status: string;
-  vehicle_no:string;
+  vehicle_no: string;
   order_date?: string;
   updated_by: number;
   created_by: number;
-  items?: POItem & Array<{
-    vehicle_no: any; 
-    item_id: number; 
-    item_name?: string; 
-    item_code: string; 
-    quantity: number; 
-    unit_price: number; 
-    uom_id?: number; 
+  items?: Array<{
+    item_id: number;
+    item_name?: string;
+    item_code?: string;
+    quantity: number;
+    unit_price: number;
+    uom_id?: number;
     uom_name?: string;
     discount: number;
     discount_percentage?: number;
@@ -97,14 +101,14 @@ interface ViewingPO {
   vendor_name?: string;
   total_price?: number;
   status: string;
-  vehicle_no:string;
+  vehicle_no: string;
   order_date?: string;
   updated_by: number;
   created_by: number;
   items?: Array<{ 
     item_id: number; 
     item_name?: string; 
-    item_code: string; 
+    item_code?: string; 
     quantity: number; 
     unit_price: number; 
     uom_id?: number; 
@@ -120,6 +124,7 @@ interface BirdsVehicle {
   vehicle_no?: string; 
   status?: string; 
 }
+
 interface CompanyData {
   company_id: number;
   company_name: string;
@@ -135,26 +140,23 @@ interface Item {
   item_id: number;
   item_name: string;
   item_code: string;
-  price?: number;
   uom_id?: number;
   uom_name?: string;
-  discount?: number;
-  discount_percentage?: number;
 }
 
 // --- PurchaseOrders Component ---
 const PurchaseOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'CREATED' | 'APPROVED'>('ALL');
-const [startDate, setStartDate] = useState<string>(() => {
-  const today = new Date().toISOString().split('T')[0];
-  return today;
-});
-
-const [endDate, setEndDate] = useState<string>(() => {
-  const today = new Date().toISOString().split('T')[0];
-  return today;
-});  const [showForm, setShowForm] = useState(false);
+  const [startDate, setStartDate] = useState<string>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return today;
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return today;
+  });
+  const [showForm, setShowForm] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState<PO[]>([]);
   const [editingPO, setEditingPO] = useState<PO | null>(null);
   const [selectedPOs, setSelectedPOs] = useState<number[]>([]);
@@ -165,18 +167,92 @@ const [endDate, setEndDate] = useState<string>(() => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Add these state variables for items cache
+  const [itemsCache, setItemsCache] = useState<Item[]>([]);
+  const [productsCache, setProductsCache] = useState<Item[]>([]);
+  
   // Load purchase orders with date filters
-  const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: string) => {
-    setIsLoading(true);
+ // Load purchase orders with date filters - FIXED VERSION
+const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: string) => {
+  setIsLoading(true);
+  try {
+    const data = await getPurchaseOrders(filterStartDate, filterEndDate);
+    console.log("Loaded POs - Raw data:", data);
+    
+    // Fetch product details for each item
+    const enrichedData = await Promise.all(
+      data.map(async (po: PO) => {
+        if (po.items && po.items.length > 0) {
+          const enrichedItems = await Promise.all(
+            po.items.map(async (item) => {
+              // Product details fetch karein
+              const productDetails = await fetchItemDetails(item.item_id);
+              if (productDetails) {
+                return {
+                  ...item,
+                  item_name: productDetails.item_name,
+                  item_code: productDetails.item_code,
+                  uom_name: productDetails.uom_name || item.uom_name
+                };
+              }
+              return item;
+            })
+          );
+          return { ...po, items: enrichedItems };
+        }
+        return po;
+      })
+    );
+    
+    console.log("Enriched POs:", enrichedData);
+    setPurchaseOrders(enrichedData);
+  } catch (error) {
+    console.error("Error loading purchase orders", error);
+    toast({ title: 'Error', description: 'Failed to load purchase orders', duration: 4000 });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  // Load items cache on component mount
+  useEffect(() => {
+    loadItemsCache();
+    loadProductsCache();
+  }, []);
+
+  const loadItemsCache = async () => {
     try {
-      const data = await getPurchaseOrders(filterStartDate, filterEndDate);
-      console.log("Loaded POs:", data);
-      setPurchaseOrders(data);
+      // You might want to load items for a default branch or all branches
+      // For now, we'll just set an empty array
+      setItemsCache([]);
     } catch (error) {
-      console.error("Error loading purchase orders", error);
-      toast({ title: 'Error', description: 'Failed to load purchase orders', duration: 4000 });
-    } finally {
-      setIsLoading(false);
+      console.error("Failed to load items cache:", error);
+    }
+  };
+
+  const loadProductsCache = async () => {
+    try {
+      const productsData = await fetchProducts();
+      let productsList = [];
+      if (Array.isArray(productsData)) {
+        productsList = productsData;
+      } else if (productsData?.data && Array.isArray(productsData.data)) {
+        productsList = productsData.data;
+      } else if (productsData?.products && Array.isArray(productsData.products)) {
+        productsList = productsData.products;
+      }
+      
+      const transformedProducts: Item[] = productsList.map((p: any) => ({
+        item_id: Number(p.id || p.product_id || p.item_id || 0),
+        item_name: String(p.name || p.product_name || p.item_name || ''),
+        item_code: String(p.code || p.product_code || p.item_code || ''),
+        uom_id: Number(p.uom_id || p.unit_id || 0),
+        uom_name: String(p.uom_name || p.unit_name || p.uom || ''),
+      }));
+      
+      setProductsCache(transformedProducts);
+    } catch (error) {
+      console.error("Failed to load products cache:", error);
     }
   };
 
@@ -194,21 +270,23 @@ const [endDate, setEndDate] = useState<string>(() => {
     }
     loadPurchaseOrders(startDate, endDate);
   };
-const loadCompanyImage = async () => {
-        try {
-            const data = await getCompanyimg();
-            if (data && data.length > 0) {
-                setCompanyData(data[0]);
-            }
-        } catch (error) {
-            console.error("Error loading company image", error);
-        }
-    };
+
+  const loadCompanyImage = async () => {
+    try {
+      const data = await getCompanyimg();
+      if (data && data.length > 0) {
+        setCompanyData(data[0]);
+      }
+    } catch (error) {
+      console.error("Error loading company image", error);
+    }
+  };
+
   // Clear date filter
   const handleClearDateFilter = () => {
     setStartDate('');
     setEndDate('');
-    loadPurchaseOrders(); // Load without date filters
+    loadPurchaseOrders();
   };
 
   const checkScrollTop = useCallback(() => {
@@ -232,380 +310,491 @@ const loadCompanyImage = async () => {
       behavior: 'smooth'
     });
   };
-const handlePrint = (po: PO) => {
-    const printWindow = window.open("", "_blank", "width=900,height=1000");
-    const orderDate = new Date(po.order_date);
-    const formattedDate = `${orderDate.getDate()}-${orderDate.toLocaleString("default", {
-        month: "short",
-    })}-${String(orderDate.getFullYear()).slice(-2)}`;
 
-    // Assuming totalAmount is the sum of all item totals (excluding freight)
-    const totalAmount = Number(po.total_price || 0);
-    // Keeping your original Grand Total calculation logic: total amount minus freight
-    const grandTotal = totalAmount;
+ const handlePrint = (po: PO) => {
+  const printWindow = window.open("", "_blank", "width=900,height=1000");
+  const orderDate = new Date(po.order_date);
+  const formattedDate = `${orderDate.getDate()}-${orderDate.toLocaleString("default", {
+      month: "short",
+  })}-${String(orderDate.getFullYear()).slice(-2)}`;
 
+  const totalAmount = Number(po.total_price || 0);
+  const grandTotal = totalAmount;
 
+  const numberToWords = (num: number) => {
+      const a = [
+          '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+          'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
+          'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+      ];
+
+      const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+      const convert = (n: number): string => {
+          if (n < 20) return a[n];
+          if (n < 100)
+              return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+          if (n < 1000)
+              return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
+          if (n < 1_000_000)
+              return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+          if (n < 1_000_000_000)
+              return convert(Math.floor(n / 1_000_000)) + ' Million' + (n % 1_000_000 ? ' ' + convert(n % 1_000_000) : '');
+          return convert(Math.floor(n / 1_000_000_000)) + ' Billion' + (n % 1_000_000_000 ? ' ' + convert(n % 1_000_000_000) : '');
+      };
+
+      return convert(num) + ' Only /-';
+  };
+
+  const logoSource = companyData?.image;
+  const companyName = companyData?.company_name || "Ahmad Poultry Farm";
+  const companyAddress = companyData?.address || "";
+  const companyPhone = companyData?.phone || "";
+  const companyEmail = companyData?.email || "";
+  const companyReg = companyData?.registration_number || "";
+
+  // Generate items HTML with product details from cache
+  const itemsHtml = po.items && po.items.length > 0 
+    ? po.items.map((item, index) => {
+        // Pehle PO item se lene ki koshish karein, nahi to cache se
+        let itemName = item.item_name || item.itemName;
+        let itemCode = item.item_code || item.itemCode;
+        let uomName = item.uom_name || item.uomName;
         
+        // Agar PO item mein nahi hai to cache se lein
+        if ((!itemName || itemName === '') && item.item_id) {
+          const cachedItem = productsCache.find(p => p.item_id === item.item_id);
+          if (cachedItem) {
+            itemName = cachedItem.item_name;
+            itemCode = cachedItem.item_code;
+            uomName = cachedItem.uom_name || uomName;
+          }
+        }
+        
+        // Final fallback
+        itemName = itemName || `Item #${item.item_id}`;
+        itemCode = itemCode || '-';
+        uomName = uomName || '-';
+        
+        const quantity = Number(item.quantity || 0);
+        const unitPrice = Number(item.unit_price || item.unitPrice || 0);
+        const discount = Number(item.discount || 0);
+        const itemTotal = quantity * unitPrice;
+        const rowTotal = itemTotal - discount;
 
+        return `
+          <tr>
+              <td>${index + 1}</td>
+              <td class="text-left">${itemName}</td>
+              <td>${uomName}</td>
+              <td>${itemCode}</td>
+              <td>${quantity}</td>
+              <td>${unitPrice.toLocaleString()}</td>
+              <td>${discount.toLocaleString()}</td>
+              <td>${rowTotal.toLocaleString()}</td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="8" class="text-center">No items found</td></tr>';
 
-        //const graannndtotal = (grandTotal - freight );
+  const printContent = `
+      <html>
+          <head>
+              <title>Purchase Invoice #${po.po_id}</title>
+              <style>
+                  @page {
+                      margin-top: 0;
+                      margin-bottom:0;
+                  }
+                  body {
+                      font-family: 'Times New Roman', serif;
+                      font-size: 12px;
+                      margin: 30px;
+                      color: #000;
+                  }
+                  .header {
+                      display: flex;
+                      align-items: flex-start;
+                      justify-content: space-between;
+                      margin-bottom: 10px;
+                  }
+                  .logo img {
+                      width: 120px;
+                  }
+                  .title {
+                      text-align: center;
+                      flex: 1;
+                  }
+                  .title h2 {
+                      margin: 0;
+                  }
+                  .title h4 {
+                      margin: 2px 0;
+                      text-decoration: underline;
+                  }
+                  .company-details {
+                      font-size: 11px;
+                      color: #666;
+                      margin-bottom: 4px;
+                  }
+                  .top-bar {
+                      display: flex;
+                      justify-content: space-between;
+                      margin: 10px 0 4px 0;
+                      font-size: 13px;
+                      font-weight: bold;
+                  }
+                  table {
+                      width: 100%;
+                      border-collapse: collapse;
+                  }
+                  .details-table td {
+                      font-size: 12px;
+                      border: 1px solid #000;
+                      padding: 4px;
+                  }
+                  .main-table th,
+                  .main-table td {
+                      border: 1px solid #000;
+                      padding: 8px;
+                      text-align: center;
+                      font-size: 12px;
+                      height: 28px; 
+                  }
+                  .text-left {
+                      text-align: left;
+                  }
+                  .footer {
+                      margin-top: 24px;
+                      font-size: 15px;
+                      font-weight: bold;
+                  }
+                  .footer-note {
+                      margin-top: 18px;
+                      font-style: italic;
+                      font-size: 13px;
+                  }
+                  .items-table {
+                      margin-top: 10px;
+                  }
+                  .items-table th, .items-table td {
+                      border: 1px solid #000;
+                      padding: 6px;
+                      text-align: center;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <div class="logo">
+                      <img src="${logoSource}" alt="Company Logo" />
+                  </div>
+                  <div class="title">
+                      <h2>${companyName}</h2>
+                      <div class="company-details">
+                          ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+                          ${companyPhone ? `<div>${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}</div>` : ''}
+                      </div>
+                      <h4>PURCHASE ORDER</h4>
+                  </div>
+              </div>
 
-    const numberToWords = (num: number) => {
-        const a = [
-            '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
-            'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
-            'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
-        ];
+              <div class="top-bar">
+                  <div>Date: ${formattedDate}</div>
+                  <div>Order No: ${po.po_id}</div>
+              </div>
 
-        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+              <table class="details-table">
+                  <tr>
+                  <td><strong>${module_id === 2 ? "Farm Name" : "Branch Name"}: </strong> ${po.branch_name || "N/A"}</td>
+                  <td><strong>${module_id === 2 ? "Flock Name" : "Vendor Name"}: </strong> ${module_id === 2 ? po.flock_name || "N/A" : po.vendor_name || "N/A"}</td>
+                  </tr>
+                 
+                  <tr>
+                  <td><strong>Status: </strong> ${po.status || "N/A"}</td>
+                   <td><strong>Vehicle No:</strong> ${module_id === 2 ? (po.vehicle_no || "N/A") : "N/A"}</td>
+                  </tr>
+              </table>
 
-        const convert = (n: number): string => {
-            if (n < 20) return a[n];
+              <div class="items-table">
+                  <table class="main-table">
+                    <thead>
+                        <tr>
+                            <th>Sr#</th>
+                            <th>Product Name</th>
+                            <th>Unit</th>
+                            <th>Product Code</th>
+                            <th>Ordered Qty</th>
+                            <th>Unit Price</th>
+                            <th>Discount</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
 
-            if (n < 100)
-                return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+                    <tbody>
+                        ${itemsHtml}
 
-            if (n < 1000)
-                return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
+                        <tr>
+                            <td colspan="7" style="text-align:right; font-weight:bold;">Total:</td>
+                            <td style="font-weight:bold;">${totalAmount.toLocaleString()}</td>
+                        </tr>
 
-            // Thousand
-            if (n < 1_000_000)
-                return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
-
-            // Million
-            if (n < 1_000_000_000)
-                return convert(Math.floor(n / 1_000_000)) + ' Million' + (n % 1_000_000 ? ' ' + convert(n % 1_000_000) : '');
-
-            // Billion
-            return convert(Math.floor(n / 1_000_000_000)) + ' Billion' + (n % 1_000_000_000 ? ' ' + convert(n % 1_000_000_000) : '');
-        };
-
-        return convert(num) + ' Only /-';
-    };
-
-    // --- Removed fixed row logic and blankRowsHtml generation ---
-    // Removed: maxVisibleRows, currentItemCount, blankRowCount, blankRowsHtml initialization and loop.
-
-    const logoSource = companyData?.image ;
-    const companyName = companyData?.company_name || "Ahmad Poultry Farm";
-    const companyAddress = companyData?.address || "";
-    const companyPhone = companyData?.phone || "";
-    const companyEmail = companyData?.email || "";
-    const companyReg = companyData?.registration_number || "";
-
-    const printContent = `
-        <html>
-            <head>
-                <title>Purchase Invoice #${po.po_id}</title>
-                <style>
-                    @page {
-                        margin-top: 0;
-                        margin-bottom:0;
-                    }
-                    body {
-                        font-family: 'Times New Roman', serif;
-                        font-size: 12px;
-                        margin: 30px;
-                        color: #000;
-                    }
-                    .header {
-                        display: flex;
-                        align-items: flex-start;
-                        justify-content: space-between;
-                        margin-bottom: 10px;
-                    }
-                    .logo img {
-                        width: 120px;
-                    }
-                    .title {
-                        text-align: center;
-                        flex: 1;
-                    }
-                    .title h2 {
-                        margin: 0;
-                    }
-                    .title h4 {
-                        margin: 2px 0;
-                        text-decoration: underline;
-                    }
-                    .company-details {
-                        font-size: 11px;
-                        color: #666;
-                        margin-bottom: 4px;
-                    }
-                    .top-bar {
-                        display: flex;
-                        justify-content: space-between;
-                        margin: 10px 0 4px 0;
-                        font-size: 13px;
-                        font-weight: bold;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-                    .details-table td {
-                        font-size: 12px;
-                        border: 1px solid #000;
-                        padding: 4px;
-                    }
-                    .main-table th,
-                    .main-table td {
-                        border: 1px solid #000;
-                        padding: 8px;
-                        text-align: center;
-                        font-size: 12px;
-                        height: 28px; 
-                    }
-                    /* Removed .main-table .blank-row td style as blank rows are removed */
-                    .text-left {
-                        text-align: left;
-                    }
-                    .footer {
-                        margin-top: 24px;
-                        font-size: 15px;
-                        font-weight: bold;
-                    }
-                    .footer-note {
-                        margin-top: 18px;
-                        font-style: italic;
-                        font-size: 13px;
-                    }
-                    .items-table {
-                        margin-top: 10px;
-                    }
-                    .items-table th, .items-table td {
-                        border: 1px solid #000;
-                        padding: 6px;
-                        text-align: center;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <div class="logo">
-                        <img src="${logoSource}" alt="Company Logo" />
-                    </div>
-                    <div class="title">
-                        <h2>${companyName}</h2>
-                        <div class="company-details">
-                            ${companyAddress ? `<div>${companyAddress}</div>` : ''}
-                            ${companyPhone ? `<div>${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}</div>` : ''}
-                        </div>
-                        <h4>PURCHASE ORDER</h4>
-                    </div>
-                </div>
-
-                <div class="top-bar">
-                    <div>Date: ${formattedDate}</div>
-                    <div>Order No: ${po.po_id}</div>
-                </div>
-
-                <table class="details-table">
-                    <tr>
-                    <td><strong>${module_id === 2 ? "Farm Name" : "Branch Name"}: </strong> ${po.branch_name || "N/A"}</td>
-                    <td><strong>${module_id === 2 ? "Flock Name" : "Vendor Name"}: </strong> ${module_id === 2 ? po.flock_name || "N/A" : po.vendor_name || "N/A"}</td>
-
-                        
-
-                    </tr>
-                   
-                    <tr>
-                    <td><strong>Status: </strong> ${po.status || "N/A"}</td>
-                     <td><strong>Vehicle No:</strong> ${module_id === 2 ? (po.vehicle_no || "N/A") : "N/A"}</td>
-
-                        
-                    </tr>
+                        <tr>
+                            <td colspan="7" style="text-align:right; font-weight:bold;">Grand Total:</td>
+                            <td style="font-weight:bold;">${grandTotal.toLocaleString()}</td>
+                        </tr>
+                    </tbody>
                 </table>
+              </div>
 
-                <div class="items-table">
-                    <table class="main-table">
-                      <thead>
-                          <tr>
-                              <th>Sr#</th>
-                              <th>Item Name</th>
-                              <th>Unit</th>
-                              <th>Item Code</th>
-                              <th>Ordered Qty</th>
-                              <th>Unit Price</th>
-                              <th>Discount</th>
-                              <th>Total</th>
-                          </tr>
-                      </thead>
+              <div class="footer">
+                  Amount in Words: <span style="font-weight:900;">${numberToWords(Math.round(grandTotal))}</span>
+              </div>
 
-                      <tbody>
-                          ${
-                              po.items?.map((item, index) => {
-                                  const itemTotal = (item.quantity || 0) * (item.unit_price || 0);
-                                  const discount = item.discount || 0;
-                                  const rowTotal = itemTotal - discount;
+              <div class="footer-note">
+                  <p>This is a system generated purchase invoice and does not require signature or stamp.</p>
+              </div>
 
-                                  return `
-                                      <tr>
-                                          <td>${index + 1}</td>
-                                          <td class="text-left">${item.item_name || "N/A"}</td>
-                                          <td>${item.uom_name || "N/A"}</td>
-                                          <td>${item.item_code || "N/A"}</td>
-                                          <td>${item.quantity || 0}</td>
-                                          <td>${(item.unit_price || 0).toLocaleString()}</td>
-                                          <td>${discount.toLocaleString()}</td>
-                                          <td>${rowTotal.toLocaleString()}</td>
-                                      </tr>
-                                  `;
-                              }).join('')
-                          }
+              <script>
+                  window.onload = function () {
+                      window.print();
+                      setTimeout(() => window.close(), 500);
+                  };
+              </script>
+          </body>
+      </html>
+  `;
 
-                          <!-- TOTAL ROW -->
-                          <tr>
-                              <td colspan="7" style="text-align:right; font-weight:bold;">Total:</td>
-                              <td style="font-weight:bold;">${totalAmount.toLocaleString()}</td>
-                          </tr>
-
-                          <!-- GRAND TOTAL ROW -->
-                          <tr>
-                              <td colspan="7" style="text-align:right; font-weight:bold;">Grand Total:</td>
-                              <td style="font-weight:bold;">${grandTotal.toLocaleString()}</td>
-                          </tr>
-                      </tbody>
-                  </table>
-
-                </div>
-
-                <div class="footer">
-                    Amount in Words: <span style="font-weight:900;">${numberToWords(Math.round(grandTotal))}</span>
-                </div>
-
-                <div class="footer-note">
-                    <p>This is a system generated purchase invoice and does not require signature or stamp.</p>
-                </div>
-
-                <script>
-                    window.onload = function () {
-                        window.print();
-                        setTimeout(() => window.close(), 500);
-                    };
-                </script>
-            </body>
-        </html>
-    `;
-
-    if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-    }
+  if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+  }
 };
 
-  const handleViewPO = (po_id: number) => {
-    const selectedPO = filteredPO.find(po => po.po_id === po_id);
-    if (selectedPO) {
-      setViewingPO(selectedPO as ViewingPO);
-      console.log("Filter Viewing PO:", selectedPO);
-      setViewDialogOpen(true);
+  // Updated fetchItemDetails to use productsCache properly
+const fetchItemDetails = async (itemId: number) => {
+  try {
+    console.log("Fetching details for item ID:", itemId);
+    
+    // Pehle productsCache mein dekhein
+    if (productsCache.length > 0) {
+      const found = productsCache.find(item => item.item_id === itemId);
+      if (found) {
+        console.log("Found in productsCache:", found);
+        return found;
+      }
     }
-  };
+    
+    // Agar cache mein nahi mila to products fetch karein
+    try {
+      const productsData = await fetchProducts();
+      let productsList = [];
+      if (Array.isArray(productsData)) {
+        productsList = productsData;
+      } else if (productsData?.data && Array.isArray(productsData.data)) {
+        productsList = productsData.data;
+      } else if (productsData?.products && Array.isArray(productsData.products)) {
+        productsList = productsData.products;
+      }
+      
+      // Transform all products to cache
+      const transformedProducts = productsList.map((p: any) => ({
+        item_id: Number(p.id || p.product_id || p.item_id || 0),
+        item_name: String(p.name || p.product_name || p.item_name || ''),
+        item_code: String(p.code || p.product_code || p.item_code || ''),
+        uom_id: Number(p.uom_id || p.unit_id || 0),
+        uom_name: String(p.uom_name || p.unit_name || p.uom || ''),
+      }));
+      
+      // Update cache
+      setProductsCache(transformedProducts);
+      
+      // Find the specific item
+      const found = transformedProducts.find(p => p.item_id === itemId);
+      if (found) {
+        return found;
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+    
+    console.log("Item not found in products:", itemId);
+    return null;
+  } catch (error) {
+    console.error("Failed to fetch item details:", error);
+    return null;
+  }
+};
+  // Updated handleViewPO
+const handleViewPO = async (po_id: number) => {
+  const selectedPO = filteredPO.find(po => po.po_id === po_id);
+  if (selectedPO) {
+    console.log("Original PO items:", selectedPO.items);
+    
+    // Create a deep copy
+    const enrichedPO = { ...selectedPO };
+    
+    // If items exist, ensure they have proper UOM names
+    if (enrichedPO.items && enrichedPO.items.length > 0) {
+      const enrichedItems = await Promise.all(
+        enrichedPO.items.map(async (item) => {
+          // Create a copy of the item
+          const enrichedItem = { ...item };
+          
+          // If uom_id exists but uom_name is missing, try to get it from uomList
+          if (enrichedItem.uom_id && (!enrichedItem.uom_name || enrichedItem.uom_name === '')) {
+            const foundUOM = uomList.find(u => u.uom_id === enrichedItem.uom_id);
+            if (foundUOM) {
+              enrichedItem.uom_name = foundUOM.uom_name;
+            }
+          }
+          
+          // If item_name is missing, try to fetch it
+          if (enrichedItem.item_id && (!enrichedItem.item_name || enrichedItem.item_name === '')) {
+            const itemDetails = await fetchItemDetails(enrichedItem.item_id);
+            if (itemDetails) {
+              enrichedItem.item_name = itemDetails.item_name;
+              enrichedItem.item_code = itemDetails.item_code;
+              if (!enrichedItem.uom_name && itemDetails.uom_name) {
+                enrichedItem.uom_name = itemDetails.uom_name;
+              }
+            }
+          }
+          
+          return enrichedItem;
+        })
+      );
+      enrichedPO.items = enrichedItems;
+    }
+    
+    setViewingPO(enrichedPO as ViewingPO);
+    console.log("Enriched PO for viewing:", enrichedPO);
+    setViewDialogOpen(true);
+  }
+};
 
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const userId = user.user_id || user.id;
 
+  // Updated toggleSelectPO function
   const toggleSelectPO = (po_id: number) => {
     setSelectedPOs((prev) =>
       prev.includes(po_id) ? prev.filter((id) => id !== po_id) : [...prev, po_id]
     );
   };
 
+  // Add select all functionality
+  const toggleSelectAll = () => {
+    if (selectedPOs.length === filteredPO.length) {
+      setSelectedPOs([]);
+    } else {
+      setSelectedPOs(filteredPO.map(po => po.po_id!).filter(id => id !== undefined));
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: string) => {
     if (selectedPOs.length === 0) {
-      toast({ title: 'No PO Selected', description: 'Please select at least one Purchase Order.' ,duration: 4000});
+      toast({ title: 'No PO Selected', description: 'Please select at least one Purchase Order.', duration: 4000 });
       return;
     }
 
     try {
       await UpdatePOStatus(selectedPOs, newStatus);
-      toast({ title: 'Status Updated', description: `Status changed to ${newStatus} successfully.` ,duration: 3000});
+      toast({ title: 'Status Updated', description: `Status changed to ${newStatus} successfully.`, duration: 3000 });
       setSelectedPOs([]);
       loadPurchaseOrders();
     } catch (err) {
       console.error('Status Update failed', err);
-      toast({ title: 'Error', description: 'Failed to update PO status.',duration: 3000 });
+      toast({ title: 'Error', description: 'Failed to update PO status.', duration: 3000 });
     }
   };
 
   const handleNewStatusUpdate = async (newStatus: string) => {
     if (selectedPOs.length === 0) {
-      toast({ title: 'No PO Selected', description: 'Please select at least one Purchase Order.' ,duration: 3000});
+      toast({ title: 'No PO Selected', description: 'Please select at least one Purchase Order.', duration: 3000 });
       return;
     }
 
     try {
       await UpdateNewPOStatus(selectedPOs, newStatus);
-      toast({ title: 'Status Updated', description: `Status changed to ${newStatus} successfully.`,duration: 3000 });
+      toast({ title: 'Status Updated', description: `Status changed to ${newStatus} successfully.`, duration: 3000 });
       setSelectedPOs([]);
       loadPurchaseOrders();
     } catch (err) {
       console.error('Status Update failed', err);
-      toast({ title: 'Error', description: 'Failed to update PO status.',duration: 3000 });
+      toast({ title: 'Error', description: 'Failed to update PO status.', duration: 3000 });
     }
   };
 
   const handleSavePO = async (payload: { 
-    vendor_id: number;
-    branch_id: number;
-    flock_id: number;
-    items: POItem[];
-    total_amount: number;
-    order_date: string;
-    vehicle_number?: string;
-  }) => {
+  vendor_id: number;
+  branch_id: number;
+  flock_id: number;
+  items: POItem[];
+  total_amount: number;
+  order_date: string;
+  vehicle_number?: string;
+}) => {
+  // ADD THIS CONSOLE LOG
+  console.log("Saving PO with items:", payload.items.map(item => ({
+    item_id: item.item_id,
+    item_name: item.item_name,
+    uom_id: item.uom_id,
+    uom_name: item.uom_name
+  })));
+  
+  try {
+    if (editingPO) {
+      await updatePurchaseOrder(
+        editingPO.po_id!,
+        payload.branch_id,
+        payload.flock_id,
+        payload.vendor_id,
+        editingPO.status,
+        payload.total_amount,
+        payload.items,
+        payload.order_date,
+        payload.vehicle_number
+      );
+      toast({ title: "Updated", description: "Purchase Order updated successfully!", duration: 3000 });
+    } else {
+      await createPurchaseOrder(
+        payload.branch_id,
+        payload.flock_id,
+        payload.vendor_id,
+        payload.total_amount,
+        payload.items,
+        payload.order_date,
+        payload.vehicle_number
+      );
+      toast({ title: "Created", description: "Purchase Order created successfully!", duration: 3000 });
+    }
+
+    setShowForm(false);
+    setEditingPO(null);
+    loadPurchaseOrders();
+
+  } catch (err) {
+    console.error("Save/Update PO failed", err);
+    toast({ title: "Error", description: "Failed to save or update Purchase Order.", duration: 3000 });
+  }
+};
+
+  const handleDeletePO = async (po_id: number) => {
     try {
-      if (editingPO) {
-        await updatePurchaseOrder(
-          editingPO.po_id!,
-          payload.branch_id,
-          payload.flock_id,
-          payload.vendor_id,
-          editingPO.status,
-          payload.total_amount,
-          payload.items,
-          payload.order_date,
-          payload.vehicle_number
-        );
-        toast({ title: "Updated", description: "Purchase Order updated successfully!",duration: 3000 });
-      } else {
-        await createPurchaseOrder(
-          payload.branch_id,
-          payload.flock_id,
-          payload.vendor_id,
-          payload.total_amount,
-          payload.items,
-          payload.order_date,
-          payload.vehicle_number
-        );
-        toast({ title: "Created", description: "Purchase Order created successfully!" ,duration: 3000});
-      }
-
-      setShowForm(false);
-      setEditingPO(null);
+      await deletePurchaseOrder(po_id);
+      toast({
+        title: "Deleted",
+        description: `PO deleted successfully!.`,
+        duration: 3000,
+      });
       loadPurchaseOrders();
-
-    } catch (err) {
-      console.error("Save/Update PO failed", err);
-      toast({ title: "Error", description: "Failed to save or update Purchase Order." ,duration: 3000});
+    } catch (error) {
+      console.error("Error deleting PO:", error);
     }
   };
-const handleDeletePO = async (po_id: number) => {
-        try {
-            await deletePurchaseOrder(po_id);
-            toast({
-                title: "Deleted",
-                description: `PO deleted successfully!.`,
-                duration: 3000,
-            });
-            loadPurchaseOrders();
-        } catch (error) {
-            console.error("Error deleting PO:", error);
-        }
-    };
+
   const filteredPO = purchaseOrders.filter((po) => {
     const matchesSearch = po.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          po.po_id?.toString().includes(searchTerm);
@@ -616,8 +805,6 @@ const handleDeletePO = async (po_id: number) => {
   const totalPOs = purchaseOrders.length;
   const createdPOs = purchaseOrders.filter(po => po.status === 'CREATED').length;
   const totalValue = purchaseOrders.reduce((sum, po) => sum + Number(po.total_price || 0), 0);
-
-  const branchFieldLabel = module_id === 3 ? "Branch" : "Farm";
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -631,7 +818,7 @@ const handleDeletePO = async (po_id: number) => {
 
   return (
     <div className="space-y-6">
-      {/* --- Stat Cards --- */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-2">
@@ -659,7 +846,7 @@ const handleDeletePO = async (po_id: number) => {
         </Card>
       </div>
 
-      {/* --- Purchase Orders Table Card --- */}
+      {/* Purchase Orders Table Card */}
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between mb-4">
@@ -668,31 +855,47 @@ const handleDeletePO = async (po_id: number) => {
               Purchase Orders
             </CardTitle>
             <div className="flex items-center gap-2">
-             {module_id === 3 && permissions.purchasing_approve === 1 && (
+              {/* Approve and Unapprove buttons - only show when items are selected */}
+              {selectedPOs.length > 0 && (
+                <div className="flex items-center gap-2 mr-2 border-r pr-2">
+                  {/* Approve Button */}
                   <Button
                     className="bg-green-600 hover:bg-green-700 text-white"
-                    onClick={() => handleStatusUpdate('APPROVED')}
-                    disabled={selectedPOs.length === 0}
-                    variant="outline"
+                    onClick={() => {
+                      if (module_id === 2) {
+                        handleNewStatusUpdate('APPROVED');
+                      } else {
+                        handleStatusUpdate('APPROVED');
+                      }
+                    }}
+                    size="sm"
                   >
+                    <Check className="h-4 w-4 mr-1" />
                     Approve ({selectedPOs.length})
                   </Button>
-                )}
-                              
-              {module_id === 2 && (
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => handleNewStatusUpdate('APPROVED')}
-                  disabled={selectedPOs.length === 0}
-                  variant="outline"
-                >
-                  Approved ({selectedPOs.length})
-                </Button>
+                  
+                  {/* Unapprove Button - This will change status back to CREATED */}
+                  {/* <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      if (module_id === 2) {
+                        handleNewStatusUpdate('CREATED');
+                      } else {
+                        handleStatusUpdate('CREATED');
+                      }
+                    }}
+                    size="sm"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Unapprove ({selectedPOs.length})
+                  </Button> */}
+                </div>
               )}
               
               <Button
                 onClick={() => setShowForm(true)}
-                className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary">
+                className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Create PO
               </Button>
@@ -787,6 +990,15 @@ const handleDeletePO = async (po_id: number) => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <input
+                      type="checkbox"
+                      checked={selectedPOs.length === filteredPO.length && filteredPO.length > 0}
+                      onChange={toggleSelectAll}
+                      title="Select all POs"
+                      className="cursor-pointer"
+                    />
+                  </TableHead>
                   <TableHead>PO NO</TableHead>
                   <TableHead>PO Date</TableHead>
                   <TableHead>Amount</TableHead>
@@ -801,6 +1013,15 @@ const handleDeletePO = async (po_id: number) => {
                 {filteredPO.length > 0 ? (
                   filteredPO.map((po) => (
                     <TableRow key={po.po_id}> 
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedPOs.includes(po.po_id!)}
+                          onChange={() => toggleSelectPO(po.po_id!)}
+                          title={`Select PO ${po.po_id}`}
+                          className="cursor-pointer"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{po.po_id}</TableCell>
                       <TableCell>
                         {new Date(po.order_date!).toLocaleString('en-PK', {
@@ -811,18 +1032,12 @@ const handleDeletePO = async (po_id: number) => {
                         })}
                       </TableCell>
                       <TableCell>
-                        {new Intl.NumberFormat('en-US').format(po.total_price)}
+                        {new Intl.NumberFormat('en-US').format(po.total_price || 0)}
                       </TableCell>   
                       <TableCell className="font-medium">{po.branch_name}</TableCell>
                       <TableCell><Badge className={getStatusColor(po.status)}>{po.status}</Badge></TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 justify-end">
-                          <input
-                            type="checkbox"
-                            checked={selectedPOs.includes(po.po_id!)}
-                            onChange={() => toggleSelectPO(po.po_id!)}
-                            title={`Select PO ${po.po_id}`}
-                          />
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -832,11 +1047,12 @@ const handleDeletePO = async (po_id: number) => {
                           </Button>
                           <Button
                             size="sm"
-                             variant="outline"
-                             onClick={() => handlePrint(po)}
-                           >
-                             <Printer className="h-4 w-4" />
-                        </Button>
+                            variant="outline"
+                            onClick={() => handlePrint(po)}
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          {/* Only show Edit and Delete buttons when status is CREATED */}
                           {po.status === "CREATED" && (
                             <Button 
                               size="sm" 
@@ -849,12 +1065,14 @@ const handleDeletePO = async (po_id: number) => {
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
-                          {po.status === "CREATED" && (
+
+                          {/* Delete button for both CREATED and APPROVED status */}
+                          {(po.status === "CREATED" || po.status === "APPROVED") && (
                             <Button
-                            onClick={() => handleDeletePO(po.po_id)}
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeletePO(po.po_id!)}
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -865,7 +1083,7 @@ const handleDeletePO = async (po_id: number) => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={8} className="text-center py-4">
                       No purchase orders found
                     </TableCell>
                   </TableRow>
@@ -893,20 +1111,31 @@ const handleDeletePO = async (po_id: number) => {
             <>
               <table className="w-full border border-gray-300 mb-4 text-sm">
                 <tbody>
-                  <tr><td className="p-2 font-medium text-gray-600 border">PO Number</td><td className="p-2 border">{viewingPO.po_id}</td></tr>
-                  <tr><td className="p-2 font-medium text-gray-600 border">Vehicle No</td><td className="p-2 border">{viewingPO.vehicle_no}</td></tr>
-                  <tr><td className="p-2 font-medium text-gray-600 border">Order Date</td><td className="p-2 border">{viewingPO.order_date}</td></tr>
-                  <tr><td className="p-2 font-medium text-gray-600 border">Status</td><td className="p-2 border">{viewingPO.status}</td></tr>
-                  <tr><td className="p-2 font-medium text-gray-600 border">Total Amount</td><td className="p-2 border font-semibold text-blue-700">{Number(viewingPO.total_price).toLocaleString()}</td></tr>
+                  <tr>
+                    <td className="p-2 font-medium text-gray-600 border">PO Number</td>
+                    <td className="p-2 border">{viewingPO.po_id}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium text-gray-600 border">Order Date</td>
+                    <td className="p-2 border">{new Date(viewingPO.order_date || '').toLocaleDateString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium text-gray-600 border">Status</td>
+                    <td className="p-2 border">{viewingPO.status}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium text-gray-600 border">Total Amount</td>
+                    <td className="p-2 border font-semibold text-blue-700">{Number(viewingPO.total_price).toLocaleString()}</td>
+                  </tr>
                 </tbody>
               </table>
       
-              <h3 className="text-md font-semibold mb-2">Items</h3>
+              <h3 className="text-md font-semibold mb-2">Products</h3>
               <table className="w-full border border-gray-300 text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="p-2 border text-left">Item Name</th>
-                    <th className="p-2 border text-left">Item Code</th>
+                    <th className="p-2 border text-left">Product Name</th>
+                    <th className="p-2 border text-left">Product Code</th>
                     <th className="p-2 border text-left">Quantity</th>
                     <th className="p-2 border text-left">Unit</th>
                     <th className="p-2 border text-left">Unit Price</th>
@@ -917,19 +1146,23 @@ const handleDeletePO = async (po_id: number) => {
                 </thead>
                 <tbody>
                   {viewingPO.items?.map((item, index) => {
-                    const discountPercentage = item.unit_price > 0 
-                      ? ((item.discount || 0) / (item.unit_price * (item.quantity || 0))) * 100 
+                    const quantity = Number(item.quantity || 0);
+                    const unitPrice = Number(item.unit_price || 0);
+                    const discount = Number(item.discount || 0);
+                    const discountPercentage = quantity > 0 && unitPrice > 0 
+                      ? (discount / (quantity * unitPrice)) * 100 
                       : 0;
-                    const lineTotal = (item.quantity || 0) * (item.unit_price || 0) - (item.discount || 0);
+                    const lineTotal = (quantity * unitPrice) - discount;
+                    
                     return (
                       <tr key={index}>
-                        <td className="p-2 border">{item.item_name ?? '-'}</td>
-                        <td className="p-2 border">{item.item_code ?? '-'}</td>
-                        <td className="p-2 border">{item.quantity}</td>
-                        <td className="p-2 border">{item.uom_name ?? '-'}</td>
-                        <td className="p-2 border">{item.unit_price}</td>
+                        <td className="p-2 border">{item.item_name || `Item #${item.item_id}`}</td>
+                        <td className="p-2 border">{item.item_code || '-'}</td>
+                        <td className="p-2 border">{quantity}</td>
+                        <td className="p-2 border">{item.uom_name || '-'}</td>
+                        <td className="p-2 border">{unitPrice.toFixed(2)}</td>
                         <td className="p-2 border">{discountPercentage.toFixed(2)}%</td>
-                        <td className="p-2 border">{item.discount || 0}</td>
+                        <td className="p-2 border">{discount.toFixed(2)}</td>
                         <td className="p-2 border font-semibold">{lineTotal.toFixed(2)}</td>
                       </tr>
                     );
@@ -973,16 +1206,26 @@ interface PurchaseOrderFormProps {
 export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClose, onSave }) => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [products, setProducts] = useState<Item[]>([]); // Products from API
   const [vehicles, setVehicles] = useState<BirdsVehicle[]>([]);
+  // ADDED: UOM state variables
+  const [uomList, setUomList] = useState<any[]>([]);
+  const [uomLoading, setUomLoading] = useState(false);
   
   const [vendorOpen, setVendorOpen] = useState(false);
   const [itemDropdown, setItemDropdown] = useState<number | null>(null);
   const [vehicleOpen, setVehicleOpen] = useState(false);
+  // ADDED: UOM dropdown state
+  const [uomDropdown, setUomDropdown] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
 
   const [vendor_id, setVendorId] = useState<number>(0);
+  // UPDATED: Added item_name and item_code to initial state
   const [poItems, setPoItems] = useState<POItem[]>([{ 
     item_id: 0, 
+    item_name: '',
+    item_code: '',
     quantity: 1, 
     unit_price: 0, 
     uom_id: 0, 
@@ -1011,133 +1254,206 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }, 0);
   }, [poItems]);
 
+  // ADDED: Fetch UOMs on component mount
   useEffect(() => {
-    (async () => {
-      try {
-        const [vendorsRes, branchData] = await Promise.all([getVendors(), getBranches()]);
-        
-        const approvedBranches = branchData.filter((branch: any) => 
-          branch.status === 'APPROVED'
-        );
-        
-        const vendorList = (vendorsRes as any)?.data ?? (vendorsRes as any) ?? [];
-        const approvedVendors = vendorList.filter((vendor: any) => 
-          vendor.status === 'APPROVED'
-        );
-        
-        setVendors(approvedVendors);
-        setBranches(approvedBranches);
-
-        // Load vehicles if module_id is 2
-        if (module_id === 2) {
-          try {
-            const vehiclesData = await getbirdsVehicles();
-            console.log("Loaded vehicles:", vehiclesData);
-            
-            // Handle different response formats
-            if (Array.isArray(vehiclesData)) {
-              setVehicles(vehiclesData);
-            } else if (vehiclesData && vehiclesData.data && Array.isArray(vehiclesData.data)) {
-              setVehicles(vehiclesData.data);
-            } else if (vehiclesData && typeof vehiclesData === 'object') {
-              // If it's a single vehicle object, wrap it in array
-              setVehicles([vehiclesData]);
-            }
-          } catch (vehicleErr) {
-            console.error("Failed to load vehicles:", vehicleErr);
-            setVehicles([]);
-          }
-        }
-
-        if (po) {
-          setBranchId(po.branch_id);
-          setFlockId(po.flock_id);
-          setVendorId(Number(po.vendor_id ?? 0));
-          
-          // Set vehicle number if it exists in PO
-          if (po.items?.[0]?.vehicle_no) {
-            setVehicleNumber(po.items[0].vehicle_no);
-          }
-          
-          if (po.order_date) {
-            const date = new Date(po.order_date);
-            const formattedDate = date.toISOString().split('T')[0];
-            setOrderDate(formattedDate);
-          }
-          
-          setPoItems(
-            (po.items ?? []).length
-              ? po.items.map((it: any) => {
-                  const discountPercentage = it.unit_price > 0 && it.quantity > 0 
-                    ? ((it.discount || 0) / (it.unit_price * it.quantity)) * 100 
-                    : 0;
-                  
-                  return {
-                    item_id: Number(it.item_id),
-                    quantity: Number(it.quantity),
-                    unit_price: Number(it.unit_price ?? 0),
-                    uom_id: Number(it.uom_id ?? 0),
-                    uom_name: String(it.uom_name ?? ""),
-                    discount: Number(it.discount ?? 0),
-                    discount_percentage: discountPercentage
-                  };
-                })
-              : [{ 
-                  item_id: 0, 
-                  quantity: 1, 
-                  unit_price: 0, 
-                  uom_id: 0, 
-                  uom_name: '', 
-                  discount: 0,
-                  discount_percentage: 0
-                }]
-          );
-        } else {
-          // Set default values for new PO
-          setVendorId(0);
-          setPoItems([{ 
-            item_id: 0, 
-            quantity: 1, 
-            unit_price: 0, 
-            uom_id: 0, 
-            uom_name: '', 
-            discount: 0,
-            discount_percentage: 0
-          }]);
-          const today = new Date().toISOString().split('T')[0];
-          setOrderDate(today);
-          
-          // For module_id 3, find and set "Head Office" as default branch
-          if (module_id === 3) {
-            const headOfficeBranch = approvedBranches.find((br: any) => 
-              br.branch_name.toLowerCase().includes('head office') || 
-              br.branch_name.toLowerCase().includes('headoffice') ||
-              br.branch_name.toLowerCase().includes('ho')
-            );
-            
-            if (headOfficeBranch) {
-              setBranchId(headOfficeBranch.branch_id);
-              console.log("Auto-selected Head Office branch:", headOfficeBranch);
-            } else {
-              // Fallback: if no "Head Office" found, select the first branch
-              if (approvedBranches.length > 0) {
-                setBranchId(approvedBranches[0].branch_id);
-                console.log("Head Office not found, selected first branch:", approvedBranches[0]);
-              }
-            }
-          } else {
-            // For other modules, set branch_id to 0
-            setBranchId(0);
-          }
-          
-          // Set flock_id to 0
-          setFlockId(0);
-        }
-      } catch (err) {
-        console.error("Failed loading vendors/items:", err);
+  const loadUOMs = async () => {
+    try {
+      const response = await getUOM();
+      let uomData = [];
+      if (response?.data && Array.isArray(response.data)) {
+        uomData = response.data;
+      } else if (Array.isArray(response)) {
+        uomData = response;
       }
-    })();
-  }, [po]);
+      setUomList(uomData);
+    } catch (error) {
+      console.error("Failed to load UOMs:", error);
+    }
+  };
+  
+  loadUOMs();
+}, []);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setProductsLoading(true);
+      try {
+        const productsData = await fetchProducts();
+        console.log("Raw products data:", productsData);
+        
+        // Handle different response formats
+        let productsList = [];
+        if (Array.isArray(productsData)) {
+          productsList = productsData;
+        } else if (productsData?.data && Array.isArray(productsData.data)) {
+          productsList = productsData.data;
+        } else if (productsData?.products && Array.isArray(productsData.products)) {
+          productsList = productsData.products;
+        }
+        
+        // Transform to match Item interface - ONLY item details, NO price/discount
+        const transformedProducts: Item[] = productsList.map((p: any) => ({
+          item_id: Number(p.id || p.product_id || p.item_id || 0),
+          item_name: String(p.name || p.product_name || p.item_name || ''),
+          item_code: String(p.code || p.product_code || p.item_code || ''),
+          uom_id: Number(p.uom_id || p.unit_id || 0),
+          uom_name: String(p.uom_name || p.unit_name || p.uom || ''),
+        }));
+        
+        console.log("Transformed products (without price):", transformedProducts);
+        setProducts(transformedProducts);
+        
+      } catch (error) {
+        console.error("Failed to load products:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load products",
+          variant: "destructive",
+        });
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+  (async () => {
+    try {
+      const [vendorsRes, branchData] = await Promise.all([getVendors(), getBranches()]);
+      
+      // Show both CREATED and APPROVED branches
+      const availableBranches = branchData.filter((branch: any) => 
+        branch.status === 'APPROVED' || branch.status === 'CREATED'
+      );
+      
+      // Show both CREATED and APPROVED vendors
+      const vendorList = (vendorsRes as any)?.data ?? (vendorsRes as any) ?? [];
+      const availableVendors = vendorList.filter((vendor: any) => 
+        vendor.status === 'APPROVED' || vendor.status === 'CREATED'
+      );
+      
+      console.log("Available vendors:", availableVendors);
+      console.log("Available branches:", availableBranches);
+      
+      setVendors(availableVendors);
+      setBranches(availableBranches);
+
+      // Load vehicles if module_id is 2
+      if (module_id === 2) {
+        try {
+          const vehiclesData = await getbirdsVehicles();
+          console.log("Loaded vehicles:", vehiclesData);
+          
+          if (Array.isArray(vehiclesData)) {
+            setVehicles(vehiclesData);
+          } else if (vehiclesData && vehiclesData.data && Array.isArray(vehiclesData.data)) {
+            setVehicles(vehiclesData.data);
+          } else if (vehiclesData && typeof vehiclesData === 'object') {
+            setVehicles([vehiclesData]);
+          }
+        } catch (vehicleErr) {
+          console.error("Failed to load vehicles:", vehicleErr);
+          setVehicles([]);
+        }
+      }
+
+      if (po) {
+        setBranchId(po.branch_id);
+        setFlockId(po.flock_id);
+        setVendorId(Number(po.vendor_id ?? 0));
+        
+        if (po.items?.[0]?.vehicle_no) {
+          setVehicleNumber(po.items[0].vehicle_no);
+        }
+        
+        if (po.order_date) {
+          const date = new Date(po.order_date);
+          const formattedDate = date.toISOString().split('T')[0];
+          setOrderDate(formattedDate);
+        }
+        
+        setPoItems(
+          (po.items ?? []).length
+            ? po.items.map((it: any) => {
+                const discountPercentage = it.unit_price > 0 && it.quantity > 0 
+                  ? ((it.discount || 0) / (it.unit_price * it.quantity)) * 100 
+                  : 0;
+                
+                return {
+                  item_id: Number(it.item_id),
+                  item_name: it.item_name || '',
+                  item_code: it.item_code || '',
+                  quantity: Number(it.quantity),
+                  unit_price: Number(it.unit_price ?? 0),
+                  uom_id: Number(it.uom_id ?? 0),
+                  uom_name: String(it.uom_name ?? ""),
+                  discount: Number(it.discount ?? 0),
+                  discount_percentage: discountPercentage
+                };
+              })
+            : [{ 
+                item_id: 0, 
+                item_name: '',
+                item_code: '',
+                quantity: 1, 
+                unit_price: 0, 
+                uom_id: 0, 
+                uom_name: '', 
+                discount: 0,
+                discount_percentage: 0
+              }]
+        );
+      } else {
+        setVendorId(0);
+        setPoItems([{ 
+          item_id: 0, 
+          item_name: '',
+          item_code: '',
+          quantity: 1, 
+          unit_price: 0, 
+          uom_id: 0, 
+          uom_name: '', 
+          discount: 0,
+          discount_percentage: 0
+        }]);
+        const today = new Date().toISOString().split('T')[0];
+        setOrderDate(today);
+        
+        // For module_id 3, find and set "Head Office" as default branch
+        if (module_id === 3) {
+          const headOfficeBranch = availableBranches.find((br: any) => 
+            br.branch_name?.toLowerCase().includes('head office') || 
+            br.branch_name?.toLowerCase().includes('headoffice') ||
+            br.branch_name?.toLowerCase().includes('ho')
+          );
+          
+          if (headOfficeBranch) {
+            setBranchId(headOfficeBranch.branch_id);
+            console.log("Auto-selected Head Office branch:", headOfficeBranch);
+          } else {
+            if (availableBranches.length > 0) {
+              setBranchId(availableBranches[0].branch_id);
+              console.log("Head Office not found, selected first branch:", availableBranches[0]);
+            }
+          }
+        } else {
+          setBranchId(0);
+        }
+        
+        setFlockId(0);
+      }
+    } catch (err) {
+      console.error("Failed loading vendors/items:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load vendors or branches",
+        variant: "destructive",
+      });
+    }
+  })();
+}, [po]);
 
   useEffect(() => {
     if (branch_id) {
@@ -1149,10 +1465,8 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             item_id: Number(r.item_id),
             item_name: String(r.item_name ?? r.name ?? ""),
             item_code: String(r.item_code ?? r.code ?? ""),
-            price: Number(r.price ?? r.unit_price ?? 0),
             uom_id: Number(r.uom_id ?? 0),
             uom_name: String(r.uom_name ?? r.uom ?? ""),
-            discount: Number(r.discount ?? 0),
           }));
           setItems(normalizedItems);
         } catch (err) {
@@ -1197,20 +1511,23 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
         setFlock([]);
         setFlockId(0);
         
-        toast({
-          title: "Error",
-          description: "Failed to load flocks for selected branch",
-          variant: "destructive",
-          duration: 3000
-        });
+        // toast({
+        //   title: "Error",
+        //   description: "Failed to load flocks for selected branch",
+        //   variant: "destructive",
+        //   duration: 3000
+        // });
       }
     };
 
     loadFlocks();
   }, [branch_id, po]);
 
+  // UPDATED: Added item_name and item_code to addItemRow
   const addItemRow = () => setPoItems((p) => [...p, { 
     item_id: 0, 
+    item_name: '',
+    item_code: '',
     quantity: 1, 
     unit_price: 0, 
     uom_id: 0, 
@@ -1221,24 +1538,44 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   
   const removeItemRow = (index: number) => setPoItems((p) => p.filter((_, i) => i !== index));
 
+  // UPDATED: Added item_name and item_code to handleSelectItem
   const handleSelectItem = (rowIndex: number, itemId: number) => {
-    const selectedItem = items.find(item => item.item_id === itemId);
+    // Search in both items and products
+    const allItems = [...items, ...products];
+    const selectedItem = allItems.find(item => item.item_id === itemId);
+    
     if (selectedItem) {
       setPoItems((prev) => {
         const copy = [...prev];
         copy[rowIndex] = { 
           ...copy[rowIndex], 
           item_id: Number(itemId),
-          unit_price: selectedItem.price || 0,
+          item_name: selectedItem.item_name,
+          item_code: selectedItem.item_code,
+          unit_price: copy[rowIndex].unit_price || 0,
           uom_id: selectedItem.uom_id || 0,
           uom_name: selectedItem.uom_name || '',
-          discount: selectedItem.discount || 0,
-          discount_percentage: 0
+          discount: copy[rowIndex].discount || 0,
+          discount_percentage: copy[rowIndex].discount_percentage || 0
         };
         return copy;
       });
     }
     setItemDropdown(null);
+  };
+
+  // ADDED: UOM selection handler
+  const handleSelectUOM = (rowIndex: number, uomId: number, uomName: string) => {
+    setPoItems((prev) => {
+      const copy = [...prev];
+      copy[rowIndex] = {
+        ...copy[rowIndex],
+        uom_id: uomId,
+        uom_name: uomName
+      };
+      return copy;
+    });
+    setUomDropdown(null);
   };
 
   const handleChangeRow = (index: number, field: keyof POItem, value: string | number) => {
@@ -1411,49 +1748,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               </Popover>
             </div>
 
-            {/* Flock selector - Conditionally rendered */}
-            {/* {showFlockField && (
-              <div className="flex flex-col flex-1">
-                <span className="text-sm font-medium text-gray-700">Flock</span>
-                <Popover open={flockOpen} onOpenChange={setFlockOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                      {flock_id
-                        ? `${flocks.find((fl: any) => fl.flock_id === flock_id)?.flock_name}`
-                        : "Select Flock"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="max-h-[300px] overflow-auto">
-                    <Command>
-                      <CommandInput placeholder="Search flocks..." className="text-black" />
-                      <CommandEmpty>No flock found.</CommandEmpty>
-                      <CommandGroup>
-                        {flocks.map((fl: any) => (
-                          <CommandItem
-                            key={fl.flock_id}
-                            className="hover:bg-gray-100"
-                            onSelect={() => {
-                              setFlockId(fl.flock_id);
-                              setFlockOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                flock_id === fl.flock_id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {fl.flock_name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )} */}
-
             {/* Vehicle Number - Only for module_id 2, replaced with select dropdown */}
             {showVehicleNumberField && (
               <div className="flex flex-col flex-1">
@@ -1494,9 +1788,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                 </Popover>
               </div>
             )}
-
-
-
 
             {/* Vendor selector - Conditionally rendered */}
             {showVendorField && (
@@ -1548,44 +1839,96 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               <span className="w-[40px] text-center"></span>
             </div>
             {poItems.map((row, idx) => {
-              const selectedItem = items.find((it) => Number(it.item_id) === Number(row.item_id));
+              // Combine items and products for display
+              const allItems = [...items, ...products];
+              const selectedItem = allItems.find((it) => Number(it.item_id) === Number(row.item_id));
               const lineTotal = (row.quantity || 0) * (row.unit_price || 0) - (row.discount || 0);
               return (
                 <div key={idx} className="flex items-center gap-2">
                   <Popover open={itemDropdown === idx} onOpenChange={(open) => setItemDropdown(open ? idx : null)}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-1/3 justify-between">
-                        {row.item_id ? selectedItem?.item_name ?? "Selected item" : "Select Item"}
+                      <Button variant="outline" className="w-1/3 justify-between" disabled={productsLoading}>
+                        {productsLoading ? (
+                          "Loading products..."
+                        ) : row.item_id ? (
+                          selectedItem?.item_name ?? "Selected item"
+                        ) : (
+                          "Select Item"
+                        )}
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="max-h-[300px] overflow-auto">
                       <Command>
                         <CommandInput placeholder="Search items..." />
-                        <CommandEmpty>No items</CommandEmpty>
+                        <CommandEmpty>
+                          {productsLoading ? "Loading products..." : "No items found"}
+                        </CommandEmpty>
                         <CommandGroup>
-                          {items.map((it) => (
-                            <CommandItem 
-                              key={it.item_id} 
-                              onSelect={() => handleSelectItem(idx, Number(it.item_id))}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", row.item_id === Number(it.item_id) ? "opacity-100" : "opacity-0")} />
-                              {it.item_name} - {it.price} ({it.uom_name}) {it.discount ? `- Discount: ${it.discount}` : ''}
-                            </CommandItem>
-                          ))}
+                          {productsLoading ? (
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                              <span className="ml-2">Loading products...</span>
+                            </div>
+                          ) : (
+                            // Combine both items and products, remove duplicates
+                            [...new Map([...items, ...products].map(item => [item.item_id, item])).values()]
+                              .map((it) => (
+                                <CommandItem 
+                                  key={it.item_id} 
+                                  onSelect={() => handleSelectItem(idx, Number(it.item_id))}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", row.item_id === Number(it.item_id) ? "opacity-100" : "opacity-0")} />
+                                  {it.item_name} ({it.item_code}) - {it.uom_name || 'N/A'}
+                                </CommandItem>
+                              ))
+                          )}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>
                   </Popover>
 
-                  <div className="flex flex-col w-[100px]">
-                    <Input
-                      value={row.uom_name || ''}
-                      readOnly
-                      placeholder="Unit"
-                      className="bg-gray-50"
-                    />
-                  </div>
+                  {/* REPLACED: Unit input with UOM dropdown */}
+                  <Popover open={uomDropdown === idx} onOpenChange={(open) => setUomDropdown(open ? idx : null)}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[100px] justify-between" disabled={uomLoading}>
+                        {uomLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : row.uom_name ? (
+                          row.uom_name
+                        ) : (
+                          "Unit"
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="max-h-[300px] overflow-auto">
+                      <Command>
+                        <CommandInput placeholder="Search units..." />
+                        <CommandEmpty>
+                          {uomLoading ? "Loading units..." : "No units found"}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {uomLoading ? (
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                              <span className="ml-2">Loading units...</span>
+                            </div>
+                          ) : (
+                            uomList.map((uom) => (
+                              <CommandItem 
+                                key={uom.uom_id} 
+                                onSelect={() => handleSelectUOM(idx, uom.uom_id, uom.uom_name)}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", row.uom_id === uom.uom_id ? "opacity-100" : "opacity-0")} />
+                                {uom.uom_name}
+                              </CommandItem>
+                            ))
+                          )}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
 
                   <div className="flex flex-col w-[100px]">
                     <Input
@@ -1668,7 +2011,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             <Button
               type="submit"
               className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
-              disabled={isLoading}
+              disabled={isLoading || productsLoading || uomLoading}
             >
               {isLoading ? (
                 <>
@@ -1685,5 +2028,4 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     </div>
   );
 };
-
 export default PurchaseOrders;

@@ -719,17 +719,17 @@ const JVForm: React.FC<JVFormProps> = ({ onClose, onSave, entry }) => {
           getExpense(),
         ]);
 
-      const approvedBranches = branchData.filter(
-        (branch: Branch) =>
-          branch.status === "APPROVED" && branch.branch_id === 1
-      );
+      // FIX: Show both CREATED and APPROVED branches (remove branch_id === 1 filter)
+        const availableBranches = branchData.filter(
+          (branch: Branch) => branch.status === "APPROVED" || branch.status === "CREATED"
+        );
 
-      setBranches(approvedBranches);
+        setBranches(availableBranches);
 
-      //  Default branch = Head Office
-      if (!entry && approvedBranches.length > 0) {
-        setBranchId(approvedBranches[0].branch_id); 
-      }
+        // Default branch = first available branch
+        if (!entry && availableBranches.length > 0) {
+          setBranchId(availableBranches[0].branch_id); 
+        }
 
       setAccounts(accountsData);
       setVouchers(vouchersData);

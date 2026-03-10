@@ -129,41 +129,58 @@ const Branches: React.FC = () => {
         await updateBranch(
           editingBranch.branch_id,
           branchData.branch_name,
-          branchData.farm_type,
-          branchData.city,
-          branchData.account_id,
-          branchData.no_of_partners,
-          branchData.discounts,
-          branchData.extra_discount,
-          branchData.remarks,
-          branchData.is_owned,
-          branchData.is_rent,
-          branchData.farm_description
+          branchData.farm_type || "Own",
+          branchData.city || "",
+          branchData.account_id || 0,
+          branchData.no_of_partners || 1,
+          branchData.discounts || "N",
+          branchData.extra_discount || 0,
+          branchData.remarks || "",
+          branchData.is_owned || false,
+          branchData.is_rent || false,
+          branchData.farm_description || "Owned"
         );
       } else {
         await addBranch(
           branchData.branch_name,
-          branchData.farm_type,
-          branchData.city,
-          branchData.account_id,
-          branchData.no_of_partners,
-          branchData.discounts,
-          branchData.extra_discount,
-          branchData.remarks,
-          branchData.is_owned,
-          branchData.is_rent,
-          branchData.farm_description
+          branchData.farm_type || "Own",
+          branchData.city || "",
+          branchData.account_id || 0,
+          branchData.no_of_partners || 1,
+          branchData.discounts || "N",
+          branchData.extra_discount || 0,
+          branchData.remarks || "",
+          branchData.is_owned || false,
+          branchData.is_rent || false,
+          branchData.farm_description || "Owned"
         );
       }
       setShowForm(false);
       loadBranches();
+      toast({
+        title: "Success",
+        description: `Branch ${editingBranch ? 'updated' : 'added'} successfully.`,
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error saving branch", error);
-      alert(
-        `Failed to save ${module_id === 3 ? 'branch' : 'farm'}: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+      
+      if (axios.isAxiosError(error)) {
+        console.error('API Error Details:', error.response?.data);
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || error.message || "Failed to save branch",
+          variant: "destructive",
+          duration: 3000,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to save branch",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
     }
   };
 
@@ -172,63 +189,70 @@ const Branches: React.FC = () => {
       try {
         await deleteBranch(branchId);
         loadBranches();
+        toast({
+          title: "Success",
+          description: "Branch deleted successfully.",
+          duration: 3000,
+        });
       } catch (error) {
         console.error("Error deleting branch", error);
-        alert(
-          `Failed to delete branch ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`
-        );
+        toast({
+          title: "Error",
+          description: "Failed to delete branch",
+          variant: "destructive",
+          duration: 3000,
+        });
       }
     }
   };
-const handleApproveBranch = async () => {
-        if (selectedBranchIds.length === 0) return;
+  
+  const handleApproveBranch = async () => {
+    if (selectedBranchIds.length === 0) return;
 
-        try {
-            await approveBranch(selectedBranchIds);
-            toast({
-                title: "Approved",
-                description: `${selectedBranchIds.length} Branch(s) approved successfully.`,
-                duration: 3000,
-            });
+    try {
+      await approveBranch(selectedBranchIds);
+      toast({
+        title: "Approved",
+        description: `${selectedBranchIds.length} Branch(s) approved successfully.`,
+        duration: 3000,
+      });
 
-            setSelectedBranchIds([]);
-            loadBranches();
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to approve selected Branch.",
-                variant: "destructive",
-                duration: 3000,
-            });
-            console.error("Error approving Branch:", error);
-        }
-    };
+      setSelectedBranchIds([]);
+      loadBranches();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve selected Branch.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      console.error("Error approving Branch:", error);
+    }
+  };
 
-    const handleUnapproveBranches = async () => {
-        if (selectedBranchIds.length === 0) return;
+  const handleUnapproveBranches = async () => {
+    if (selectedBranchIds.length === 0) return;
 
-        try {
-            await UnapproveBranch(selectedBranchIds);
-            toast({
-                title: "Unapproved",
-                description: `${selectedBranchIds.length} Branch(s) unapproved successfully.`,
-                duration: 3000,
-            });
+    try {
+      await UnapproveBranch(selectedBranchIds);
+      toast({
+        title: "Unapproved",
+        description: `${selectedBranchIds.length} Branch(s) unapproved successfully.`,
+        duration: 3000,
+      });
 
-            setSelectedBranchIds([]);
-            loadBranches();
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to unapprove selected invoices.",
-                variant: "destructive",
-                duration: 3000,
-            });
-            console.error("Error unapproving invoices:", error);
-        }
-    };
+      setSelectedBranchIds([]);
+      loadBranches();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unapprove selected invoices.",
+        variant: "destructive",
+        duration: 3000,
+      });
+      console.error("Error unapproving invoices:", error);
+    }
+  };
 
   const handleCheckboxChange = (branchId: number, isChecked: boolean) => {
     setSelectedBranchIds((prevIds) =>
@@ -236,17 +260,17 @@ const handleApproveBranch = async () => {
     );
   };
 
-const filteredBranches = useMemo(() => {
-  return branches.filter((branch) => {
-    const statusMatch =
-      statusFilter === "ALL" || branch.status === statusFilter;
+  const filteredBranches = useMemo(() => {
+    return branches.filter((branch) => {
+      const statusMatch =
+        statusFilter === "ALL" || branch.status === statusFilter;
 
-    const searchMatch =
-      (branch.branch_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ;
+      const searchMatch =
+        (branch.branch_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ;
 
-    return statusMatch && searchMatch;
-  });
-}, [branches, searchTerm, statusFilter]);
+      return statusMatch && searchMatch;
+    });
+  }, [branches, searchTerm, statusFilter]);
 
   const selectedUnapprovedCount = selectedBranchIds.filter(
     (id) => branches.find((b) => b.branch_id === id)?.status !== "APPROVED"
@@ -598,126 +622,33 @@ const BranchForm: React.FC<{
   onSave: (data: any) => void;
 }> = ({ branch, onClose, onSave }) => {
   const [branch_name, setBranchName] = useState(branch?.branch_name || "");
-  const [farm_type, setfarm_type] = useState(branch?.farm_type || "Own");
-  const [city, setCity] = useState(branch?.city || "");
-  const [selectedAccountCode, setSelectedAccountCode] = useState(
-    branch?.account_code || ""
-  );
-  const [no_of_partners, setNoOfPartners] = useState(branch?.no_of_partners || 1);
-  const [discounts, setDiscounts] = useState(branch?.discounts || "N");
-  const [extra_discount, setExtraDiscount] = useState(branch?.extra_discount || 0);
-  const [remarks, setRemarks] = useState(branch?.remarks || "");
-  const [is_owned, setIsOwned] = useState(branch?.is_owned || false);
-  const [is_rent, setIsRent] = useState(branch?.is_rent || false);
-  const [farm_description, setFarmDescription] = useState(branch?.farm_description || "Owned");
-  const [cities, setCities] = useState<City[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loadingCities, setLoadingCities] = useState(true);
-  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  const selectClassName =
-    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
-
-  // Effect to load Cities
-  useEffect(() => {
-    const loadCities = async () => {
-      try {
-        setLoadingCities(true);
-        const cityData = await fetchCitiesApi();
-        setCities(cityData || []);
-
-        if (!branch && cityData.length > 0 && !city) {
-          setCity(cityData[0].city_name);
-        } else if (branch) {
-          setCity(branch.city);
-        }
-      } catch (error) {
-        console.error("Error loading cities for dropdown", error);
-        setCities([]);
-      } finally {
-        setLoadingCities(false);
-      }
-    };
-    loadCities();
-  }, [branch]);
-
-  // Effect to load Accounts
-  useEffect(() => {
-    const loadAccounts = async () => {
-      try {
-        setLoadingAccounts(true);
-        const accountData = await getAccounts();
-        setAccounts(accountData || []);
-
-        if (branch) {
-          setSelectedAccountCode(branch.account_code);
-        } else if (accountData.length > 0) {
-          setSelectedAccountCode(accountData[0].account_code);
-        }
-      } catch (error) {
-        console.error("Error loading accounts for dropdown", error);
-        setAccounts([]);
-      } finally {
-        setLoadingAccounts(false);
-      }
-    };
-    loadAccounts();
-  }, [branch]);
-
-  const handleOwnedChange = (checked: boolean) => {
-    setIsOwned(checked);
-    // If Owned is checked, uncheck Rent and set farm_description to "Owned"
-    if (checked) {
-      setIsRent(false);
-      setFarmDescription("Owned");
-    }
-  };
-
-  const handleRentChange = (checked: boolean) => {
-    setIsRent(checked);
-    // If Rent is checked, uncheck Owned and set farm_description to "Rent"
-    if (checked) {
-      setIsOwned(false);
-      setFarmDescription("Rent");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (saving) return;
 
-    const selectedAccount = accounts.find(
-      (acc) => acc.account_code === selectedAccountCode
-    );
-
-    // if (!selectedAccount) {
-    //   alert("Please select a valid Account Code.");
-    //   return;
-    // }
-
-    // Validate that at least one checkbox is selected for non-module_id 3
-    // if (module_id !== 3 && !is_owned && !is_rent) {
-    //   alert("Please select either Owned or Rent.");
-    //   return;
-    // }
+    if (!branch_name.trim()) {
+      alert("Please enter a branch name.");
+      return;
+    }
 
     setSaving(true);
     try {
-      // Prepare data according to your API payload structure
+      // Prepare data with default values for all required fields
       const formData = {
         branch_name,
-        farm_type: module_id !== 3 ? farm_type : "N/A",
-        city,
-        account_id: selectedAccount.account_id,
-        no_of_partners: module_id === 2 ? no_of_partners : undefined,
-        discounts: module_id === 2 ? discounts : undefined,
-        extra_discount: module_id === 2 ? extra_discount : undefined,
-        remarks: module_id === 2 ? remarks : undefined,
-        is_owned: module_id !== 3 ? is_owned : undefined,
-        is_rent: module_id !== 3 ? is_rent : undefined,
-        farm_description: module_id !== 3 ? farm_description : undefined
+        farm_type: "Own",
+        city: branch?.city || "",
+        account_id: 0,
+        no_of_partners: 1,
+        discounts: "N",
+        extra_discount: 0,
+        remarks: branch?.remarks || "",
+        is_owned: branch?.is_owned || false,
+        is_rent: branch?.is_rent || false,
+        farm_description: branch?.farm_description || "Owned"
       };
 
       await onSave(formData);
@@ -731,181 +662,23 @@ const BranchForm: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg ">
+      <div className="bg-white p-6 rounded-lg w-96">
         <h2 className="text-lg font-semibold mb-4">
-          {branch ? `Edit Branch` : `Add Branch`}
+          {branch ? "Edit Branch" : "Add Branch"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Branch Name
-              </label>
-              <Input
-                placeholder= 'Branch Name'
-                value={branch_name}
-                onChange={(e) => setBranchName(e.target.value)}
-                required
-                disabled={saving}
-              />
-            </div>
-
-            {/* <div>
-              <label className="text-sm font-medium mb-1 block">
-                Account Code
-              </label>
-              <SearchableDropdown
-                options={accounts}
-                value={selectedAccountCode}
-                onChange={setSelectedAccountCode}
-                placeholder="Select Account Code"
-                loading={loadingAccounts}
-                disabled={saving}
-              />
-            </div> */}
-
-            {/* Only show farm_type dropdown for non-module_id 3 */}
-            {/* {module_id !== 3 && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  Farm Type
-                </label>
-                <select
-                  value={farm_type}
-                  onChange={(e) => setfarm_type(e.target.value)}
-                  className={selectClassName}
-                  required
-                  disabled={saving}
-                >
-                  <option value="Own">Own</option>
-                  <option value="Partnership">Partnership</option>
-                </select>
-              </div>
-            )} */}
-
-            {/* <div>
-              <label className="text-sm font-medium mb-1 block">
-                City
-              </label>
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className={selectClassName}
-                required
-                disabled={loadingCities || saving}
-              >
-                <option value="" disabled>
-                  {loadingCities
-                    ? "Loading Cities..."
-                    : cities.length === 0
-                    ? "No Cities Found"
-                    : "Select City"}
-                </option>
-                {cities.map((c) => (
-                  <option key={c.city_id} value={c.city_name}>
-                    {c.city_name}
-                  </option>
-                ))}
-              </select>
-            </div> */}
-
-            {/* Show Owned/Rent checkboxes only for non-module_id 3 */}
-            {/* {module_id !== 3 && (
-              <div className="flex items-center space-x-4 col-span-2">
-                <label className="text-sm font-medium">Farm Description:</label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={is_owned}
-                    onChange={(e) => handleOwnedChange(e.target.checked)}
-                    className="h-4 w-4 accent-green-600"
-                    disabled={saving}
-                  />
-                  <span className="text-sm font-medium">Owned</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={is_rent}
-                    onChange={(e) => handleRentChange(e.target.checked)}
-                    className="h-4 w-4 accent-blue-600"
-                    disabled={saving}
-                  />
-                  <span className="text-sm font-medium">Rent</span>
-                </label>
-              </div>
-            )} */}
-
-            {/* Show additional fields only when module_id is 2 */}
-            {/* {module_id === 2 && (
-              <>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    No. of Partners
-                  </label>
-                  <select
-                    value={no_of_partners}
-                    onChange={(e) => setNoOfPartners(Number(e.target.value))}
-                    className={selectClassName}
-                    required
-                    disabled={saving}
-                  >
-                    {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => (
-                      <option key={num} value={num}>
-                        {num}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Discounts
-                  </label>
-                  <select
-                    value={discounts}
-                    onChange={(e) => setDiscounts(e.target.value)}
-                    className={selectClassName}
-                    required
-                    disabled={saving}
-                  >
-                    <option value="Y">Yes</option>
-                    <option value="N">No</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Extra Discount (%)
-                  </label>
-                  <select
-                    value={extra_discount}
-                    onChange={(e) => setExtraDiscount(Number(e.target.value))}
-                    className={selectClassName}
-                    required
-                    disabled={saving}
-                  >
-                    {Array.from({ length: 101 }, (_, i) => i).map((percent) => (
-                      <option key={percent} value={percent}>
-                        {percent}%
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Remarks
-                  </label>
-                  <Input
-                    placeholder="Remarks"
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    disabled={saving}
-                  />
-                </div>
-              </>
-            )} */}
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              Branch Name
+            </label>
+            <Input
+              placeholder="Branch Name"
+              value={branch_name}
+              onChange={(e) => setBranchName(e.target.value)}
+              required
+              disabled={saving}
+              autoFocus
+            />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
@@ -919,8 +692,8 @@ const BranchForm: React.FC<{
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
-              disabled={loadingCities || loadingAccounts || saving}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+              disabled={saving}
             >
               {saving ? (
                 <>

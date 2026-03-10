@@ -713,16 +713,14 @@ useEffect(() => {
           getBranches(),
           getVouchers(),
         ]);
-      const approvedBranches = branchData.filter(
-          (branch: Branch) =>
-            branch.status === "APPROVED" && branch.branch_id === 1
+        const availableBranches = branchData.filter(
+          (branch: Branch) => branch.status === "APPROVED" || branch.status === "CREATED"
         );
 
-        setBranches(approvedBranches);
+        setBranches(availableBranches);
 
-        // Default branch = Head Office
-        if (!entry && approvedBranches.length > 0) {
-          setBranchId(approvedBranches[0].branch_id); 
+        if (!entry && availableBranches.length > 0) {
+          setBranchId(availableBranches[0].branch_id); 
         }
 
         setAccounts(accountsData);

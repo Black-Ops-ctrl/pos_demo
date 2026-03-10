@@ -8,7 +8,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [formData, setFormData] = useState({
     productName: "",
     category: "",
-    quantity: "",
+    // quantity: "",
     price: "",
   });
   const [loading, setLoading] = useState(false);
@@ -99,10 +99,10 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Validate required fields
-    if (!formData.productName || !formData.category || !formData.quantity || !barcode) {
-      showToast("Please fill all required fields", "warning");
-      return;
-    }
+    // if (!formData.productName || !formData.category || !formData.quantity || !barcode) {
+    //   showToast("Please fill all required fields", "warning");
+    //   return;
+    // }
     // Check if barcode is already taken
     if (barcodeExists) {
       showToast(`Cannot create product. Barcode already used for: ${existingProductName}`, "error");
@@ -205,7 +205,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             className={inputClass}
           />
         </div>
-        <div className="flex flex-col">
+        {/* <div className="flex flex-col">
           <label className="font-bold text-secondary">Quantity *</label>
           <input
             type="number"
@@ -215,7 +215,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             placeholder="Enter Quantity"
             className={inputClass}
           />
-        </div>
+        </div> */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Price *</label>
           <input

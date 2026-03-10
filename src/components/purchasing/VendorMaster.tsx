@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, Search, Package, ChevronsUpDown, Check, X, Filter } from 'lucide-react'; // Added Filter icon
+import { Plus, Edit, Trash2, Search, Package, ChevronsUpDown, Check, X, Filter } from 'lucide-react';
 import { getVendors, addVendor, updateVendor, deleteVendor } from '@/api/vendorsApi';
-import { getVendorAccounts } from '@/api/getAccountsApi';
+import { getAccounts } from '@/api/getAccountsApi';
 import {
   Popover,
   PopoverContent,
@@ -23,6 +23,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { toast } from '@/hooks/use-toast';
 
 // --- API Constant ---
 const VENDOR_STATUS_API_URL = 'http://84.16.235.111:2091/api/vendor-status';
@@ -31,7 +32,6 @@ const VENDOR_STATUS_API_URL = 'http://84.16.235.111:2091/api/vendor-status';
 const VENDOR_STATUSES = {
   APPROVED: 'APPROVED',
   CREATED: 'CREATED',
-  // You might have others like 'INACTIVE', 'PENDING_APPROVAL', etc.
 };
 
 interface Vendor {
@@ -43,15 +43,10 @@ interface Vendor {
   account_id?: number | null;
   account_code?: string;
   account_name?: string;
-  status?: string; // Added status field
+  status?: string;
 }
 
-// --- Status Update API function (New) ---
-/**
- * Updates the vendor status.
- * @param vendorId The ID of the vendor.
- * @param operation 1 for approve/update (ACTIVE/APPROVED), 2 for unapprove (INACTIVE/CREATED).
- */
+// --- Status Update API function ---
 const updateVendorStatus = async (vendorId: number, operation: number): Promise<void> => {
   try {
     const response = await fetch(VENDOR_STATUS_API_URL, {
@@ -73,14 +68,12 @@ const updateVendorStatus = async (vendorId: number, operation: number): Promise<
     console.log(`Vendor ${vendorId} status updated successfully with operation ${operation}.`);
   } catch (error) {
     console.error("Error updating vendor status:", error);
-    throw error; // Re-throw to be handled by the caller
+    throw error;
   }
 };
-// ---
 
 const VendorMaster: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  // New state for status filtering: 'all', 'APPROVED', or 'CREATED'
   const [statusFilter, setStatusFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -95,15 +88,21 @@ const VendorMaster: React.FC = () => {
 
   const loadVendors = async () => {
     try {
+      console.log("Loading vendors...");
       const data = await getVendors();
+      console.log("Vendors loaded:", data);
       setVendors(data);
       setSelectedForApprove([]);
       setSelectedForUnapprove([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading vendors", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to load vendors",
+        variant: "destructive",
+      });
     }
   };
-
 
   // --- Status Change Handlers ---
   const handleApproveVendor = async () => {
@@ -115,14 +114,22 @@ const VendorMaster: React.FC = () => {
     if (confirm(`Are you sure you want to approve ${selectedForApprove.length} selected vendor(s)?`)) {
       try {
         const approvalPromises = selectedForApprove.map(vendorId =>
-          updateVendorStatus(vendorId, 1) // 1 is for APPROVED
+          updateVendorStatus(vendorId, 1)
         );
 
         await Promise.all(approvalPromises);
-        alert(`${selectedForApprove.length} vendor(s) approved successfully!`);
+        toast({
+          title: "Success",
+          description: `${selectedForApprove.length} vendor(s) approved successfully!`,
+          duration: 3000,
+        });
         loadVendors();
       } catch (error) {
-        alert("Error in approving one or more vendors. Check console for details.");
+        toast({
+          title: "Error",
+          description: "Error in approving one or more vendors",
+          variant: "destructive",
+        });
         console.error("Approval error:", error);
       }
     }
@@ -137,25 +144,29 @@ const VendorMaster: React.FC = () => {
     if (confirm(`Are you sure you want to unapprove ${selectedForUnapprove.length} selected vendor(s)?`)) {
       try {
         const unapprovePromises = selectedForUnapprove.map(vendorId =>
-          updateVendorStatus(vendorId, 2) // 2 is for UNAPPROVED/Inactive
+          updateVendorStatus(vendorId, 2)
         );
 
         await Promise.all(unapprovePromises);
-        alert(`${selectedForUnapprove.length} vendor(s) unapproved successfully!`);
+        toast({
+          title: "Success",
+          description: `${selectedForUnapprove.length} vendor(s) unapproved successfully!`,
+          duration: 3000,
+        });
         loadVendors();
       } catch (error) {
-        alert("Error in unapproving one or more vendors. Check console for details.");
+        toast({
+          title: "Error",
+          description: "Error in unapproving one or more vendors",
+          variant: "destructive",
+        });
         console.error("Unapproval error:", error);
       }
     }
   };
 
-  /**
-   * Handles individual checkbox change.
-   */
   const handleCheckboxChange = (vendorId: number, isApproved: boolean) => {
     if (isApproved) {
-      // For APPROVED vendors (for bulk UNAPPROVE)
       setSelectedForUnapprove(prevIds =>
         prevIds.includes(vendorId)
           ? prevIds.filter(id => id !== vendorId)
@@ -163,7 +174,6 @@ const VendorMaster: React.FC = () => {
       );
       setSelectedForApprove(prevIds => prevIds.filter(id => id !== vendorId));
     } else {
-      // For NON-APPROVED vendors (for bulk APPROVE)
       setSelectedForApprove(prevIds =>
         prevIds.includes(vendorId)
           ? prevIds.filter(id => id !== vendorId)
@@ -173,9 +183,6 @@ const VendorMaster: React.FC = () => {
     }
   };
 
-  /**
-   * Handles the 'select all' checkbox for bulk actions.
-   */
   const handleSelectAllChange = (isApprovedList: boolean) => {
     const targetVendors = filteredVendors.filter(v =>
       v.status?.toUpperCase() === VENDOR_STATUSES.APPROVED ? isApprovedList : !isApprovedList
@@ -184,22 +191,20 @@ const VendorMaster: React.FC = () => {
 
     if (isApprovedList) {
       if (selectedForUnapprove.length === targetIds.length && targetIds.length > 0) {
-        setSelectedForUnapprove([]); // Deselect all
+        setSelectedForUnapprove([]);
       } else {
-        setSelectedForUnapprove(targetIds); // Select all approved
+        setSelectedForUnapprove(targetIds);
       }
-      setSelectedForApprove([]); // Clear the other list
+      setSelectedForApprove([]);
     } else {
       if (selectedForApprove.length === targetIds.length && targetIds.length > 0) {
-        setSelectedForApprove([]); // Deselect all
+        setSelectedForApprove([]);
       } else {
-        setSelectedForApprove(targetIds); // Select all non-approved
+        setSelectedForApprove(targetIds);
       }
-      setSelectedForUnapprove([]); // Clear the other list
+      setSelectedForUnapprove([]);
     }
   };
-  // ---
-
 
   const handleAddVendor = () => {
     setEditingVendor(null);
@@ -213,30 +218,58 @@ const VendorMaster: React.FC = () => {
 
   const handleSaveVendor = async (VendorData: Omit<Vendor, "vendor_id" | "status">) => {
     try {
+      console.log("Saving vendor data:", VendorData);
+      
+      // Ensure account_id is a number and not null/undefined
+      const payload = {
+        ...VendorData,
+        account_id: VendorData.account_id ? Number(VendorData.account_id) : null
+      };
+      
+      console.log("Payload with numeric account_id:", payload);
+      
       if (editingVendor) {
         await updateVendor(
           editingVendor.vendor_id,
-          VendorData.vendor_name,
-          VendorData.phone,
-          VendorData.email,
-          VendorData.address,
-          VendorData.account_id
+          payload.vendor_name,
+          payload.phone,
+          payload.email,
+          payload.address,
+          payload.account_id
         );
-
+        
+        toast({
+          title: "Success",
+          description: "Vendor updated successfully!",
+          duration: 3000,
+        });
       } else {
         await addVendor(
-          VendorData.vendor_name,
-          VendorData.phone,
-          VendorData.email,
-          VendorData.address,
-          VendorData.account_id
+          payload.vendor_name,
+          payload.phone,
+          payload.email,
+          payload.address,
+          payload.account_id
         );
-
+        
+        toast({
+          title: "Success",
+          description: "Vendor added successfully!",
+          duration: 3000,
+        });
       }
+      
       setShowForm(false);
-      loadVendors();
-    } catch (error) {
-      console.error("Error saving vendor", error);
+      await loadVendors();
+    } catch (error: any) {
+      console.error("Error saving vendor:", error);
+      
+      toast({
+        title: "Error",
+        description: error.response?.data?.error || error.message || "Failed to save vendor",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
@@ -244,22 +277,30 @@ const VendorMaster: React.FC = () => {
     if (confirm("Are you sure you want to delete this vendor?")) {
       try {
         await deleteVendor(vendorId);
-
+        
+        toast({
+          title: "Success",
+          description: "Vendor deleted successfully!",
+          duration: 3000,
+        });
+        
         loadVendors();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error deleting vendor", error);
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to delete vendor",
+          variant: "destructive",
+        });
       }
     }
   };
 
-  // --- Filtering Logic using useMemo ---
   const filteredVendors = useMemo(() => {
     return vendors
       .filter((vendor) => {
-        // 1. Search Term Filter
         const matchesSearch = vendor.vendor_name.toLowerCase().includes(searchTerm.toLowerCase());
 
-        // 2. Status Filter
         if (statusFilter === 'all') {
           return matchesSearch;
         }
@@ -270,7 +311,6 @@ const VendorMaster: React.FC = () => {
         return matchesSearch && vendorStatus === filterStatus;
       });
   }, [vendors, searchTerm, statusFilter]);
-  // ---
 
   const getStatusColor = (status: string | undefined) => {
     const s = status?.toUpperCase();
@@ -280,7 +320,6 @@ const VendorMaster: React.FC = () => {
       default: return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     }
   };
-
 
   return (
     <>
@@ -292,7 +331,6 @@ const VendorMaster: React.FC = () => {
               Vendors Masters
             </CardTitle>
             <div className="flex items-center gap-2">
-              {/* Conditional rendering for Unapprove button */}
               {selectedForUnapprove.length > 0 && (
                 <Button
                   onClick={handleUnapproveVendor}
@@ -302,7 +340,6 @@ const VendorMaster: React.FC = () => {
                   Unapprove ({selectedForUnapprove.length})
                 </Button>
               )}
-              {/* Conditional rendering for Approve button */}
               {selectedForApprove.length > 0 && (
                 <Button
                   onClick={handleApproveVendor}
@@ -314,16 +351,15 @@ const VendorMaster: React.FC = () => {
               )}
               <Button
                 onClick={handleAddVendor}
-                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-primary"
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Vendor
               </Button>
             </div>
           </div>
-          {/* Search and Filter Row */}
+          
           <div className="flex gap-4">
-            {/* Search Input */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
@@ -333,7 +369,6 @@ const VendorMaster: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            {/* Status Filter Dropdown */}
             <div className="w-64">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full">
@@ -349,18 +384,18 @@ const VendorMaster: React.FC = () => {
             </div>
           </div>
         </CardHeader>
+        
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                {/* Checkbox Header for bulk action */}
                 <TableHead className="w-[50px]">
                   <Select
                     onValueChange={(value) => {
                       if (value === 'approve') {
-                        handleSelectAllChange(false); // Select all non-approved
+                        handleSelectAllChange(false);
                       } else if (value === 'unapprove') {
-                        handleSelectAllChange(true); // Select all approved
+                        handleSelectAllChange(true);
                       } else if (value === 'none') {
                         setSelectedForApprove([]);
                         setSelectedForUnapprove([]);
@@ -374,11 +409,9 @@ const VendorMaster: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {/* Only show 'Select All for Approve' if current filter allows non-approved vendors */}
                       {statusFilter.toUpperCase() !== VENDOR_STATUSES.APPROVED && (
                         <SelectItem value="approve">Select All for Approve</SelectItem>
                       )}
-                      {/* Only show 'Select All for Unapprove' if current filter allows approved vendors */}
                       {statusFilter.toUpperCase() !== VENDOR_STATUSES.CREATED && (
                         <SelectItem value="unapprove">Select All for Unapprove</SelectItem>
                       )}
@@ -402,14 +435,12 @@ const VendorMaster: React.FC = () => {
 
                 return (
                   <TableRow key={vendor.vendor_id}>
-                    {/* Checkbox Cell */}
                     <TableCell>
                       <Input
                         type="checkbox"
                         checked={isApproved ? isSelectedForUnapprove : isSelectedForApprove}
                         onChange={() => handleCheckboxChange(vendor.vendor_id, isApproved)}
                         className="h-4 w-4 cursor-pointer"
-                        // Disable if a vendor of the opposite status is already selected for bulk action
                         disabled={
                           (isApproved && selectedForApprove.length > 0) ||
                           (!isApproved && selectedForUnapprove.length > 0)
@@ -430,7 +461,6 @@ const VendorMaster: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-
                         <Button
                           size="sm"
                           variant="outline"
@@ -456,7 +486,6 @@ const VendorMaster: React.FC = () => {
         </CardContent>
       </Card>
 
-
       {showForm && (
         <VendorForm vendor={editingVendor} onClose={() => setShowForm(false)} onSave={handleSaveVendor} />
       )}
@@ -464,153 +493,269 @@ const VendorMaster: React.FC = () => {
   );
 };
 
-// VendorForm component (Included for completeness)
+// Fixed VendorForm component
 const VendorForm: React.FC<{
   vendor: Vendor | null;
   onClose: () => void;
   onSave: (data: Omit<Vendor, "vendor_id" | "status">) => void;
 }> = ({ vendor, onClose, onSave }) => {
-  const [vendor_name, setVendorName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [account_id, setAccountId] = useState<number>(0);
-  // Using 'any' for accounts array since the structure is not fully defined but includes account_id, account_name, account_code
+  const [vendor_name, setVendorName] = useState(vendor?.vendor_name || "");
+  const [phone, setPhone] = useState(vendor?.phone || "");
+  const [email, setEmail] = useState(vendor?.email || "");
+  const [address, setAddress] = useState(vendor?.address || "");
+  const [account_id, setAccountId] = useState<number>(vendor?.account_id || 0);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Fetch company data
+  // Fetch accounts data
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAccounts = async () => {
+      setLoading(true);
       try {
-        const accountsData = await getVendorAccounts();
-
-        setAccounts(accountsData);
-        if (vendor) {
-          setVendorName(vendor.vendor_name || "");
-          setPhone(vendor.phone || "");
-          setEmail(vendor.email || "");
-          setAddress(vendor.address || "");
-          setAccountId(vendor.account_id || 0);
-        }
+        const accountsData = await getAccounts();
+        console.log("Accounts loaded:", accountsData);
+        setAccounts(accountsData || []);
       } catch (err) {
         console.error("Error loading accounts", err);
+        toast({
+          title: "Error",
+          description: "Failed to load accounts",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData();
+    
+    fetchAccounts();
+  }, []);
+
+  // Update form when vendor changes
+  useEffect(() => {
+    if (vendor) {
+      setVendorName(vendor.vendor_name || "");
+      setPhone(vendor.phone || "");
+      setEmail(vendor.email || "");
+      setAddress(vendor.address || "");
+      setAccountId(vendor.account_id || 0);
+    }
   }, [vendor]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vendor_name || !phone || !email || !address || !account_id) {
-      alert("Please fill all fields.");
+    
+    // Validation
+    if (!vendor_name.trim()) {
+      toast({
+        title: "Error",
+        description: "Vendor name is required",
+        variant: "destructive",
+      });
       return;
     }
-    onSave({
-      vendor_name,
-      phone,
-      email,
-      address,
-      account_id
-    });
-    // onClose() is called inside onSave prop function in the parent component
+    
+    if (!phone.trim()) {
+      toast({
+        title: "Error",
+        description: "Phone number is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!email.trim()) {
+      toast({
+        title: "Error",
+        description: "Email is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!address.trim()) {
+      toast({
+        title: "Error",
+        description: "Address is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!account_id) {
+      toast({
+        title: "Error",
+        description: "Please select an account",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    
+    try {
+      const vendorData = {
+        vendor_name: vendor_name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        address: address.trim(),
+        account_id: Number(account_id)
+      };
+      
+      console.log("Submitting vendor data:", vendorData);
+      await onSave(vendorData);
+      
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center px-4">
-      <div className="bg-white p-6 rounded-lg w-[70vw] max-w-full">
+      <div className="bg-white p-6 rounded-lg w-[70vw] max-w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">
           {vendor ? "Edit Vendor" : "Add Vendor"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex space-x-4">
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-gray-700 mb-0">Vendor Name</span>
+              <span className="text-sm font-medium text-gray-700 mb-0">Vendor Name *</span>
               <Input
                 value={vendor_name}
                 onChange={(e) => setVendorName(e.target.value)}
                 placeholder="Vendor Name"
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
+                disabled={saving}
+                required
               />
             </div>
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-gray-700 mb-0">Account</span>
+              <span className="text-sm font-medium text-gray-700 mb-0">Account *</span>
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" role="combobox" className="w-full justify-between">
-                    {account_id
-                      ? `${accounts.find((a) => a.account_id === account_id)?.account_name} (${accounts.find((a) => a.account_id === account_id)?.account_code})`
-                      : "Select Account"}
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    role="combobox" 
+                    className="w-full justify-between"
+                    disabled={loading || saving}
+                  >
+                    {loading ? (
+                      "Loading accounts..."
+                    ) : account_id ? (
+                      (() => {
+                        const selectedAccount = accounts.find((a) => a.account_id === account_id);
+                        return selectedAccount 
+                          ? `${selectedAccount.account_name} (${selectedAccount.account_code})`
+                          : "Select Account";
+                      })()
+                    ) : (
+                      "Select Account"
+                    )}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="max-h-[300px] overflow-auto">
-                  <Command >
+                <PopoverContent className="max-h-[300px] overflow-auto w-[300px]">
+                  <Command>
                     <CommandInput placeholder="Search accounts..." className="text-black" />
-                    <CommandEmpty >No account found.</CommandEmpty>
+                    <CommandEmpty>No account found.</CommandEmpty>
                     <CommandGroup>
-                      {accounts.map((acc) => (
-                        <CommandItem
-                          key={acc.account_id}
-                          className="hover:bg-gray-100"
-                          onSelect={() => {
-                            setAccountId(acc.account_id);
-                            setOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              account_id === acc.account_id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {acc.account_name} ({acc.account_code})
-                        </CommandItem>
-                      ))}
+                      {accounts.length === 0 ? (
+                        <div className="px-2 py-4 text-center text-gray-500">
+                          {loading ? "Loading..." : "No accounts available"}
+                        </div>
+                      ) : (
+                        accounts.map((acc) => (
+                          <CommandItem
+                            key={acc.account_id}
+                            className="hover:bg-gray-100 cursor-pointer"
+                            onSelect={() => {
+                              setAccountId(acc.account_id);
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                account_id === acc.account_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {acc.account_name} ({acc.account_code})
+                          </CommandItem>
+                        ))
+                      )}
                     </CommandGroup>
                   </Command>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
+          
           <div className="flex space-x-4">
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-gray-700 mb-0">Phone</span>
+              <span className="text-sm font-medium text-gray-700 mb-0">Phone *</span>
               <Input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Phone"
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
+                disabled={saving}
+                required
               />
             </div>
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-gray-700 mb-0">Email</span>
+              <span className="text-sm font-medium text-gray-700 mb-0">Email *</span>
               <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
+                type="email"
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
+                disabled={saving}
+                required
               />
             </div>
           </div>
+          
           <div className="flex space-x-4">
             <div className="flex flex-col flex-1">
-              <span className="text-sm font-medium text-gray-700 mb-0">Address</span>
-              <Textarea // Changed Input to Textarea for Address (assuming it needs more space)
+              <span className="text-sm font-medium text-gray-700 mb-0">Address *</span>
+              <Textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Address"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 min-h-[50px]"
+                disabled={saving}
+                required
               />
             </div>
           </div>
 
           <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={saving}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-primary">
-              Save
+            <Button 
+              type="submit" 
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              disabled={loading || saving}
+            >
+              {saving ? (
+                <>
+                  <span className="mr-2">Saving...</span>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                </>
+              ) : (
+                vendor ? "Update" : "Save"
+              )}
             </Button>
           </div>
         </form>
