@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import editIcon from '../assets/png/ic_edit_button.png';
@@ -651,20 +652,6 @@ const ViewProductsByCategory = () => {
                 />
               </div>
 
-              {/* Quantity */}
-              <div>
-                <label className="block text-secondary mb-1 font-medium">Quantity</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={selectedProduct.quantity}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1"
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
-                />
-              </div>
-
               {/* Image Upload */}
               <div>
                 <label className="block text-secondary mb-1 font-medium">Product Image</label>
@@ -733,7 +720,7 @@ const ViewProductsByCategory = () => {
             {/* Modal Header with Border */}
             <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-500 to-indigo-400 p-4 border-b border-purple-600 rounded-t-xl">
               <div className="flex justify-center items-center">
-                <h2 className="text-lg font-medium text-white font-sans justify">Add New Product</h2>
+                <h2 className="text-lg font-medium text-white font-sans">Add New Product</h2>
               </div>
             </div>
             
@@ -744,7 +731,7 @@ const ViewProductsByCategory = () => {
                 onSuccess={() => {
                   showToast("Product added successfully!", "success");
                   setOpenProductModal(false);
-                  loadCategories();
+                  loadProductsAndCategories(); // Refresh the products list
                 }}
                 onClose={() => setOpenProductModal(false)}
               />

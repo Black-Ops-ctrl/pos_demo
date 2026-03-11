@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 const Items_API_URL = "http://84.16.235.111:2140/api/items";
-
-const vendor_new ="http://84.16.235.111:2140/api/getvendors";
-
+const vendor_new = "http://84.16.235.111:2140/api/getvendors";
 const API_URL = "http://84.16.235.111:2140/api/purchase-orders";
+const PRODUCTS_API_URL = "http://84.16.235.111:2140/api/products";
+
 import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();
 
@@ -29,7 +29,7 @@ const handleApiError = (error: any) => {
   throw new Error("Unexpected error occurred. Check console for details.");
 };
 
-// 🔹 Get All Purchase Orders - UPDATED to handle missing uom_name
+// 🔹 Get All Purchase Orders
 export const getPurchaseOrders = async (startDate?: string, endDate?: string) => {
   const module_id = getModuleId(); 
   try {
@@ -42,29 +42,106 @@ export const getPurchaseOrders = async (startDate?: string, endDate?: string) =>
     });
     
     console.log("Raw API Response:", res.data);
-    
-    // Ensure we're returning the data in the correct format
     const purchaseOrders = res.data.data || [];
-    
-    // Log to see what we're getting
-    if (purchaseOrders.length > 0) {
-      console.log("Sample PO items structure:", purchaseOrders[0].items);
-      
-      // Check if uom_name exists in the response
-      if (purchaseOrders[0].items && purchaseOrders[0].items.length > 0) {
-        const firstItem = purchaseOrders[0].items[0];
-        console.log("First item fields:", Object.keys(firstItem));
-        console.log("uom_name present?", firstItem.hasOwnProperty('uom_name'));
-      }
-    }
-    
     return purchaseOrders;
   } catch (error) {
     handleApiError(error);
   }
 };
 
-// 🔹 Insert Purchase Order - UPDATED to include item details
+// 🔹 Get Purchase Order by ID
+export const getPurchaseOrderById = async (po_id: number) => {
+  const module_id = getModuleId();
+  try {
+    const res = await axios.post(API_URL, { 
+      operation: 1,
+      module_id,
+      po_id
+    });
+    
+    const purchaseOrders = res.data.data || [];
+    return purchaseOrders.find((po: any) => po.po_id === po_id);
+  } catch (error) {
+    console.error(`Error fetching PO #${po_id}:`, error);
+    return null;
+  }
+};
+
+// 🔹 Update Product Quantity in Inventory
+export const updateProductQuantity = async (
+  productId: number,
+  quantityChange: number,
+  operation: 'add' | 'subtract' = 'add'
+) => {
+  try {
+    console.log(`Updating product ${productId}: ${operation} ${quantityChange}`);
+    
+    // First, get current product details
+    const productResponse = await axios.post(PRODUCTS_API_URL, {
+      p_operation: 1
+    });
+    
+    let productsList = [];
+    if (productResponse.data?.data && Array.isArray(productResponse.data.data)) {
+      productsList = productResponse.data.data;
+    } else if (Array.isArray(productResponse.data)) {
+      productsList = productResponse.data;
+    }
+    
+    // Find the specific product
+    const product = productsList.find((p: any) => p.product_id === productId);
+    
+    if (!product) {
+      console.error(`Product with ID ${productId} not found`);
+      return { success: false, message: 'Product not found' };
+    }
+    
+    // Calculate new quantity
+    const currentQuantity = parseInt(product.quantity) || 0;
+    const newQuantity = operation === 'add' 
+      ? currentQuantity + quantityChange 
+      : Math.max(0, currentQuantity - quantityChange);
+    
+    console.log(`Product ${productId}: Current=${currentQuantity}, ${operation}=${quantityChange}, New=${newQuantity}`);
+    
+    // Update the product quantity using FormData
+    const formData = new FormData();
+    formData.append('p_operation', '3');
+    formData.append('p_product_id', productId.toString());
+    formData.append('p_product_name', product.product_name || '');
+    formData.append('p_category', product.category_id?.toString() || '');
+    formData.append('p_quantity', newQuantity.toString());
+    formData.append('p_price', product.price?.toString() || '0');
+    formData.append('p_bar_code', product.bar_code || '');
+    formData.append('p_description', product.description || '');
+    formData.append('p_status', product.status || 'CREATED');
+    formData.append('p_product_code', product.product_code || '');
+    formData.append('p_account_id', '1');
+    formData.append('p_purchase_account_id', '2');
+    formData.append('p_sale_account_id', '3');
+    formData.append('p_website_chk', 'N');
+    formData.append('p_updated_by', user_id?.toString() || '1');
+    
+    const updateResponse = await axios.post(PRODUCTS_API_URL, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    console.log("Quantity update response:", updateResponse.data);
+    return { 
+      success: true, 
+      message: `Product quantity ${operation === 'add' ? 'increased' : 'decreased'} successfully`,
+      newQuantity 
+    };
+    
+  } catch (error) {
+    console.error("Error updating product quantity:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+// 🔹 Insert Purchase Order
 export const createPurchaseOrder = async (
   branch_id: number,
   flock_id: number,
@@ -86,7 +163,6 @@ export const createPurchaseOrder = async (
 ) => {
   const module_id = getModuleId();
   try {
-    // Log what we're sending to help debug
     console.log("Sending to API:", {
       operation: 2,
       order_date,
@@ -141,7 +217,7 @@ export const createPurchaseOrder = async (
   }
 };
 
-// 🔹 Update Purchase Order - UPDATED to include item details
+// 🔹 Update Purchase Order
 export const updatePurchaseOrder = async (
   po_id: number,
   branch_id: number,
@@ -203,7 +279,7 @@ export const updatePurchaseOrder = async (
   }
 };
 
-// 🔹 Bulk Update Purchase Order Statuses - FIXED with updated_by
+// 🔹 Bulk Update Purchase Order Statuses with Inventory Update
 export const UpdatePOStatus = async (
   po_ids: number[],
   status: string
@@ -214,13 +290,40 @@ export const UpdatePOStatus = async (
   try {
     console.log("UpdatePOStatus called with:", { po_ids, status, module_id, updated_by: current_user_id });
     
+    // If approving, update inventory for each PO
+    if (status === 'APPROVED') {
+      console.log("PO is being approved - updating inventory");
+      
+      for (const po_id of po_ids) {
+        const poDetails = await getPurchaseOrderById(po_id);
+        if (poDetails && poDetails.items && poDetails.items.length > 0) {
+          console.log(`Updating inventory for PO #${po_id}:`, poDetails.items);
+          
+          for (const item of poDetails.items) {
+            const result = await updateProductQuantity(
+              item.item_id,
+              item.quantity,
+              'add'
+            );
+            
+            if (result.success) {
+              console.log(`✅ Product ${item.item_id} quantity increased by ${item.quantity}`);
+            } else {
+              console.error(`❌ Failed to update product ${item.item_id}:`, result.message);
+            }
+          }
+        }
+      }
+    }
+    
+    // Update PO status
     const res = await axios.post(API_URL, {
       operation: 4,
       module_id: module_id,
       po_ids,
       status,
-      updated_by: current_user_id, // ✅ Added updated_by
-      user_id: current_user_id      // Keeping user_id for backward compatibility
+      updated_by: current_user_id,
+      user_id: current_user_id
     });
     
     console.log("UpdatePOStatus response:", res.data);
@@ -230,7 +333,7 @@ export const UpdatePOStatus = async (
   }
 };
 
-// 🔹 Update New Purchase Order Status - FIXED with updated_by
+// 🔹 Update New Purchase Order Status
 export const UpdateNewPOStatus = async (
   po_ids: number[],
   status: string
@@ -241,13 +344,39 @@ export const UpdateNewPOStatus = async (
   try {
     console.log("UpdateNewPOStatus called with:", { po_ids, status, module_id, updated_by: current_user_id });
     
+    // If approving, update inventory
+    if (status === 'APPROVED') {
+      console.log("PO is being approved - updating inventory");
+      
+      for (const po_id of po_ids) {
+        const poDetails = await getPurchaseOrderById(po_id);
+        if (poDetails && poDetails.items && poDetails.items.length > 0) {
+          console.log(`Updating inventory for PO #${po_id}:`, poDetails.items);
+          
+          for (const item of poDetails.items) {
+            const result = await updateProductQuantity(
+              item.item_id,
+              item.quantity,
+              'add'
+            );
+            
+            if (result.success) {
+              console.log(`✅ Product ${item.item_id} quantity increased by ${item.quantity}`);
+            } else {
+              console.error(`❌ Failed to update product ${item.item_id}:`, result.message);
+            }
+          }
+        }
+      }
+    }
+    
     const res = await axios.post(API_URL, {
       operation: 5,
       module_id: module_id,
       po_ids,
       status,
-      updated_by: current_user_id, // ✅ Added updated_by
-      user_id: current_user_id      // Keeping user_id for backward compatibility
+      updated_by: current_user_id,
+      user_id: current_user_id
     });
     
     console.log("UpdateNewPOStatus response:", res.data);
@@ -273,19 +402,19 @@ export const deletePurchaseOrder = async (po_id: number) => {
 
 // 🔹 Get Items for Discount
 export const getItemsfordiscount = async (branch_id: number) => {
- const module_id = getModuleId();
- 
- try {
-  const res = await axios.post(Items_API_URL, { 
-   operation: 1,
-   module_id,
-   branch_id,
-  });
-  console.log("API Response for branch", branch_id, ":", res.data);
-  return res.data.data;
- } catch (error) {
-  handleApiError(error);
- }
+  const module_id = getModuleId();
+  
+  try {
+    const res = await axios.post(Items_API_URL, { 
+      operation: 1,
+      module_id,
+      branch_id,
+    });
+    console.log("API Response for branch", branch_id, ":", res.data);
+    return res.data.data;
+  } catch (error) {
+    handleApiError(error);
+  }
 };
 
 export const getnewVendors = async () => {
@@ -299,7 +428,7 @@ export const getnewVendors = async () => {
 };
 
 export const getPurchaseOrdersinvoice = async () => {
-   const module_id = getModuleId();
+  const module_id = getModuleId();
   try {
     const res = await axios.post(API_URL, { operation: 6, module_id: module_id });
     return res.data.data;

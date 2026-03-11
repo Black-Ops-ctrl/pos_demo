@@ -88,7 +88,7 @@ const PurchasingModule: React.FC = () => {
                         <ColorfulTabsTrigger value="purchase-orders" icon={Package}>Purchase Orders</ColorfulTabsTrigger>
                         {shouldShowPurchaseInvoice && (
                             <>
-                                <ColorfulTabsTrigger value="purchase-invoice" icon={Receipt}>Purchase Invoice</ColorfulTabsTrigger>
+                                {/* <ColorfulTabsTrigger value="purchase-invoice" icon={Receipt}>Purchase Invoice</ColorfulTabsTrigger> */}
                                 {/* <ColorfulTabsTrigger value="purchase-invoice-return" icon={RefreshCw}>Purchase Return</ColorfulTabsTrigger> */}
                             </>
                         )}

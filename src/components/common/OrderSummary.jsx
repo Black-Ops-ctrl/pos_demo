@@ -4,6 +4,7 @@ import deleteIcon from "/public/ic_delete_button.png";
 import { printReceipt } from "./../common/PrintReceipt";
 import { updateStockAfterSale } from "../../core/services/api/updateStock";
 import Toast from "./../common/Toast"; 
+import { createSalesInvoice } from "../../api/salesInvoiceApi";
 
 const OrderSummary = ({ 
   scannedBarcode, 
@@ -239,7 +240,7 @@ const OrderSummary = ({
     return true;
   };
 
-  // Handle print receipt
+
   const handlePrint = async () => {
     if (isProcessing) return;
     
@@ -263,40 +264,83 @@ const OrderSummary = ({
         return;
       }
 
-      const receiptData = {
-      cartItems: cartItems.map(item => ({
-        ...item,
-        price: Math.round(item.price),
-        id: item.id || item.barcode
-      })),
-      subtotal,
-      discountPercentage: parsedDiscount,
-      discountAmount,
-      tax: taxAmount, // Changed from tax to taxAmount
-      totalAmount,
-      paymentMethod,
-      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-      payback: payback ? Math.round(payback) : 0,
-      invoiceNo: generateInvoiceNo(),
-      fbrInvoiceNo: generateFbrInvoiceNo(),
-      shopName: "Smart Shop",
-      shopAddress: "Abc Street, City, Country",
-      shopPhone: "+92-308-4416769",
-      currency: "Rs"
-    };
+      const selectedBranchId = sessionStorage.getItem("selectedBranchId");
+      const companyId = sessionStorage.getItem("companyId");
 
+      // Prepare items for API
+      const itemsForApi = cartItems.map(item => ({
+        item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        discount_percentage: parsedDiscount,
+        discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
+        tax: taxPercentage,
+        extra_discount: 0,
+        commission_percentge: 0,
+        commission_amount: 0
+      }));
+
+      // Prepare receipt data
+      const receiptData = {
+        cartItems: cartItems.map(item => ({
+          ...item,
+          price: Math.round(item.price),
+          id: item.id || item.barcode
+        })),
+        subtotal,
+        discountPercentage: parsedDiscount,
+        discountAmount,
+        tax: taxAmount,
+        totalAmount,
+        paymentMethod,
+        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+        payback: payback ? Math.round(payback) : 0,
+        invoiceNo: generateInvoiceNo(),
+        fbrInvoiceNo: generateFbrInvoiceNo(),
+        shopName: "Smart Shop",
+        shopAddress: "Abc Street, City, Country",
+        shopPhone: "+92-308-4416769",
+        currency: "Rs"
+      };
+
+      // Update stock
       const stockUpdateResult = await updateStockAfterSale(receiptData, products);
       
       if (stockUpdateResult.success) {
+        // Save invoice to database
+        try {
+          const companyIdValue = companyId ? parseInt(companyId) : null;
+          const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
+          
+          await createSalesInvoice(
+            1, // Default Walk-in Customer
+            new Date(),
+            `POS Sale - ${paymentMethod} payment`,
+            totalAmount,
+            0,
+            companyIdValue,
+            branchIdValue,
+            itemsForApi,
+            paymentMethod,
+            receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,
+            payback ? Math.round(payback) : 0,
+            'POS'
+          );
+          
+        } catch (invoiceError) {
+          console.error('Failed to save invoice:', invoiceError);
+          showToast('Sale completed but invoice was not saved', 'warning');
+        }
+
+        // Print receipt and clear cart
         printReceipt(receiptData);
-        
         setCartItems([]);
         setReceivedAmount("");
         
         showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
         
         if (onRefreshProducts) {
-          onRefreshProducts();
+          setTimeout(() => onRefreshProducts(), 500);
         }
       } else {
         const failedItems = stockUpdateResult.failed || [];
@@ -308,6 +352,7 @@ const OrderSummary = ({
         }
       }
     } catch (error) {
+      console.error('Error processing sale:', error);
       showToast("An error occurred while processing the sale", 'error');
     } finally {
       setIsProcessing(false);
