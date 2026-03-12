@@ -80,8 +80,6 @@ interface Branch {
   status: string;
 }
 
-
-// Add interface for company data
 interface CompanyData {
   company_id: number;
   company_name: string;
@@ -89,7 +87,7 @@ interface CompanyData {
   address: string;
   phone: string;
   email: string;
-  image: string; // base64 image string
+  image: string; 
   module_id: number;
 }
 
@@ -113,7 +111,6 @@ interface viewingSO {
     payment_term: string;
     credit_limit: number;
     total_amount: number;
-    
     commission_amount: number;
     status: string;
     vehicle_no: string;
@@ -122,23 +119,29 @@ interface viewingSO {
     updated_by: number;
     updated_date: Date;
     items: Array<{
-        item_id: number; item_name: string;
+        item_id: number; 
+        item_name: string;
         uom?: string;
         extra_discount: number;
-        quantity: number; unit_price?: number; 
+        quantity: number; 
+        unit_price?: number; 
         commission_percentge: number;
-    commission_amount: number;
-    rate?: number; amount?: number; discount_percentage: number; discount_amount?: number; tax: number; tax_amount?: number; row_total?: number;
+        commission_amount: number;
+        rate?: number; 
+        amount?: number; 
+        discount_percentage: number; 
+        discount_amount?: number; 
+        tax: number; 
+        tax_amount?: number; 
+        row_total?: number;
     }>;
 }
-
-// InvoiceManagement.tsx - Updated SalesInvoice Component
 
 const SalesInvoice: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState<SalesInvoice | null>(null);
-    const [salesInvoices, setSalesInvoices] = useState<SalesInvoice[]>([]); // Initialize as empty array
+    const [salesInvoices, setSalesInvoices] = useState<SalesInvoice[]>([]); 
     const [startDate, setStartDate] = useState<string>(() => {
         const today = new Date().toISOString().split('T')[0];
         return today;
@@ -185,11 +188,10 @@ const SalesInvoice: React.FC = () => {
                 ? await getSaleInvoices(from, to)
                 : await getSaleInvoices();
             
-            // Ensure data is an array
             setSalesInvoices(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error loading sales invoices", error);
-            setSalesInvoices([]); // Set empty array on error
+            setSalesInvoices([]); 
             toast({
                 title: "Error",
                 description: "Failed to load sales invoices.",
@@ -214,7 +216,6 @@ const SalesInvoice: React.FC = () => {
 
     const module_id = getModuleId();
     
-    // Add safe checks for array operations
     const totalSIs = Array.isArray(salesInvoices) ? salesInvoices.length : 0;
     const createdSIs = Array.isArray(salesInvoices) 
         ? salesInvoices.filter(invoice => invoice?.status === 'CREATED').length 
@@ -390,254 +391,290 @@ const SalesInvoice: React.FC = () => {
     };
 
     const handlePrint = (invoice: SalesInvoice) => {
-        if (!invoice) return;
+    if (!invoice) return;
+    
+    const printWindow = window.open("", "_blank", "width=800,height=1000");
+    const invoiceDate = new Date(invoice.invoice_date);
+    const formattedDate = `${invoiceDate.getDate()}-${invoiceDate.toLocaleString("default", {
+        month: "short",
+    })}-${String(invoiceDate.getFullYear()).slice(-2)}`;
+
+    const totalAmount = Number(invoice.total_amount || 0);
+    const grandTotal = totalAmount;
+    
+    // Fixed payment term extraction - handles "POS Sale - card payment" format
+    let paymentMethod = 'Not Specified';
+    
+    // First check if payment_term exists and has a value
+    if (invoice.payment_term && invoice.payment_term.trim() !== '') {
+        paymentMethod = invoice.payment_term.charAt(0).toUpperCase() + invoice.payment_term.slice(1).toLowerCase();
+    } 
+    // Then check remarks for payment information
+    else if (invoice.remarks) {
+        const remarksLower = invoice.remarks.toLowerCase();
         
-        const printWindow = window.open("", "_blank", "width=800,height=1000");
-        const invoiceDate = new Date(invoice.invoice_date);
-        const formattedDate = `${invoiceDate.getDate()}-${invoiceDate.toLocaleString("default", {
-            month: "short",
-        })}-${String(invoiceDate.getFullYear()).slice(-2)}`;
+        // Check for common payment patterns in remarks
+        if (remarksLower.includes('cash')) {
+            paymentMethod = 'Cash';
+        } else if (remarksLower.includes('card')) {
+            paymentMethod = 'Card';
+        } else if (remarksLower.includes('bank')) {
+            paymentMethod = 'Bank Transfer';
+        } else if (remarksLower.includes('pos')) {
+            paymentMethod = 'POS';
+        } else if (remarksLower.includes('cheque') || remarksLower.includes('check')) {
+            paymentMethod = 'Cheque';
+        } else {
+            // If we can't identify a specific method, use the whole remark
+            // but remove "POS Sale - " prefix if present
+            let remark = invoice.remarks;
+            if (remark.includes(' - ')) {
+                const parts = remark.split(' - ');
+                if (parts.length > 1) {
+                    paymentMethod = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+                } else {
+                    paymentMethod = remark;
+                }
+            } else {
+                paymentMethod = remark;
+            }
+        }
+    }
 
-        const totalAmount = Number(invoice.total_amount || 0);
-        const grandTotal = totalAmount;
+    const numberToWords = (num: number) => {
+        const a = [
+            '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
+            'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
+            'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+        ];
 
-        const numberToWords = (num: number) => {
-            const a = [
-                '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
-                'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen',
-                'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
-            ];
+        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-            const convert = (n: number): string => {
-                if (n < 20) return a[n];
-                if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
-                if (n < 1000)
-                    return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
-                if (n < 1_000_000)
-                    return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
-                if (n < 1_000_000_000)
-                    return convert(Math.floor(n / 1_000_000)) + ' Million' + (n % 1_000_000 ? ' ' + convert(n % 1_000_000) : '');
-                return convert(Math.floor(n / 1_000_000_000)) + ' Billion' + (n % 1_000_000_000 ? ' ' + convert(n % 1_000_000_000) : '');
-            };
-
-            return convert(num) + ' Only /-';
+        const convert = (n: number): string => {
+            if (n < 20) return a[n];
+            if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+            if (n < 1000)
+                return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + convert(n % 100) : '');
+            if (n < 1_000_000)
+                return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + convert(n % 1000) : '');
+            if (n < 1_000_000_000)
+                return convert(Math.floor(n / 1_000_000)) + ' Million' + (n % 1_000_000 ? ' ' + convert(n % 1_000_000) : '');
+            return convert(Math.floor(n / 1_000_000_000)) + ' Billion' + (n % 1_000_000_000 ? ' ' + convert(n % 1_000_000_000) : '');
         };
 
-        const logoSource = companyData?.image;
-        const companyName = companyData?.company_name;
-        const companyAddress = companyData?.address || "";
-        const companyPhone = companyData?.phone || "";
-        const companyEmail = companyData?.email || "";
-
-        const printContent = `
-            <html>
-                <head>
-                    <title>Sales Invoice #${invoice.sales_invoice_no}</title>
-                    <style>
-                        body {
-                            font-family: 'Times New Roman', serif;
-                            font-size: 12px;
-                            margin: 30px;
-                            color: #000;
-                        }
-                        .header {
-                            display: flex;
-                            align-items: flex-start;
-                            justify-content: space-between;
-                            margin-bottom: 10px;
-                        }
-                        .logo img {
-                            width: 100px;
-                        }
-                        .title {
-                            text-align: center;
-                            flex: 1;
-                        }
-                        .title h2 {
-                            margin: 0;
-                        }
-                        .title h4 {
-                            margin: 2px 0;
-                            text-decoration: underline;
-                        }
-                        .company-details {
-                            font-size: 11px;
-                            color: #666;
-                            margin-top: 5px;
-                        }
-                        .top-bar {
-                            display: flex;
-                            justify-content: space-between;
-                            margin: 10px 0 4px 0;
-                            font-size: 13px;
-                            font-weight: bold;
-                        }
-                        table {
-                            width: 100%;
-                            border-collapse: collapse;
-                        }
-                        .details-table td {
-                            font-size: 12px;
-                            border: 1px solid #000;
-                            padding: 4px;
-                        }
-                        .main-table th,
-                        .main-table td {
-                            border: 1px solid #000;
-                            padding: 8px;
-                            text-align: center;
-                            font-size: 12px;
-                            height: 28px; 
-                        }
-                        .text-left {
-                            text-align: left;
-                        }
-                        .footer {
-                            margin-top: 24px;
-                            font-size: 15px;
-                            font-weight: bold;
-                        }
-                        .footer-note {
-                            margin-top: 18px;
-                            font-style: italic;
-                            font-size: 13px;
-                        }
-                        .items-table {
-                            margin-top: 10px;
-                        }
-                        .items-table th, .items-table td {
-                            border: 1px solid #000;
-                            padding: 6px;
-                            text-align: center;
-                        }
-                        .signature-section {
-                            margin-top: 40px;
-                            display: flex;
-                            justify-content: space-between;
-                        }
-                        .signature-box {
-                            width: 45%;
-                            text-align: center;
-                            padding-top: 40px;
-                            position: relative;
-                        }
-                        .signature-line {
-                            border-top: 1px solid #000;
-                            width: 80%;
-                            margin: 0 auto;
-                            padding-top: 5px;
-                        }
-                        .signature-label {
-                            font-weight: bold;
-                            font-size: 13px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <div class="logo">
-                            <img src="${logoSource}" alt="Company Logo" />
-                        </div>
-                        <div class="title">
-                            <h2>${companyName}</h2>
-                            <div class="company-details">
-                                ${companyAddress ? `<div>${companyAddress}</div>` : ''}
-                                ${companyPhone ? `<div>${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}</div>` : ''}
-                            </div>
-                            <h4>SALES INVOICE</h4>
-                        </div>
-                    </div>
-
-                    <div class="top-bar">
-                        <div>Date: ${formattedDate}</div>
-                        <div>Invoice No: ${invoice.sales_invoice_no}</div>
-                    </div>
-
-                    <table class="details-table">
-                        <tr>
-                            <td><strong>Customer Name:</strong> ${invoice.customer_name || "N/A"}</td>
-                            <td><strong>Branch:</strong> ${invoice.branch_name || "N/A"}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="2"><strong>Narration:</strong> ${invoice.remarks || ""}</td>
-                        </tr>
-                    </table>
-
-                    <div class="items-table">
-                        <table class="main-table">
-                            <thead>
-                                <tr>
-                                    <th>Sr#</th>
-                                    <th>Item Name</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Tax</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${(invoice.items || []).map((item, index) => {
-                                    const quantity = Number(item.quantity || 0);
-                                    const unitPrice = Number(item.rate || item.unit_price || 0);
-                                    const discountPercentage = Number(item.discount_percentage || 0);
-                                    const discountAmount = Number(item.discount_amount || (quantity * unitPrice * discountPercentage / 100));
-                                    const tax = Number(item.tax || 0);
-                                    const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + tax));
-                                    
-                                    return `
-                                        <tr>
-                                            <td>${index + 1}</td>
-                                            <td class="text-left">${item.item_name || ''}</td>
-                                            <td>${quantity}</td>
-                                            <td>${unitPrice.toLocaleString()}</td>
-                                            <td>${tax.toLocaleString()}</td>
-                                            <td>${rowTotal.toLocaleString()}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                                <tr>
-                                    <td colspan="5" style="text-align:right; font-weight:bold;">Grand Total:</td>
-                                    <td style="font-weight:bold;">${grandTotal.toLocaleString()}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="footer">
-                        Amount in Words: <span style="font-weight:900;">${numberToWords(Math.round(grandTotal))}</span>
-                    </div>
-
-                    <div class="signature-section">
-                        <div class="signature-box">
-                            <div class="signature-label">Created by: ${invoice.created_by || ''}</div>
-                        </div>
-                        <div class="signature-box">
-                            <div class="signature-label">Approved by: ${invoice.updated_by || ""}</div>
-                        </div>
-                    </div>
-
-                    <div class="footer-note">
-                        <p>This is a system generated sales invoice and does not require signature or stamp.</p>
-                    </div>
-
-                    <script>
-                        window.onload = function () {
-                            window.print();
-                            setTimeout(() => window.close(), 500);
-                        };
-                    </script>
-                </body>
-            </html>
-        `;
-
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-        }
+        return convert(num) + ' Only /-';
     };
+
+    const logoSource = companyData?.image;
+    const companyName = companyData?.company_name;
+    const companyAddress = companyData?.address || "";
+    const companyPhone = companyData?.phone || "";
+    const companyEmail = companyData?.email || "";
+
+    const printContent = `
+        <html>
+            <head>
+                <title>Sales Invoice #${invoice.sales_invoice_no}</title>
+                <style>
+                    body {
+                        font-family: 'Times New Roman', serif;
+                        font-size: 12px;
+                        margin: 30px;
+                        color: #000;
+                    }
+                    .header {
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+                    }
+                    .logo img {
+                        width: 100px;
+                    }
+                    .title {
+                        text-align: center;
+                        flex: 1;
+                    }
+                    .title h2 {
+                        margin: 0;
+                    }
+                    .title h4 {
+                        margin: 2px 0;
+                        text-decoration: underline;
+                    }
+                    .company-details {
+                        font-size: 11px;
+                        color: #666;
+                        margin-top: 5px;
+                    }
+                    .top-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 10px 0 4px 0;
+                        font-size: 13px;
+                        font-weight: bold;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    .details-table td {
+                        font-size: 12px;
+                        border: 1px solid #000;
+                        padding: 4px;
+                    }
+                    .main-table th,
+                    .main-table td {
+                        border: 1px solid #000;
+                        padding: 8px;
+                        text-align: center;
+                        font-size: 12px;
+                        height: 28px; 
+                    }
+                    .text-left {
+                        text-align: left;
+                    }
+                    .footer {
+                        margin-top: 24px;
+                        font-size: 15px;
+                        font-weight: bold;
+                    }
+                    .footer-note {
+                        margin-top: 18px;
+                        font-style: italic;
+                        font-size: 13px;
+                    }
+                    .items-table {
+                        margin-top: 10px;
+                    }
+                    .items-table th, .items-table td {
+                        border: 1px solid #000;
+                        padding: 6px;
+                        text-align: center;
+                    }
+                    .signature-section {
+                        margin-top: 40px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .signature-box {
+                        width: 45%;
+                        text-align: center;
+                        padding-top: 40px;
+                        position: relative;
+                    }
+                    .signature-line {
+                        border-top: 1px solid #000;
+                        width: 80%;
+                        margin: 0 auto;
+                        padding-top: 5px;
+                    }
+                    .signature-label {
+                        font-weight: bold;
+                        font-size: 13px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="logo">
+                        <img src="${logoSource}" alt="Company Logo" />
+                    </div>
+                    <div class="title">
+                        <h2>${companyName}</h2>
+                        <div class="company-details">
+                            ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+                            ${companyPhone ? `<div>${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}</div>` : ''}
+                        </div>
+                        <h4>SALES INVOICE</h4>
+                    </div>
+                </div>
+
+                <div class="top-bar">
+                    <div>Date: ${formattedDate}</div>
+                    <div>Invoice No: ${invoice.sales_invoice_no}</div>
+                </div>
+
+                <table class="details-table">
+                    <tr>
+                        <td><strong>Payment Method:</strong> ${paymentMethod}</td>
+                        <!-- <td><strong>Narration:</strong> ${invoice.remarks || ""}</td> -->
+                    </tr>
+                </table>
+
+                <div class="items-table">
+                    <table class="main-table">
+                        <thead>
+                            <tr>
+                                <th>Sr#</th>
+                                <th>Item Name</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Tax</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(invoice.items || []).map((item, index) => {
+                                const quantity = Number(item.quantity || 0);
+                                const unitPrice = Number(item.rate || item.unit_price || 0);
+                                const discountPercentage = Number(item.discount_percentage || 0);
+                                const discountAmount = Number(item.discount_amount || (quantity * unitPrice * discountPercentage / 100));
+                                const tax = Number(item.tax || 0);
+                                const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + tax));
+                                
+                                return `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td class="text-left">${item.item_name || ''}</td>
+                                        <td>${quantity}</td>
+                                        <td>${unitPrice.toLocaleString()}</td>
+                                        <td>${tax.toLocaleString()}</td>
+                                        <td>${rowTotal.toLocaleString()}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                            <tr>
+                                <td colspan="5" style="text-align:right; font-weight:bold;">Grand Total:</td>
+                                <td style="font-weight:bold;">${grandTotal.toLocaleString()}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="footer">
+                    Amount in Words: <span style="font-weight:900;">${numberToWords(Math.round(grandTotal))}</span>
+                </div>
+
+                <div class="signature-section">
+                    <div class="signature-box">
+                        <div class="signature-label">Created by: ${invoice.created_by || ''}</div>
+                    </div>
+                    <div class="signature-box">
+                        <div class="signature-label">Approved by: ${invoice.updated_by || ""}</div>
+                    </div>
+                </div>
+
+                <div class="footer-note">
+                    <p>This is a system generated sales invoice and does not require signature or stamp.</p>
+                </div>
+
+                <script>
+                    window.onload = function () {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    };
+                </script>
+            </body>
+        </html>
+    `;
+
+    if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    }
+};
 
     // Safe filtering with null checks
     const filteredSI = Array.isArray(salesInvoices) 
@@ -816,29 +853,9 @@ const SalesInvoice: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {/* <TableHead className='w-10'>
-                                    <input
-                                        type="checkbox"
-                                        checked={
-                                            selectedInvoices.length > 0 &&
-                                            selectedInvoices.length === filteredSI.filter(si => si?.status === 'CREATED').length
-                                        }
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedInvoices(filteredSI.filter(si => si?.status === 'CREATED').map((si) => si.sales_invoice_id));
-                                            } else {
-                                                setSelectedInvoices([]);
-                                            }
-                                        }}
-                                        title="Select All CREATED"
-                                        className="form-checkbox h-4 w-4 text-purple-600 transition duration-150 ease-in-out"
-                                    />
-                                </TableHead> */}
                                 <TableHead>Invoice No</TableHead>
                                 <TableHead>Invoice Date</TableHead>
-                                {/* <TableHead>Customer</TableHead> */}
                                 <TableHead>Total Amount</TableHead>
-                                {/* <TableHead>Status</TableHead> */}
                                 <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -854,60 +871,9 @@ const SalesInvoice: React.FC = () => {
 
                                     return (
                                         <TableRow key={si.sales_invoice_id}>
-                                            {/* <TableCell className='w-10'>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedInvoices.includes(si.sales_invoice_id)}
-                                                    disabled={si.status !== 'CREATED' && si.status !== 'APPROVED' && si.status !== 'CLOSED'}
-                                                    onChange={(e) => {
-                                                        const currentStatus = si.status;
-                                                        
-                                                        const filteredSelectedInvoices = selectedInvoices.filter(id => {
-                                                            const invoice = Array.isArray(salesInvoices)
-                                                                ? salesInvoices.find(inv => inv?.sales_invoice_id === id)
-                                                                : undefined;
-                                                            return invoice && filteredSI.some(filteredInv => filteredInv?.sales_invoice_id === id);
-                                                        });
-
-                                                        const selectedStatuses = filteredSelectedInvoices
-                                                            .map(id => {
-                                                                const invoice = Array.isArray(salesInvoices)
-                                                                    ? salesInvoices.find(inv => inv?.sales_invoice_id === id)
-                                                                    : undefined;
-                                                                return invoice?.status;
-                                                            })
-                                                            .filter(Boolean);
-
-                                                        if (
-                                                            selectedStatuses.length > 0 &&
-                                                            !selectedStatuses.includes(currentStatus)
-                                                        ) {
-                                                            toast({
-                                                                title: "Invalid Selection",
-                                                                description: "You can only select invoices with the same status.",
-                                                                variant: "destructive",
-                                                            });
-                                                            return;
-                                                        }
-
-                                                        if (e.target.checked) {
-                                                            setSelectedInvoices(prev => [...prev, si.sales_invoice_id]);
-                                                        } else {
-                                                            setSelectedInvoices(prev =>
-                                                                prev.filter(id => id !== si.sales_invoice_id)
-                                                            );
-                                                        }
-                                                    }}
-                                                    className="form-checkbox h-4 w-4 text-purple-600 transition duration-150 ease-in-out"
-                                                />
-                                            </TableCell> */}
                                             <TableCell className="font-medium">{si.sales_invoice_no}</TableCell>
                                             <TableCell>{si.invoice_date ? new Date(si.invoice_date).toLocaleDateString() : ''}</TableCell>
-                                            {/* <TableCell>{si.customer_name}</TableCell> */}
                                             <TableCell>{si.total_amount}</TableCell>
-                                            {/* <TableCell>
-                                                <Badge className={getStatusColor(si.status)}>{si.status}</Badge>
-                                            </TableCell> */}
                                             <TableCell className="flex gap-2">
                                                 <Button
                                                     size="sm"
@@ -953,7 +919,7 @@ const SalesInvoice: React.FC = () => {
                                 })
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                                         {isLoading ? "Loading..." : "No invoices found"}
                                     </TableCell>
                                 </TableRow>
@@ -964,92 +930,134 @@ const SalesInvoice: React.FC = () => {
             </Card>
 
             <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Sales Invoice Details</DialogTitle>
-                    </DialogHeader>
-                    {viewingSO && (
-                        <>
-                            <table className="w-full border border-gray-300 mb-4 text-sm">
-                                <tbody>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Sales Invoice Details</DialogTitle>
+                </DialogHeader>
+                {viewingSO && (
+                    <>
+                        <table className="w-full border border-gray-300 mb-4 text-sm">
+                            <tbody>
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Invoice Number</td>
+                                    <td className="p-2 border">{viewingSO.sales_invoice_no}</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Invoice Date</td>
+                                    <td className="p-2 border">{viewingSO.invoice_date ? new Date(viewingSO.invoice_date).toLocaleDateString() : ''}</td>
+                                </tr>
+                                {/* Extract from remarks if payment_term is null */}
+                                {!viewingSO.payment_term && viewingSO.remarks && viewingSO.remarks.includes('payment') && (
                                     <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Invoice Number</td>
-                                        <td className="p-2 border">{viewingSO.sales_invoice_no}</td>
+                                        <td className="p-2 font-medium text-gray-600 border">Payment Method</td>
+                                        <td className="p-2 border">
+                                            {viewingSO.remarks.includes('cash') ? 'Cash' : 
+                                            viewingSO.remarks.includes('card') ? 'Card' : 
+                                            viewingSO.remarks}
+                                        </td>
                                     </tr>
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Invoice Date</td>
-                                        <td className="p-2 border">{viewingSO.invoice_date ? new Date(viewingSO.invoice_date).toLocaleDateString() : ''}</td>
-                                    </tr>
-                                    {/* <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Customer Name</td>
-                                        <td className="p-2 border">{viewingSO.customer_name}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Sales Person</td>
-                                        <td className="p-2 border">{viewingSO.sales_person_name}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Vehicle No</td>
-                                        <td className="p-2 border">{viewingSO.vehicle_no || "N/A"}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Account ID</td>
-                                        <td className="p-2 border">{viewingSO.receivable_account_code}</td>
-                                    </tr> */}
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Payment Term</td>
-                                        <td className="p-2 border">{viewingSO.payment_term}</td>
-                                    </tr>
-                                    {/* <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Credit Limit</td>
-                                        <td className="p-2 border">{viewingSO.credit_limit}</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Status</td>
-                                        <td className="p-2 border">{viewingSO.status}</td>
-                                    </tr> */}
-                                </tbody>
-                            </table>
-                            <h3 className="text-md font-semibold mb-2">Items</h3>
-                            <table className="w-full border border-gray-300 text-sm">
-                                <thead>
-                                    <tr className="bg-gray-100">
-                                        <th className="p-2 border text-left">Item Name</th>
-                                        <th className="p-2 border text-left">Quantity</th>
-                                        <th className="p-2 border text-left">Rate</th>
-                                        <th className="p-2 border text-left">Discount %</th>
-                                        <th className="p-2 border text-left">Discount Amount</th>
-                                        <th className="p-2 border text-left">Row Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(viewingSO.items || []).map((item, index) => {
-                                        const quantity = Number(item.quantity || 0);
-                                        const unitPrice = Number(item.rate || item.unit_price || 0);
-                                        const discountPercentage = Number(item.discount_percentage || 0);
-                                        const discountAmount = Number(item.discount_amount || (quantity * unitPrice * discountPercentage / 100));
-                                        const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + (item.tax || 0)));
-                                        
-                                        return (
-                                            <tr key={index}>
-                                                <td className="p-2 border">{item.item_name ?? '-'}</td>
-                                                <td className="p-2 border">{quantity}</td>
-                                                <td className="p-2 border">{unitPrice.toFixed(2)}</td>
-                                                <td className="p-2 border">{discountPercentage.toFixed(2)}%</td>
-                                                <td className="p-2 border">{discountAmount.toFixed(2)}</td>
-                                                <td className="p-2 border">{rowTotal.toFixed(2)}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            <div className="mb-4">
-                                <p><strong>Remarks:</strong> {viewingSO.remarks || "None"}</p>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+                                )}
+                                {/* Get discount from first item */}
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Discount %</td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items && viewingSO.items.length > 0 
+                                            ? `${viewingSO.items[0].discount_percentage || 0}%` 
+                                            : '0%'}
+                                    </td>
+                                </tr>
+                                {/* Get tax from first item */}
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Tax %</td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items && viewingSO.items.length > 0 && viewingSO.items[0].tax
+                                            ? `${viewingSO.items[0].tax}%` 
+                                            : '0%'}
+                                    </td>
+                                </tr>
+                                {/* Calculate total discount amount */}
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Total Discount Amount</td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items 
+                                            ? viewingSO.items.reduce((sum, item) => 
+                                                sum + Number(item.discount_amount || 0), 0).toFixed(2)
+                                            : '0.00'}
+                                    </td>
+                                </tr>
+                                {/* Calculate total tax amount */}
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Total Tax Amount</td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items 
+                                            ? viewingSO.items.reduce((sum, item) => 
+                                                sum + Number(item.tax || 0), 0).toFixed(2)
+                                            : '0.00'}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <h3 className="text-md font-semibold mb-2">Items</h3>
+                        <table className="w-full border border-gray-300 text-sm">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-2 border text-left">Item Name</th>
+                                    <th className="p-2 border text-left">Quantity</th>
+                                    <th className="p-2 border text-left">Rate</th>
+                                    <th className="p-2 border text-left">Discount %</th>
+                                    <th className="p-2 border text-left">Discount Amount</th>
+                                    <th className="p-2 border text-left">Tax</th>
+                                    <th className="p-2 border text-left">Row Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(viewingSO.items || []).map((item, index) => {
+                                    const quantity = Number(item.quantity || 0);
+                                    const unitPrice = Number(item.rate || item.unit_price || 0);
+                                    const discountPercentage = Number(item.discount_percentage || 0);
+                                    const discountAmount = Number(item.discount_amount || 0);
+                                    const tax = Number(item.tax || 0);
+                                    const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + tax));
+                                    
+                                    return (
+                                        <tr key={index}>
+                                            <td className="p-2 border">{item.item_name ?? '-'}</td>
+                                            <td className="p-2 border">{quantity}</td>
+                                            <td className="p-2 border">{unitPrice.toFixed(2)}</td>
+                                            <td className="p-2 border">{discountPercentage.toFixed(2)}%</td>
+                                            <td className="p-2 border">{discountAmount.toFixed(2)}</td>
+                                            <td className="p-2 border">{tax.toFixed(2)}</td>
+                                            <td className="p-2 border">{rowTotal.toFixed(2)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot>
+                                <tr className="bg-gray-50 font-semibold">
+                                    <td colSpan={4} className="p-2 border text-right">Totals:</td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items 
+                                            ? viewingSO.items.reduce((sum, item) => 
+                                                sum + Number(item.discount_amount || 0), 0).toFixed(2)
+                                            : '0.00'}
+                                    </td>
+                                    <td className="p-2 border">
+                                        {viewingSO.items 
+                                            ? viewingSO.items.reduce((sum, item) => 
+                                                sum + Number(item.tax || 0), 0).toFixed(2)
+                                            : '0.00'}
+                                    </td>
+                                    <td className="p-2 border">
+                                        {Number(viewingSO.total_amount || 0).toFixed(2)}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
         </div>
     );
 };

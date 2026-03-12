@@ -267,7 +267,7 @@ const OrderSummary = ({
       const selectedBranchId = sessionStorage.getItem("selectedBranchId");
       const companyId = sessionStorage.getItem("companyId");
 
-      // Prepare items for API
+      // Prepare items for API - include item details
       const itemsForApi = cartItems.map(item => ({
         item_id: item.id,
         quantity: item.quantity,
@@ -277,7 +277,9 @@ const OrderSummary = ({
         tax: taxPercentage,
         extra_discount: 0,
         commission_percentge: 0,
-        commission_amount: 0
+        commission_amount: 0,
+        // Include item_name for reference (though API might not store it)
+        item_name: item.title
       }));
 
       // Prepare receipt data
@@ -313,7 +315,7 @@ const OrderSummary = ({
           const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
           
           await createSalesInvoice(
-            1, // Default Walk-in Customer
+            1, 
             new Date(),
             `POS Sale - ${paymentMethod} payment`,
             totalAmount,
@@ -358,7 +360,6 @@ const OrderSummary = ({
       setIsProcessing(false);
     }
   };
-
   return (
     <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border">
       {/* Toast Notification */}
