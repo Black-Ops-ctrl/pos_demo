@@ -15,6 +15,8 @@ import { getVendors } from '@/api/vendorsApi';
 import { getCurrentUserId } from "@/components/security/LoginPage";
 import { fetchProducts } from '@/core/services/api/fetchProducts'; 
 import { getUOM } from '@/api/departmentApi';
+// Import warehouses API
+import { getwarehouses } from '@/api/warehousesApi'; 
 import {
   Popover,
   PopoverContent,
@@ -78,6 +80,8 @@ interface PO {
   order_date?: string;
   updated_by: number;
   created_by: number;
+  warehouse_id?: number;
+  warehouse_name?: string;
   items?: Array<{
     item_id: number;
     item_name?: string;
@@ -105,6 +109,8 @@ interface ViewingPO {
   order_date?: string;
   updated_by: number;
   created_by: number;
+  warehouse_id?: number;
+  warehouse_name?: string;
   items?: Array<{ 
     item_id: number; 
     item_name?: string; 
@@ -144,6 +150,13 @@ interface Item {
   uom_name?: string;
 }
 
+interface Warehouse {
+  warehouse_id: number;
+  warehouse_code: string;
+  warehouse_name: string;
+  address?: string;
+}
+
 // --- PurchaseOrders Component ---
 const PurchaseOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,75 +184,72 @@ const PurchaseOrders: React.FC = () => {
   const [productsCache, setProductsCache] = useState<Item[]>([]);
   const [uomList, setUomList] = useState<any[]>([]);
   
-  // Replace your loadPurchaseOrders function with this:
-
-const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: string) => {
-  setIsLoading(true);
-  try {
-    console.log("Loading POs with dates:", filterStartDate, filterEndDate);
-    const data = await getPurchaseOrders(filterStartDate, filterEndDate);
-    console.log("Loaded POs - Raw data:", data);
-    
-    let filteredData = data || [];
-    
-    // TEMPORARY FIX: Filter on frontend if dates are provided
-    if (filterStartDate && filterEndDate && data && data.length > 0) {
-      console.log("Frontend filtering from", filterStartDate, "to", filterEndDate);
+  // Load purchase orders function
+  const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: string) => {
+    setIsLoading(true);
+    try {
+      console.log("Loading POs with dates:", filterStartDate, filterEndDate);
+      const data = await getPurchaseOrders(filterStartDate, filterEndDate);
+      console.log("Loaded POs - Raw data:", data);
       
-      filteredData = data.filter((po: PO) => {
-        if (!po.order_date) return false;
-        
-        // Extract just the date part from the order_date
-        const poDateStr = po.order_date.split('T')[0]; // Handle if it's ISO string
-        
-        // Compare dates as strings in YYYY-MM-DD format
-        return poDateStr >= filterStartDate && poDateStr <= filterEndDate;
-      });
+      let filteredData = data || [];
       
-      console.log("Filtered data on frontend:", filteredData.length, "records");
-    }
-    
-    if (!filteredData || filteredData.length === 0) {
-      console.log("No POs found for the selected date range");
+      // TEMPORARY FIX: Filter on frontend if dates are provided
+      if (filterStartDate && filterEndDate && data && data.length > 0) {
+        console.log("Frontend filtering from", filterStartDate, "to", filterEndDate);
+        
+        filteredData = data.filter((po: PO) => {
+          if (!po.order_date) return false;
+          
+          // Extract just the date part from the order_date
+          const poDateStr = po.order_date.split('T')[0];
+          return poDateStr >= filterStartDate && poDateStr <= filterEndDate;
+        });
+        
+        console.log("Filtered data on frontend:", filteredData.length, "records");
+      }
+      
+      if (!filteredData || filteredData.length === 0) {
+        console.log("No POs found for the selected date range");
+        setPurchaseOrders([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch product details for each item
+      const enrichedData = await Promise.all(
+        filteredData.map(async (po: PO) => {
+          if (po.items && po.items.length > 0) {
+            const enrichedItems = await Promise.all(
+              po.items.map(async (item) => {
+                const productDetails = await fetchItemDetails(item.item_id);
+                if (productDetails) {
+                  return {
+                    ...item,
+                    item_name: productDetails.item_name,
+                    item_code: productDetails.item_code,
+                    uom_name: productDetails.uom_name || item.uom_name
+                  };
+                }
+                return item;
+              })
+            );
+            return { ...po, items: enrichedItems };
+          }
+          return po;
+        })
+      );
+      
+      console.log("Enriched POs:", enrichedData);
+      setPurchaseOrders(enrichedData);
+    } catch (error) {
+      console.error("Error loading purchase orders", error);
+      toast({ title: 'Error', description: 'Failed to load purchase orders', duration: 4000 });
       setPurchaseOrders([]);
+    } finally {
       setIsLoading(false);
-      return;
     }
-    
-    // Fetch product details for each item
-    const enrichedData = await Promise.all(
-      filteredData.map(async (po: PO) => {
-        if (po.items && po.items.length > 0) {
-          const enrichedItems = await Promise.all(
-            po.items.map(async (item) => {
-              const productDetails = await fetchItemDetails(item.item_id);
-              if (productDetails) {
-                return {
-                  ...item,
-                  item_name: productDetails.item_name,
-                  item_code: productDetails.item_code,
-                  uom_name: productDetails.uom_name || item.uom_name
-                };
-              }
-              return item;
-            })
-          );
-          return { ...po, items: enrichedItems };
-        }
-        return po;
-      })
-    );
-    
-    console.log("Enriched POs:", enrichedData);
-    setPurchaseOrders(enrichedData);
-  } catch (error) {
-    console.error("Error loading purchase orders", error);
-    toast({ title: 'Error', description: 'Failed to load purchase orders', duration: 4000 });
-    setPurchaseOrders([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // Load UOMs
   const loadUOMs = async () => {
@@ -553,6 +563,10 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                     <td><strong>Status: </strong> ${po.status || "N/A"}</td>
                      <td><strong>Vehicle No:</strong> ${module_id === 2 ? (po.vehicle_no || "N/A") : "N/A"}</td>
                     </tr>
+                    <tr>
+                        <td><strong>Warehouse:</strong> ${po.warehouse_name || "N/A"}</td>
+                        <td></td>
+                    </tr>
                 </table>
 
                 <div class="items-table">
@@ -774,6 +788,7 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
     total_amount: number;
     order_date: string;
     vehicle_number?: string;
+    warehouse_id?: number;
   }) => {
     console.log("Saving PO with items:", payload.items.map(item => ({
       item_id: item.item_id,
@@ -793,7 +808,8 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
           payload.total_amount,
           payload.items,
           payload.order_date,
-          payload.vehicle_number
+          payload.vehicle_number,
+          payload.warehouse_id
         );
         toast({ title: "Updated", description: "Purchase Order updated successfully!", duration: 3000 });
       } else {
@@ -804,7 +820,8 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
           payload.total_amount,
           payload.items,
           payload.order_date,
-          payload.vehicle_number
+          payload.vehicle_number,
+          payload.warehouse_id
         );
         toast({ title: "Created", description: "Purchase Order created successfully!", duration: 3000 });
       }
@@ -1023,6 +1040,7 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                   </TableHead>
                   <TableHead>PO NO</TableHead>
                   <TableHead>PO Date</TableHead>
+                  <TableHead>Warehouse</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>
                     {module_id === 3 ? "Branch Name" : "Farm Name"}
@@ -1056,6 +1074,7 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                           day: '2-digit',
                         })}
                       </TableCell>
+                      <TableCell>{po.warehouse_name || 'N/A'}</TableCell>
                       <TableCell>
                         {new Intl.NumberFormat('en-US').format(po.total_price || 0)}
                       </TableCell>   
@@ -1106,7 +1125,7 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-4">
                       No purchase orders found
                     </TableCell>
                   </TableRow>
@@ -1141,6 +1160,10 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                   <tr>
                     <td className="p-2 font-medium text-gray-600 border">Order Date</td>
                     <td className="p-2 border">{new Date(viewingPO.order_date || '').toLocaleDateString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium text-gray-600 border">Warehouse</td>
+                    <td className="p-2 border">{viewingPO.warehouse_name || 'N/A'}</td>
                   </tr>
                   <tr>
                     <td className="p-2 font-medium text-gray-600 border">Status</td>
@@ -1223,6 +1246,7 @@ interface PurchaseOrderFormProps {
     total_amount: number;
     order_date: string;
     vehicle_number?: string;
+    warehouse_id?: number;
   }) => void;
 }
 
@@ -1233,6 +1257,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const [vehicles, setVehicles] = useState<BirdsVehicle[]>([]);
   const [uomList, setUomList] = useState<any[]>([]);
   const [uomLoading, setUomLoading] = useState(false);
+  // Add warehouses state
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouseOpen, setWarehouseOpen] = useState(false);
+  const [warehouseLoading, setWarehouseLoading] = useState(false);
   
   const [vendorOpen, setVendorOpen] = useState(false);
   const [itemDropdown, setItemDropdown] = useState<number | null>(null);
@@ -1242,6 +1270,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const [productsLoading, setProductsLoading] = useState(false);
 
   const [vendor_id, setVendorId] = useState<number>(0);
+  const [warehouse_id, setWarehouseId] = useState<number>(0);
   const [poItems, setPoItems] = useState<POItem[]>([{ 
     item_id: 0, 
     item_name: '',
@@ -1274,6 +1303,38 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }, 0);
   }, [poItems]);
 
+  // Load warehouses
+  const loadWarehouses = async () => {
+    setWarehouseLoading(true);
+    try {
+      const response = await getwarehouses();
+      console.log("Warehouses response:", response);
+      
+      let warehouseData = [];
+      if (response?.data && Array.isArray(response.data)) {
+        warehouseData = response.data;
+      } else if (Array.isArray(response)) {
+        warehouseData = response;
+      }
+      
+      setWarehouses(warehouseData);
+      
+      // Auto-select first warehouse if available and no warehouse selected
+      if (warehouseData.length > 0 && !warehouse_id && !po) {
+        setWarehouseId(warehouseData[0].warehouse_id);
+      }
+    } catch (error) {
+      console.error("Failed to load warehouses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load warehouses",
+        variant: "destructive",
+      });
+    } finally {
+      setWarehouseLoading(false);
+    }
+  };
+
   useEffect(() => {
     const loadUOMs = async () => {
       try {
@@ -1291,6 +1352,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     };
     
     loadUOMs();
+    loadWarehouses();
   }, []);
 
   useEffect(() => {
@@ -1335,6 +1397,28 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     loadProducts();
   }, []);
 
+  // Auto-select first product when products load and it's a new PO
+  useEffect(() => {
+    if (products.length > 0 && !po && poItems.length > 0 && poItems[0].item_id === 0) {
+      setPoItems(prev => {
+        const copy = [...prev];
+        copy[0] = {
+          ...copy[0],
+          item_id: products[0].item_id,
+          item_name: products[0].item_name,
+          item_code: products[0].item_code,
+          uom_id: products[0].uom_id || 0,
+          uom_name: products[0].uom_name || '',
+          quantity: copy[0].quantity || 1,
+          unit_price: copy[0].unit_price || 0,
+          discount: 0,
+          discount_percentage: 0
+        };
+        return copy;
+      });
+    }
+  }, [products, po]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -1355,6 +1439,11 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
         setVendors(availableVendors);
         setBranches(availableBranches);
 
+        // Auto-select first vendor if available and it's a new PO
+        if (availableVendors.length > 0 && !po && showVendorField) {
+          setVendorId(Number(availableVendors[0].vendor_id));
+        }
+
         if (module_id === 2) {
           try {
             const vehiclesData = await getbirdsVehicles();
@@ -1362,10 +1451,20 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             
             if (Array.isArray(vehiclesData)) {
               setVehicles(vehiclesData);
+              // Auto-select first vehicle if available and no vehicle selected
+              if (vehiclesData.length > 0 && !vehicle_number && !po) {
+                setVehicleNumber(vehiclesData[0].vehicle_name);
+              }
             } else if (vehiclesData && vehiclesData.data && Array.isArray(vehiclesData.data)) {
               setVehicles(vehiclesData.data);
+              if (vehiclesData.data.length > 0 && !vehicle_number && !po) {
+                setVehicleNumber(vehiclesData.data[0].vehicle_name);
+              }
             } else if (vehiclesData && typeof vehiclesData === 'object') {
               setVehicles([vehiclesData]);
+              if (!vehicle_number && !po) {
+                setVehicleNumber(vehiclesData.vehicle_name);
+              }
             }
           } catch (vehicleErr) {
             console.error("Failed to load vehicles:", vehicleErr);
@@ -1377,6 +1476,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
           setBranchId(po.branch_id);
           setFlockId(po.flock_id);
           setVendorId(Number(po.vendor_id ?? 0));
+          setWarehouseId(Number(po.warehouse_id ?? 0));
           
           if (po.items?.[0]?.vehicle_no) {
             setVehicleNumber(po.items[0].vehicle_no);
@@ -1420,18 +1520,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                 }]
           );
         } else {
-          setVendorId(0);
-          setPoItems([{ 
-            item_id: 0, 
-            item_name: '',
-            item_code: '',
-            quantity: 1, 
-            unit_price: 0, 
-            uom_id: 0, 
-            uom_name: '', 
-            discount: 0,
-            discount_percentage: 0
-          }]);
+          setVendorId(prev => prev); // Keep the auto-selected vendor id
           const today = new Date().toISOString().split('T')[0];
           setOrderDate(today);
           
@@ -1452,7 +1541,11 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               }
             }
           } else {
-            setBranchId(0);
+            if (availableBranches.length > 0) {
+              setBranchId(availableBranches[0].branch_id);
+            } else {
+              setBranchId(0);
+            }
           }
           
           setFlockId(0);
@@ -1544,8 +1637,8 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const removeItemRow = (index: number) => setPoItems((p) => p.filter((_, i) => i !== index));
 
   const handleSelectItem = (rowIndex: number, itemId: number) => {
-    const allItems = [...items, ...products];
-    const selectedItem = allItems.find(item => item.item_id === itemId);
+    // Only use products, not items
+    const selectedItem = products.find(item => item.item_id === itemId);
     
     if (selectedItem) {
       setPoItems((prev) => {
@@ -1648,6 +1741,11 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     setVehicleOpen(false);
   };
 
+  const handleSelectWarehouse = (warehouseId: number, warehouseName: string) => {
+    setWarehouseId(warehouseId);
+    setWarehouseOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!branch_id || branch_id === 0) {
@@ -1657,6 +1755,11 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     
     if (showVendorField && (!vendor_id || vendor_id === 0)) {
       alert("Select vendor");
+      return;
+    }
+
+    if (!warehouse_id || warehouse_id === 0) {
+      alert("Select warehouse");
       return;
     }
     
@@ -1678,7 +1781,8 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
         total_amount: totalAmount,
         po_id: po?.po_id,
         order_date,
-        vehicle_number: showVehicleNumberField ? vehicle_number : undefined
+        vehicle_number: showVehicleNumberField ? vehicle_number : undefined,
+        warehouse_id: warehouse_id
       });
     } catch (error) {
       console.error("Submission error caught in form:", error);
@@ -1694,9 +1798,9 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Main Selectors with Border */}
-          <div className="border p-4 rounded-lg space-y-4 md:space-y-0 md:space-x-4 md:flex">
+          <div className="border p-4 rounded-lg space-y-4 md:space-y-0 md:space-x-4 md:flex md:flex-wrap">
             {/* Order Date */}
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col flex-1 min-w-[150px]">
               <span className="text-sm font-medium text-gray-700">PO Date</span>
               <Input
                 type="date"
@@ -1707,8 +1811,63 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               />
             </div>
 
+            {/* Warehouse Dropdown */}
+            <div className="flex flex-col flex-1 min-w-[150px]">
+              <span className="text-sm font-medium text-gray-700">Warehouse *</span>
+              <Popover open={warehouseOpen} onOpenChange={setWarehouseOpen}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    role="combobox" 
+                    className="w-full justify-between"
+                    disabled={warehouseLoading}
+                  >
+                    {warehouseLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : warehouse_id ? (
+                      warehouses.find((w) => w.warehouse_id === warehouse_id)?.warehouse_name
+                    ) : (
+                      warehouses.length > 0 ? warehouses[0].warehouse_name : "No warehouse available"
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="max-h-[300px] overflow-auto">
+                  <Command>
+                    <CommandInput placeholder="Search warehouses..." />
+                    <CommandEmpty>
+                      {warehouseLoading ? "Loading warehouses..." : "No warehouse found."}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {warehouseLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
+                          <span className="ml-2">Loading warehouses...</span>
+                        </div>
+                      ) : (
+                        warehouses.map((warehouse) => (
+                          <CommandItem
+                            key={warehouse.warehouse_id}
+                            onSelect={() => handleSelectWarehouse(warehouse.warehouse_id, warehouse.warehouse_name)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                warehouse_id === warehouse.warehouse_id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {warehouse.warehouse_name} ({warehouse.warehouse_code})
+                          </CommandItem>
+                        ))
+                      )}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             {/* Branch selector */}
-            <div className="flex flex-col flex-1">
+            <div className="flex flex-col flex-1 min-w-[150px]">
               <span className="text-sm font-medium text-gray-700">
                 {module_id === 2 ? "Farms" : "Branch"}
               </span>
@@ -1716,8 +1875,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between">
                     {branch_id
-                      ? `${branches.find((br: any) => br.branch_id === branch_id)?.branch_name}`
-                      : module_id === 2 ? "Select Farm" : "Select Branch"}
+                      ? branches.find((br: any) => br.branch_id === branch_id)?.branch_name
+                      : branches.length > 0 
+                        ? branches[0].branch_name 
+                        : (module_id === 2 ? "Select Farm" : "Select Branch")}
                     <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -1752,14 +1913,16 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
 
             {/* Vehicle Number - Only for module_id 2 */}
             {showVehicleNumberField && (
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1 min-w-[150px]">
                 <span className="text-sm font-medium text-gray-700">Vehicle Number</span>
                 <Popover open={vehicleOpen} onOpenChange={setVehicleOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" className="w-full justify-between">
                       {vehicle_number
-                        ? vehicles.find((v) => v.vehicle_name === vehicle_number)?.vehicle_name
-                        : "Select Vehicle"}
+                        ? vehicle_number
+                        : vehicles.length > 0 
+                          ? vehicles[0].vehicle_name 
+                          : "Select Vehicle"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1793,12 +1956,16 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
 
             {/* Vendor selector */}
             {showVendorField && (
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col flex-1 min-w-[150px]">
                 <span className="text-sm font-medium text-gray-700">Vendor</span>
                 <Popover open={vendorOpen} onOpenChange={setVendorOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" className="w-full justify-between">
-                      {vendor_id ? vendors.find((v) => Number(v.vendor_id) === vendor_id)?.vendor_name ?? "Select Vendor" : "Select Vendor"}
+                      {vendor_id && vendor_id !== 0
+                        ? vendors.find((v) => Number(v.vendor_id) === vendor_id)?.vendor_name 
+                        : vendors.length > 0 
+                          ? vendors[0].vendor_name 
+                          : "Select Vendor"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1841,8 +2008,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
               <span className="w-[40px] text-center"></span>
             </div>
             {poItems.map((row, idx) => {
-              const allItems = [...items, ...products];
-              const selectedItem = allItems.find((it) => Number(it.item_id) === Number(row.item_id));
+              const selectedItem = products.find((it) => Number(it.item_id) === Number(row.item_id));
               const lineTotal = (row.quantity || 0) * (row.unit_price || 0) - (row.discount || 0);
               return (
                 <div key={idx} className="flex items-center gap-2">
@@ -1851,10 +2017,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                       <Button variant="outline" className="w-1/3 justify-between" disabled={productsLoading}>
                         {productsLoading ? (
                           "Loading products..."
-                        ) : row.item_id ? (
-                          selectedItem?.item_name ?? "Selected item"
+                        ) : row.item_id && selectedItem ? (
+                          selectedItem.item_name
                         ) : (
-                          "Select Item"
+                          products.length > 0 ? products[0].item_name : "Select Item"
                         )}
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
@@ -1872,16 +2038,15 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                               <span className="ml-2">Loading products...</span>
                             </div>
                           ) : (
-                            [...new Map([...items, ...products].map(item => [item.item_id, item])).values()]
-                              .map((it) => (
-                                <CommandItem 
-                                  key={it.item_id} 
-                                  onSelect={() => handleSelectItem(idx, Number(it.item_id))}
-                                >
-                                  <Check className={cn("mr-2 h-4 w-4", row.item_id === Number(it.item_id) ? "opacity-100" : "opacity-0")} />
-                                  {it.item_name} ({it.item_code}) - {it.uom_name || 'N/A'}
-                                </CommandItem>
-                              ))
+                            products.map((it) => (
+                              <CommandItem 
+                                key={it.item_id} 
+                                onSelect={() => handleSelectItem(idx, Number(it.item_id))}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", row.item_id === Number(it.item_id) ? "opacity-100" : "opacity-0")} />
+                                {it.item_name} ({it.item_code}) - {it.uom_name || 'N/A'}
+                              </CommandItem>
+                            ))
                           )}
                         </CommandGroup>
                       </Command>
@@ -1896,7 +2061,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                         ) : row.uom_name ? (
                           row.uom_name
                         ) : (
-                          "Unit"
+                          uomList.length > 0 ? uomList[0].uom_name : "Unit"
                         )}
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
@@ -2009,7 +2174,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             <Button
               type="submit"
               className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
-              disabled={isLoading || productsLoading || uomLoading}
+              disabled={isLoading || productsLoading || uomLoading || warehouseLoading}
             >
               {isLoading ? (
                 <>
