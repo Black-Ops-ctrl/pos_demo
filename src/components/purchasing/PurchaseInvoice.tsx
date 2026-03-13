@@ -903,7 +903,7 @@ const filteredInvoices = Invoices.filter(
                                         />
                                     </TableCell>
                                     <TableCell className="font-medium">{Invoice.purchase_invoice_id}</TableCell>
-                                                                        <TableCell>{Invoice.vehicle_no}</TableCell>
+                                     <TableCell>{Invoice.vehicle_no}</TableCell>
 
                                     <TableCell>{Invoice.po_id}</TableCell>
                                     <TableCell>{Invoice.vendor_name}</TableCell>

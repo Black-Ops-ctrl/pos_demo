@@ -712,10 +712,15 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
   };
 
   const toggleSelectAll = () => {
-    if (selectedPOs.length === filteredPO.length) {
+    if (selectedPOs.length === filteredPO.filter(po => po.status === 'CREATED').length) {
       setSelectedPOs([]);
     } else {
-      setSelectedPOs(filteredPO.map(po => po.po_id!).filter(id => id !== undefined));
+      // Only select CREATED (unapproved) POs
+      setSelectedPOs(filteredPO
+        .filter(po => po.status === 'CREATED')
+        .map(po => po.po_id!)
+        .filter(id => id !== undefined)
+      );
     }
   };
 
@@ -1010,9 +1015,9 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                   <TableHead className="w-[50px]">
                     <input
                       type="checkbox"
-                      checked={selectedPOs.length === filteredPO.length && filteredPO.length > 0}
+                      checked={selectedPOs.length === filteredPO.filter(po => po.status === 'CREATED').length && filteredPO.filter(po => po.status === 'CREATED').length > 0}
                       onChange={toggleSelectAll}
-                      title="Select all POs"
+                      title="Select all CREATED POs"
                       className="cursor-pointer"
                     />
                   </TableHead>
@@ -1037,6 +1042,9 @@ const loadPurchaseOrders = async (filterStartDate?: string, filterEndDate?: stri
                           onChange={() => toggleSelectPO(po.po_id!)}
                           title={`Select PO ${po.po_id}`}
                           className="cursor-pointer"
+                          style={{
+                            display: po.status === 'APPROVED' ? 'none' : 'inline-block'
+                          }}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{po.po_id}</TableCell>

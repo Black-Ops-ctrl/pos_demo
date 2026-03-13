@@ -5,8 +5,8 @@ export const createProduct = async (formData, categories, barcode, imageFile) =>
   console.log("📸 Image provided:", imageFile ? imageFile.name : 'No image');
   
   try {
-    const selectedCategory = categories.find(c => c.id.toString() === formData.category.toString());
-    const categoryId = selectedCategory?.id || parseInt(formData.category);
+    const selectedCategory = categories.find(c => String(c?.id || c?.category_id || '') === String(formData.category));
+    const categoryId = selectedCategory?.id || selectedCategory?.category_id || parseInt(formData.category || 0);
     console.log("Sending category ID:", categoryId);
     const formDataObj = new FormData();
     formDataObj.append('p_operation', '2');

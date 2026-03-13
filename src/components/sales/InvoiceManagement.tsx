@@ -884,7 +884,7 @@ const SalesInvoice: React.FC = () => {
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
 
-                                                {isEditable && (
+                                                {/* {isEditable && (
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
@@ -893,7 +893,7 @@ const SalesInvoice: React.FC = () => {
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
-                                                )}
+                                                )} */}
 
                                                 {si.status === "CREATED" && (
                                                     <Button

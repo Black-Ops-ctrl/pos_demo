@@ -96,9 +96,27 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validate required fields
+    if (!formData.productName?.trim()) {
+    showToast("Please enter product name", "warning");
+    return;
+    }
+    
+    if (!formData.category) {
+      showToast("Please select a category", "warning");
+      return;
+    }
+    
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      showToast("Please enter a valid price", "warning");
+      return;
+    }
+    
+    if (!barcode?.trim()) {
+      showToast("Please scan or enter barcode", "warning");
+      return;
+    }
     // if (!formData.productName || !formData.category || !formData.quantity || !barcode) {
     //   showToast("Please fill all required fields", "warning");
     //   return;
@@ -230,18 +248,18 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Category *</label>
           <select
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            className={inputClass}
-          >
-            <option value="">Select Category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          name="category"
+          value={formData.category}
+          onChange={handleInputChange}
+          className={inputClass}
+        >
+          <option value="">Select Category</option>
+          {categories.map((category) => (
+            <option key={category.category_id || category.id} value={category.category_id || category.id}>
+              {category.category_name || category.name}
+            </option>
+          ))}
+        </select>
         </div>
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Product Image</label>
