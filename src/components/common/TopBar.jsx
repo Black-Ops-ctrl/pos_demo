@@ -61,10 +61,9 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
           }
           inputBuffer.current = "";
         }
-      } else if (e.key.length === 1) { // Accumulate regular characters from scanner
+      } else if (e.key.length === 1) { 
         inputBuffer.current += e.key;
         console.log("Adding char to buffer:", e.key, "Current buffer:", inputBuffer.current);
-        // Set timeout to process barcode if no more keys are pressed
         barcodeTimeout.current = setTimeout(() => {
           if (inputBuffer.current.length > 0) {
             const scannedBarcode = inputBuffer.current;
@@ -141,7 +140,7 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
         />
       </div>
       {/* User profile section */}
-      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+      {/* <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         <img
           src="/img_category.webp"
           alt="avatar"
@@ -151,7 +150,7 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
           <p className="font-semibold text-xs sm:text-sm md:text-base whitespace-nowrap">Lauren Smith</p>
           <p className="text-[10px] sm:text-xs text-gray-400 whitespace-nowrap">Cashier</p>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

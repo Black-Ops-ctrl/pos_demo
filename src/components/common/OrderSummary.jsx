@@ -15,7 +15,7 @@ const OrderSummary = ({
   // State management
   const [cartItems, setCartItems] = useState([]);
   const [receivedAmount, setReceivedAmount] = useState("");
-  const [discountPercentage, setDiscountPercentage] = useState("2");
+  const [discountPercentage, setDiscountPercentage] = useState("0");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); 

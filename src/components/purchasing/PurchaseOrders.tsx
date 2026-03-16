@@ -15,7 +15,6 @@ import { getVendors } from '@/api/vendorsApi';
 import { getCurrentUserId } from "@/components/security/LoginPage";
 import { fetchProducts } from '@/core/services/api/fetchProducts'; 
 import { getUOM } from '@/api/departmentApi';
-// Import warehouses API
 import { getwarehouses } from '@/api/warehousesApi'; 
 import {
   Popover,
@@ -399,7 +398,7 @@ const PurchaseOrders: React.FC = () => {
     };
 
     const logoSource = companyData?.image;
-    const companyName = companyData?.company_name || "Ahmad Poultry Farm";
+    const companyName = companyData?.company_name || "Company Name";
     const companyAddress = companyData?.address || "";
     const companyPhone = companyData?.phone || "";
     const companyEmail = companyData?.email || "";
@@ -555,17 +554,14 @@ const PurchaseOrders: React.FC = () => {
 
                 <table class="details-table">
                     <tr>
-                    <td><strong>${module_id === 2 ? "Farm Name" : "Branch Name"}: </strong> ${po.branch_name || "N/A"}</td>
+                    <td><strong>${module_id === 2 ? "Company Name" : "Branch Name"}: </strong> ${po.branch_name || "N/A"}</td>
                     <td><strong>${module_id === 2 ? "Flock Name" : "Vendor Name"}: </strong> ${module_id === 2 ? po.flock_name || "N/A" : po.vendor_name || "N/A"}</td>
                     </tr>
                    
                     <tr>
                     <td><strong>Status: </strong> ${po.status || "N/A"}</td>
-                     <td><strong>Vehicle No:</strong> ${module_id === 2 ? (po.vehicle_no || "N/A") : "N/A"}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Warehouse:</strong> ${po.warehouse_name || "N/A"}</td>
-                        <td></td>
+                    <td><strong>Warehouse:</strong> ${po.warehouse_name || "N/A"}</td>
+                    <!-- <td><strong>Vehicle No:</strong> ${module_id === 2 ? (po.vehicle_no || "N/A") : "N/A"}</td> -->
                     </tr>
                 </table>
 
@@ -1043,7 +1039,7 @@ const PurchaseOrders: React.FC = () => {
                   <TableHead>Warehouse</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>
-                    {module_id === 3 ? "Branch Name" : "Farm Name"}
+                    {module_id === 3 ? "Branch Name" : "Company Name"}
                   </TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
@@ -1250,13 +1246,17 @@ interface PurchaseOrderFormProps {
   }) => void;
 }
 
+// ... (previous code remains the same until PurchaseOrderForm component)
+
 export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClose, onSave }) => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [vehicles, setVehicles] = useState<BirdsVehicle[]>([]);
-  const [uomList, setUomList] = useState<any[]>([]);
-  const [uomLoading, setUomLoading] = useState(false);
+  // Remove uomList and uomLoading states
+  // const [uomList, setUomList] = useState<any[]>([]);
+  // const [uomLoading, setUomLoading] = useState(false);
+  
   // Add warehouses state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [warehouseOpen, setWarehouseOpen] = useState(false);
@@ -1265,7 +1265,9 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const [vendorOpen, setVendorOpen] = useState(false);
   const [itemDropdown, setItemDropdown] = useState<number | null>(null);
   const [vehicleOpen, setVehicleOpen] = useState(false);
-  const [uomDropdown, setUomDropdown] = useState<number | null>(null);
+  // Remove uomDropdown state
+  // const [uomDropdown, setUomDropdown] = useState<number | null>(null);
+  
   const [isLoading, setIsLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
 
@@ -1335,26 +1337,33 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }
   };
 
+  // Remove UOM loading useEffect
+  // useEffect(() => {
+  //   const loadUOMs = async () => {
+  //     try {
+  //       const response = await getUOM();
+  //       let uomData = [];
+  //       if (response?.data && Array.isArray(response.data)) {
+  //         uomData = response.data;
+  //       } else if (Array.isArray(response)) {
+  //         uomData = response;
+  //       }
+  //       setUomList(uomData);
+  //     } catch (error) {
+  //       console.error("Failed to load UOMs:", error);
+  //     }
+  //   };
+  //   
+  //   loadUOMs();
+  //   loadWarehouses();
+  // }, []);
+  
+  // Updated useEffect - only load warehouses
   useEffect(() => {
-    const loadUOMs = async () => {
-      try {
-        const response = await getUOM();
-        let uomData = [];
-        if (response?.data && Array.isArray(response.data)) {
-          uomData = response.data;
-        } else if (Array.isArray(response)) {
-          uomData = response;
-        }
-        setUomList(uomData);
-      } catch (error) {
-        console.error("Failed to load UOMs:", error);
-      }
-    };
-    
-    loadUOMs();
     loadWarehouses();
   }, []);
 
+  // Updated loadProducts to include UOM from fetchProducts
   useEffect(() => {
     const loadProducts = async () => {
       setProductsLoading(true);
@@ -1371,6 +1380,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
           productsList = productsData.products;
         }
         
+        // Transform products and include UOM data from the API
         const transformedProducts: Item[] = productsList.map((p: any) => ({
           item_id: Number(p.id || p.product_id || p.item_id || 0),
           item_name: String(p.name || p.product_name || p.item_name || ''),
@@ -1379,7 +1389,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
           uom_name: String(p.uom_name || p.unit_name || p.uom || ''),
         }));
         
-        console.log("Transformed products:", transformedProducts);
+        console.log("Transformed products with UOM:", transformedProducts);
         setProducts(transformedProducts);
         
       } catch (error) {
@@ -1419,6 +1429,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }
   }, [products, po]);
 
+  // Rest of the useEffect for vendors, branches, etc. remains the same
   useEffect(() => {
     (async () => {
       try {
@@ -1637,7 +1648,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const removeItemRow = (index: number) => setPoItems((p) => p.filter((_, i) => i !== index));
 
   const handleSelectItem = (rowIndex: number, itemId: number) => {
-    // Only use products, not items
+    // Find the selected product with its UOM
     const selectedItem = products.find(item => item.item_id === itemId);
     
     if (selectedItem) {
@@ -1649,6 +1660,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
           item_name: selectedItem.item_name,
           item_code: selectedItem.item_code,
           unit_price: copy[rowIndex].unit_price || 0,
+          // UOM is automatically populated from the selected product and is non-editable
           uom_id: selectedItem.uom_id || 0,
           uom_name: selectedItem.uom_name || '',
           discount: copy[rowIndex].discount || 0,
@@ -1660,18 +1672,8 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     setItemDropdown(null);
   };
 
-  const handleSelectUOM = (rowIndex: number, uomId: number, uomName: string) => {
-    setPoItems((prev) => {
-      const copy = [...prev];
-      copy[rowIndex] = {
-        ...copy[rowIndex],
-        uom_id: uomId,
-        uom_name: uomName
-      };
-      return copy;
-    });
-    setUomDropdown(null);
-  };
+  // Remove handleSelectUOM function - no longer needed
+  // const handleSelectUOM = (rowIndex: number, uomId: number, uomName: string) => { ... }
 
   const handleChangeRow = (index: number, field: keyof POItem, value: string | number) => {
     setPoItems((prev) => {
@@ -1758,6 +1760,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
       return;
     }
 
+    // ✅ This is correct - warehouse validation
     if (!warehouse_id || warehouse_id === 0) {
       alert("Select warehouse");
       return;
@@ -1782,7 +1785,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
         po_id: po?.po_id,
         order_date,
         vehicle_number: showVehicleNumberField ? vehicle_number : undefined,
-        warehouse_id: warehouse_id
+        warehouse_id: warehouse_id  
       });
     } catch (error) {
       console.error("Submission error caught in form:", error);
@@ -1999,7 +2002,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             <h3 className="text-md font-semibold mt-4 mb-2">Items</h3>
             <div className="flex items-center gap-2 text-xs font-bold text-gray-600 border-b pb-1">
               <span className="w-1/3">Item</span>
-              <span className="w-[100px] text-center">Unit</span>
+              <span className="w-[100px] text-center">Unit (UOM)</span> {/* Changed from "Unit" to "Unit (UOM)" */}
               <span className="w-[100px] text-center">Quantity</span>
               <span className="w-[100px] text-center">Unit Price</span>
               <span className="w-[100px] text-center">Discount %</span>
@@ -2053,46 +2056,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                     </PopoverContent>
                   </Popover>
 
-                  <Popover open={uomDropdown === idx} onOpenChange={(open) => setUomDropdown(open ? idx : null)}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[100px] justify-between" disabled={uomLoading}>
-                        {uomLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : row.uom_name ? (
-                          row.uom_name
-                        ) : (
-                          uomList.length > 0 ? uomList[0].uom_name : "Unit"
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="max-h-[300px] overflow-auto">
-                      <Command>
-                        <CommandInput placeholder="Search units..." />
-                        <CommandEmpty>
-                          {uomLoading ? "Loading units..." : "No units found"}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {uomLoading ? (
-                            <div className="flex items-center justify-center p-4">
-                              <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
-                              <span className="ml-2">Loading units...</span>
-                            </div>
-                          ) : (
-                            uomList.map((uom) => (
-                              <CommandItem 
-                                key={uom.uom_id} 
-                                onSelect={() => handleSelectUOM(idx, uom.uom_id, uom.uom_name)}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", row.uom_id === uom.uom_id ? "opacity-100" : "opacity-0")} />
-                                {uom.uom_name}
-                              </CommandItem>
-                            ))
-                          )}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  {/* UOM Display - Non-editable, fetched from product */}
+                  <div className="w-[100px] text-center font-medium text-sm border bg-gray-100 p-2 rounded">
+                    {row.uom_name || (selectedItem?.uom_name) || '-'}
+                  </div>
 
                   <div className="flex flex-col w-[100px]">
                     <Input
@@ -2174,7 +2141,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
             <Button
               type="submit"
               className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
-              disabled={isLoading || productsLoading || uomLoading || warehouseLoading}
+              disabled={isLoading || productsLoading || warehouseLoading}
             >
               {isLoading ? (
                 <>

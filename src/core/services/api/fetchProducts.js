@@ -1,4 +1,5 @@
 import api, { ERROR_MESSAGES, SUCCESS_MESSAGES, DEBUG_MESSAGES } from './config';
+
 // API function to fetch all products from the server
 export const fetchProducts = async () => {
   console.log(DEBUG_MESSAGES.FETCH_REQUEST);
@@ -28,7 +29,20 @@ export const fetchProducts = async () => {
     }
     
     console.log("✅ Products fetched successfully. Count:", productsList.length, "products");
-    console.log("Processed products list:", productsList);
+    
+    // ✅ Log UOM data for debugging
+    if (productsList.length > 0) {
+      console.log("📏 UOM Data Check:");
+      productsList.slice(0, 3).forEach((product, index) => {
+        console.log(`  Product ${index + 1}:`, {
+          id: product.product_id || product.id,
+          name: product.product_name || product.name,
+          uom_id: product.uom_id,
+          uom_name: product.uom_name,
+          has_uom: product.uom_id ? '✅' : '❌'
+        });
+      });
+    }
     
     return productsList; 
     

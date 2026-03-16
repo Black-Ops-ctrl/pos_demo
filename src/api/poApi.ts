@@ -141,7 +141,7 @@ export const updateProductQuantity = async (
   }
 };
 
-// 🔹 Insert Purchase Order
+// 🔹 Insert Purchase Order - UPDATED with warehouse_id
 export const createPurchaseOrder = async (
   branch_id: number,
   flock_id: number,
@@ -159,7 +159,8 @@ export const createPurchaseOrder = async (
     discount_percentage: number;
   }[],
   order_date: string,
-  vehicle_no?: string
+  vehicle_no?: string,
+  warehouse_id?: number  // ✅ NEW PARAMETER
 ) => {
   const module_id = getModuleId();
   try {
@@ -173,6 +174,7 @@ export const createPurchaseOrder = async (
       module_id,
       created_by: user_id,
       vehicle_no,
+      warehouse_id,  // ✅ Added to log
       items: items.map(item => ({
         item_id: item.item_id,
         item_name: item.item_name || '',
@@ -196,6 +198,7 @@ export const createPurchaseOrder = async (
       module_id: module_id,
       created_by: user_id,
       vehicle_no,
+      warehouse_id: warehouse_id || null,  // ✅ ADDED warehouse_id
       items: items.map(item => ({
         item_id: item.item_id,
         item_name: item.item_name || '',     
@@ -217,7 +220,7 @@ export const createPurchaseOrder = async (
   }
 };
 
-// 🔹 Update Purchase Order
+// 🔹 Update Purchase Order - UPDATED with warehouse_id
 export const updatePurchaseOrder = async (
   po_id: number,
   branch_id: number,
@@ -237,7 +240,8 @@ export const updatePurchaseOrder = async (
     discount_percentage?: number;
   }[],
   order_date: string,
-  vehicle_no?: string
+  vehicle_no?: string,
+  warehouse_id?: number  // ✅ NEW PARAMETER
 ) => {  
   const module_id = getModuleId();
   try {
@@ -260,6 +264,7 @@ export const updatePurchaseOrder = async (
       updated_by: user_id,
       order_date,
       vehicle_no,
+      warehouse_id: warehouse_id || null,  // ✅ ADDED warehouse_id
       items: items.map(item => ({
         item_id: item.item_id,
         item_name: item.item_name || '',     

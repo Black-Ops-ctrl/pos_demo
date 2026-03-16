@@ -12,8 +12,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [formData, setFormData] = useState({
     productName: "",
     category: "",
-    uom: "", 
-    // quantity: "",
+    uom_id: "", // Changed from uom to uom_id
     price: "",
   });
   const [loading, setLoading] = useState(false);
@@ -227,7 +226,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       return;
     }
 
-    if (!formData.uom) {
+    if (!formData.uom_id) { // Changed from uom to uom_id
       showToast("Please select a unit of measurement", "warning");
       return;
     }
@@ -252,8 +251,8 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     setError("");
     setSuccessMessage("");
     
-    // Pass the image file and UOM to createProduct
-    const result = await createProduct(formData, categories, barcode, image, formData.uom); // Added UOM parameter
+    // Pass the image file and UOM ID to createProduct
+    const result = await createProduct(formData, categories, barcode, image, formData.uom_id); // Passing uom_id
     
     if (result.success) {
       showToast(result.message, "success");
@@ -266,8 +265,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       setFormData({ 
         productName: "", 
         category: "", 
-        uom: "", // Reset UOM
-        // quantity: "", 
+        uom_id: "", // Reset UOM ID
         price: "" 
       });
       setBarcode("");
@@ -363,17 +361,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             className={inputClass}
           />
         </div>
-        {/* <div className="flex flex-col">
-          <label className="font-bold text-secondary">Quantity *</label>
-          <input
-            type="number"
-            name="quantity"
-            value={formData.quantity}
-            onChange={handleInputChange}
-            placeholder="Enter Quantity"
-            className={inputClass}
-          />
-        </div> */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Price *</label>
           <input
@@ -401,12 +388,12 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             ))}
           </select>
         </div>
-        {/* UOM Dropdown - Added below category */}
+        {/* UOM Dropdown - Using uom_id */}
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Unit of Measurement (UOM) *</label>
           <select
-            name="uom"
-            value={formData.uom}
+            name="uom_id" // Changed from uom to uom_id
+            value={formData.uom_id}
             onChange={handleInputChange}
             className={`${inputClass} ${loadingUOM ? 'opacity-50' : ''}`}
             disabled={loadingUOM}

@@ -198,30 +198,33 @@ const POSLayout = () => {
             />
           </div>
           
-          {/* Category tabs for filtering */}
-          <div className="px-3 sm:px-4 md:px-5 pb-2 sm:pb-3 md:pb-4">
-            <CategoryTabs 
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategorySelect={handleCategorySelect}
-            />
-          </div>
-          
-          {/* Main content split: Product grid and Order summary */}
-          <div className="flex-1 flex flex-col lg:flex-row min-h-0 px-3 sm:px-4 md:px-5 pb-3 sm:pb-4 md:pb-5 gap-4 overflow-hidden">
-            {/* Product grid - takes remaining space */}
-            <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-              <ProductGrid 
-                onProductSelect={handleProductSelect}
-                searchTerm={searchTerm}
-                selectedCategory={selectedCategory}
-                products={products}
-                loading={loading}
-              />
+          {/* Main content with Category Tabs and Order Summary in same row */}
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 px-3 sm:px-4 md:px-5 gap-4 overflow-hidden">
+            {/* Left Column - Categories and Products */}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
+              {/* Category tabs */}
+              <div className="pb-2 sm:pb-3 md:pb-4">
+                <CategoryTabs 
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleCategorySelect}
+                />
+              </div>
+              
+              {/* Product grid */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ProductGrid 
+                  onProductSelect={handleProductSelect}
+                  searchTerm={searchTerm}
+                  selectedCategory={selectedCategory}
+                  products={products}
+                  loading={loading}
+                />
+              </div>
             </div>
             
-            {/* Order summary sidebar - fixed width */}
-            <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 h-full overflow-hidden">
+            {/* Right Column - Order Summary (shifted up) */}
+            <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
               <OrderSummary 
                 scannedBarcode={scannedBarcode}
                 onBarcodeProcessed={handleBarcodeProcessed}
@@ -236,4 +239,4 @@ const POSLayout = () => {
   );
 };
 
-export default POSLayout;
+export default POSLayout; 

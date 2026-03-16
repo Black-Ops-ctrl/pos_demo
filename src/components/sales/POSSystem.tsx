@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, ShoppingCart, CreditCard, Banknote, Smartphone, Printer, Pause, Play } from 'lucide-react';
 import { getItems } from '@/api/itemsApi';
-import { createPOS } from '@/api/posApi';   // 🔹 import API
+import { createPOS } from '@/api/posApi';  
 import { toast, useToast } from "@/hooks/use-toast";
 
 
@@ -134,7 +134,6 @@ const subtotal = cart.reduce((sum, it) => sum + Number((it.price * it.qty - tota
 
   const resumeTransaction = () => {
     setIsTransactionHeld(false);
-    // In real implementation, would load held transaction
   };
 
   // 🔹 New: Save to DB via API

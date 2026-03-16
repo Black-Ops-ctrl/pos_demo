@@ -81,7 +81,7 @@ const UOM: React.FC = () => {
     <div className="flex items-center justify-between">
       <CardTitle>UOMs</CardTitle>
       <Button
-        className="bg-gradient-to-r from-blue-500 to-blue-600"
+        className="bg-gradient-to-r from-blue-500 to-blue-600 text-white"
         onClick={handleAddUOM}
       >
         <Plus className="h-4 w-4 mr-2" />

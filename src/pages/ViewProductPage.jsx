@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import editIcon from '../assets/png/ic_edit_button.png';
 import { fetchProducts, deleteProduct, updateProduct, fetchCategories } from "../core/services/api"; 
+import { getUOM } from "../api/departmentApi"; // Import UOM API
 import Toast from "../components/common/Toast";
 import DeleteConfirmButton from "../components/common/DeleteConfirmButton";
 import { Plus } from "lucide-react";
@@ -17,7 +18,9 @@ const ViewProductsByCategory = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [uomList, setUomList] = useState([]); // State for UOM list
   const [loading, setLoading] = useState(true);
+  const [loadingUOM, setLoadingUOM] = useState(false);
   const [error, setError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   
@@ -49,6 +52,35 @@ const ViewProductsByCategory = () => {
 
   // Decode the category name from URL
   const decodedCategoryName = decodeURIComponent(categoryName);
+  
+  // Load UOM list on component mount
+  useEffect(() => {
+    fetchUOMList();
+  }, []);
+
+  // Function to fetch UOM from API
+  const fetchUOMList = async () => {
+    setLoadingUOM(true);
+    try {
+      const response = await getUOM();
+      console.log("UOM List Response:", response);
+      
+      // Handle different response structures
+      if (response && response.data) {
+        setUomList(response.data);
+      } else if (Array.isArray(response)) {
+        setUomList(response);
+      } else {
+        console.error("Unexpected UOM response format:", response);
+        setUomList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching UOM list:", error);
+      setUomList([]);
+    } finally {
+      setLoadingUOM(false);
+    }
+  };
   
   // Load products and categories when component mounts or category changes
   useEffect(() => {
@@ -96,11 +128,16 @@ const ViewProductsByCategory = () => {
       console.log("Current category from URL:", decodedCategoryName);
       console.log("Found category:", currentCategory);
       
-      // Transform products with category names and images for display
+      // Transform products with category names, UOM, and images for display
       const transformedProducts = productsList.map((item) => {
         // Find category name from categories list
         const productCategory = categoriesList.find(
           cat => cat.category_id === item.category_id
+        );
+        
+        // Find UOM name from UOM list
+        const productUOM = uomList.find(
+          uom => uom.uom_id === item.uom_id
         );
         
         // Get image URL from the API response
@@ -119,6 +156,8 @@ const ViewProductsByCategory = () => {
           image_ext: item?.image_ext,
           description: item?.description || "",
           productCode: item?.product_code,
+          uom_id: item?.uom_id, // Add UOM ID
+          uom_name: productUOM?.uom_name || item?.uom_name || "N/A", // Add UOM name
         };
       });
       
@@ -276,6 +315,17 @@ const ViewProductsByCategory = () => {
     }));
   };
   
+  // Handle UOM change in edit form
+  const handleUOMChange = (e) => {
+    const selectedUOMId = e.target.value;
+    const selectedUOM = uomList.find(u => u.uom_id == selectedUOMId);
+    setSelectedProduct((prevProduct) => ({
+      ...prevProduct,
+      uom_id: selectedUOMId,
+      uom_name: selectedUOM?.uom_name || "N/A",
+    }));
+  };
+  
   // Handle image file selection and preview
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -310,6 +360,9 @@ const ViewProductsByCategory = () => {
     }
     if (selectedProduct.barcode !== originalProduct.barcode) {
       updateData.barcode = selectedProduct.barcode;
+    }
+    if (selectedProduct.uom_id !== originalProduct.uom_id) {
+      updateData.uom_id = selectedProduct.uom_id; // Include UOM ID in update
     }
     
     // Check if any changes were made (including image)
@@ -534,6 +587,7 @@ const ViewProductsByCategory = () => {
                 </th>
                 <th className="p-3">Product Name</th>
                 <th className="p-3">Category</th>
+                <th className="p-3">UOM</th> {/* New UOM column */}
                 <th className="p-3">Barcode</th>
                 <th className="p-3">Stock Status</th>
                 <th className="p-3">Quantity</th>
@@ -569,6 +623,7 @@ const ViewProductsByCategory = () => {
                     </div>
                   </td>
                   <td className="p-3 align-middle">{product.category_name}</td>
+                  <td className="p-3 align-middle">{product.uom_name}</td> {/* Display UOM */}
                   <td className="p-3 align-middle">{product.barcode}</td>
                   <td className="p-3 align-middle">
                     <span
@@ -606,7 +661,7 @@ const ViewProductsByCategory = () => {
         </div>
       )}
 
-      {/* Edit Product Modal */}
+      {/* Edit Product Modal with UOM Dropdown */}
       {modalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
           <div className="bg-primary p-8 rounded-xl shadow-xl w-96 max-w-full">
@@ -636,6 +691,28 @@ const ViewProductsByCategory = () => {
                   onChange={handleInputChange}
                   className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
                 />
+              </div>
+
+              {/* UOM Dropdown */}
+              <div>
+                <label className="block text-secondary mb-1 font-medium">Unit of Measurement (UOM)</label>
+                <select
+                  name="uom_id"
+                  value={selectedProduct.uom_id || ""}
+                  onChange={handleUOMChange}
+                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  disabled={loadingUOM}
+                >
+                  <option value="">Select UOM</option>
+                  {uomList.map((uom) => (
+                    <option key={uom.uom_id || uom.id} value={uom.uom_id || uom.id}>
+                      {uom.uom_name || uom.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingUOM && (
+                  <p className="text-xs text-gray-500 mt-1">Loading UOM list...</p>
+                )}
               </div>
 
               {/* Price */}

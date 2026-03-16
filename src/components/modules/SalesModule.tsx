@@ -231,14 +231,14 @@ const SalesModule: React.FC = () => {
                     </Button>
                     
                     {/* Centered Title */}
-                    <h2 className="text-2xl font-bold text-white tracking-wide">
+                    <h2 className="text-2xl font-bold text-primary tracking-wide">
                         POS System
                     </h2>                    
                 </div>
             </div>
             
             {/* Content Area with Gradient Background */}
-            <div className="p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 min-h-screen">
+            <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 min-h-screen">
                 <Dashboard />
             </div>
         </div>

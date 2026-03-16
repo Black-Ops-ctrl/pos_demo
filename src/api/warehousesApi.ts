@@ -1,6 +1,14 @@
+// api/warehouse.ts
 import axios from "axios";
 
 const API_URL = "http://84.16.235.111:2140/api/warehouses";
+
+export interface Warehouse {
+  warehouse_id: number;
+  warehouse_code: string;
+  warehouse_name: string;
+  address: string;
+}
 
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {
@@ -21,13 +29,13 @@ const handleApiError = (error: any) => {
 export const getwarehouses = async () => {
   try {
     const res = await axios.post(API_URL, { operation: 1 });
-   console.log("API Response:", res.data);
+    console.log("API Response:", res.data);
     return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
-//  Add Warehouse
+
 export const addWarehouse = async (
   warehouse_code: string,
   warehouse_name: string,
@@ -40,14 +48,12 @@ export const addWarehouse = async (
       warehouse_name,
       address
     });
-    
     return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
-// 🔹 Update Warehouse
 export const updateWarehouse = async (
   warehouse_id: number,
   warehouse_code: string,
@@ -61,22 +67,20 @@ export const updateWarehouse = async (
       warehouse_code,
       warehouse_name,
       address
-      
     });
-    return res.data ;
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
 };
 
-//  Delete Warehouse
 export const deleteWarehouse = async (warehouse_id: number) => {
   try {
     const res = await axios.post(API_URL, {
       operation: 4,
       warehouse_id,
     });
-    return res.data ; 
+    return res.data;
   } catch (error) {
     handleApiError(error);
   }
