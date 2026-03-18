@@ -21,28 +21,23 @@ import {
   TrendingDown,
   Minus
 } from 'lucide-react';
-import { getItemProfitLoss } from "@/api/itemProfitLossApi";
+import { getProductProfitLoss } from "@/api/itemProfitLossApi";
 import { fetchProducts } from '@/core/services/api/fetchProducts';
 import { toast } from '@/hooks/use-toast';
 
 interface Product {
   product_id: number;
   product_name: string;
-  item_id?: number;
-  id?: number;
-  name?: string;
 }
 
 interface ProfitLossRow {
-  item_id: number;
-  item_name: string;
-  purchase_rate: number;
-  sale_rate: number;
-  sold_quantity: number;
-  difference_per_unit: number;
-  total_difference: number;
-  profit: number;
-  loss: number;
+  product_id: number;
+  product_name: string;
+  total_purchase: string;
+  total_sale: string;
+  sold_quantity: string;
+  profit: string;
+  loss: string;
 }
 
 const ItemProfitLoss: React.FC = () => {
@@ -69,11 +64,9 @@ const ItemProfitLoss: React.FC = () => {
       const productsData = await fetchProducts();
       console.log("Products loaded:", productsData);
       
-      // Transform products to consistent format
       const transformedProducts = productsData.map((prod: any) => ({
         product_id: prod.product_id || prod.id || prod.item_id || 0,
-        product_name: prod.product_name || prod.name || prod.title || `Product #${prod.product_id || prod.id}`,
-        item_id: prod.product_id || prod.id || prod.item_id
+        product_name: prod.product_name || prod.name || prod.title || `Product #${prod.product_id || prod.id}`
       }));
       
       setProducts(transformedProducts);
@@ -89,9 +82,8 @@ const ItemProfitLoss: React.FC = () => {
     }
   };
 
-  // Load report
+  // Load report using the API
   const loadReport = async () => {
-    // Validate dates
     if (!start_date || !end_date) {
       toast({
         title: "Validation Error",
@@ -112,19 +104,24 @@ const ItemProfitLoss: React.FC = () => {
 
     setLoading(true);
     try {
-      const data = await getItemProfitLoss(product_id, start_date, end_date);
+      const data = await getProductProfitLoss(
+        product_id || null,
+        start_date,
+        end_date
+      );
+      
       console.log("Report data received:", data);
       setReport(data);
       
-      // Calculate totals
+      // Calculate totals from API data
       let profitTotal = 0;
       let lossTotal = 0;
       let soldQtyTotal = 0;
       
       data.forEach((item: ProfitLossRow) => {
-        profitTotal += item.profit || 0;
-        lossTotal += item.loss || 0;
-        soldQtyTotal += item.sold_quantity || 0;
+        profitTotal += parseFloat(item.profit) || 0;
+        lossTotal += parseFloat(item.loss) || 0;
+        soldQtyTotal += parseFloat(item.sold_quantity) || 0;
       });
       
       setTotalProfit(profitTotal);
@@ -134,14 +131,10 @@ const ItemProfitLoss: React.FC = () => {
       
       // Filter products to only show those that exist in the report
       if (data.length > 0) {
-        const reportItemIds = new Set(data.map((item: ProfitLossRow) => item.item_id));
-        console.log("Report Item IDs:", reportItemIds);
-        
-        // Get full product details from products list that match report IDs
+        const reportItemIds = new Set(data.map((item: ProfitLossRow) => item.product_id));
         const availableProducts = products.filter(prod => 
-          reportItemIds.has(prod.product_id) || reportItemIds.has(prod.item_id || 0)
+          reportItemIds.has(prod.product_id)
         );
-        console.log("Available products for dropdown:", availableProducts);
         setFilteredProducts(availableProducts);
       } else {
         setFilteredProducts([]);
@@ -178,7 +171,7 @@ const ItemProfitLoss: React.FC = () => {
   };
 
   // Format number with commas and decimal places
-  const formatNumber = (num: number | string): string => {
+  const formatNumber = (num: string | number): string => {
     if (num === null || num === undefined || num === '') return '0';
     
     const numberValue = typeof num === 'string' ? parseFloat(num) : num;
@@ -190,16 +183,19 @@ const ItemProfitLoss: React.FC = () => {
     });
   };
 
-  // Get status badge with proper alignment
-  const getStatusBadge = (difference: number) => {
-    if (difference > 0) {
+  // Get status badge based on profit/loss
+  const getStatusBadge = (profit: string, loss: string) => {
+    const profitNum = parseFloat(profit) || 0;
+    const lossNum = parseFloat(loss) || 0;
+    
+    if (profitNum > 0) {
       return (
         <div className="flex items-center justify-center gap-1">
           <TrendingUp className="w-4 h-4 text-green-600" />
           <span className="text-green-600 font-medium">Profit</span>
         </div>
       );
-    } else if (difference < 0) {
+    } else if (lossNum > 0) {
       return (
         <div className="flex items-center justify-center gap-1">
           <TrendingDown className="w-4 h-4 text-red-600" />
@@ -209,8 +205,8 @@ const ItemProfitLoss: React.FC = () => {
     } else {
       return (
         <div className="flex items-center justify-center gap-1">
-          <Minus className="w-4 h-4 text-gray-500" />
-          <span className="text-gray-500 font-medium">Break Even</span>
+          {/* <Minus] className="w-4 h-4 text-gray-500" /> */}
+          <span className="text-gray-500 font-medium">N/A</span>
         </div>
       );
     }
@@ -262,7 +258,7 @@ const ItemProfitLoss: React.FC = () => {
           </style>
         </head>
         <body>
-          <h2>Item Profit & Loss Report</h2>
+          <h2>Product Profit & Loss Report</h2>
           <div class="header">
             <div><strong>Period:</strong> ${start_date} to ${end_date}</div>
             <div><strong>Generated:</strong> ${today}</div>
@@ -285,7 +281,7 @@ const ItemProfitLoss: React.FC = () => {
               </div>
               <div class="summary-item">
                 <div class="summary-label">Net Profit/Loss</div>
-                <div class="summary-value ${netProfit >= 0 ? 'profit' : 'loss'}">${formatNumber(netProfit)}</div>
+                <div class="summary-value ${netProfit >= 0 ? 'profit' : 'loss'}">${formatNumber(Math.abs(netProfit))}</div>
               </div>
             </div>
           </div>
@@ -294,29 +290,29 @@ const ItemProfitLoss: React.FC = () => {
             <thead>
               <tr>
                 <th>Product Name</th>
-                <th>Purchase Rate</th>
-                <th>Sale Rate</th>
-                <th>Sold Qty</th>
-                <th>Diff/Unit</th>
+                <th>Total Purchase</th>
+                <th>Total Sale</th>
+                <th>Sold Quantity</th>
                 <th class="text-center">Status</th>
-                <th>Total Profit</th>
-                <th>Total Loss</th>
+                <th>Profit</th>
+                <th>Loss</th>
               </tr>
             </thead>
             <tbody>
               ${report.map(r => {
-                const status = r.difference_per_unit > 0 ? 'Profit' : r.difference_per_unit < 0 ? 'Loss' : 'Break Even';
-                const statusClass = r.difference_per_unit > 0 ? 'profit' : r.difference_per_unit < 0 ? 'loss' : 'break-even';
+                const profitNum = parseFloat(r.profit) || 0;
+                const lossNum = parseFloat(r.loss) || 0;
+                const status = profitNum > 0 ? 'Profit' : lossNum > 0 ? 'Loss' : 'Break Even';
+                const statusClass = profitNum > 0 ? 'profit' : lossNum > 0 ? 'loss' : 'break-even';
                 return `
                   <tr>
-                    <td>${r.item_name}</td>
-                    <td>${formatNumber(r.purchase_rate)}</td>
-                    <td>${formatNumber(r.sale_rate)}</td>
+                    <td>${r.product_name}</td>
+                    <td>${formatNumber(r.total_purchase)}</td>
+                    <td>${formatNumber(r.total_sale)}</td>
                     <td>${formatNumber(r.sold_quantity)}</td>
-                    <td class="${statusClass}">${formatNumber(r.difference_per_unit)}</td>
                     <td class="text-center ${statusClass}">${status}</td>
-                    <td class="profit">${formatNumber(r.profit || 0)}</td>
-                    <td class="loss">${formatNumber(r.loss || 0)}</td>
+                    <td class="profit">${formatNumber(r.profit)}</td>
+                    <td class="loss">${formatNumber(r.loss)}</td>
                   </tr>
                 `;
               }).join('')}
@@ -347,7 +343,7 @@ const ItemProfitLoss: React.FC = () => {
       <CardContent>
         {/* Filters Section */}
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
-          {/* Product Dropdown - Using fetchProducts API */}
+          {/* Product Dropdown */}
           <div className="w-full md:w-80">
             <Popover open={productOpen} onOpenChange={setProductOpen}>
               <PopoverTrigger asChild>
@@ -374,10 +370,8 @@ const ItemProfitLoss: React.FC = () => {
                         : "No products found"}
                   </CommandEmpty>
                   <CommandGroup className="max-h-[250px] overflow-auto">
-                    {/* Show products only if report has data and filteredProducts is populated */}
                     {filteredProducts.length > 0 ? (
                       <>
-                        {/* All Products option */}
                         <CommandItem
                           onSelect={() => {
                             setProductId(0);
@@ -394,7 +388,6 @@ const ItemProfitLoss: React.FC = () => {
                           All Products
                         </CommandItem>
                         
-                        {/* Individual products from report */}
                         {filteredProducts.map(prod => (
                           <CommandItem
                             key={prod.product_id}
@@ -415,29 +408,18 @@ const ItemProfitLoss: React.FC = () => {
                         ))}
                       </>
                     ) : (
-                      // Show message when no products in report
-                      report.length > 0 ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          No matching products found in report
-                        </div>
-                      ) : (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          {loadingProducts 
-                            ? "Loading products..." 
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        {loadingProducts 
+                          ? "Loading products..." 
+                          : report.length > 0 
+                            ? "No matching products found in report"
                             : "Load report first to see products"}
-                        </div>
-                      )
+                      </div>
                     )}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
             </Popover>
-            {/* Show count of available products */}
-            {filteredProducts.length > 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                {filteredProducts.length} product(s) available in report
-              </div>
-            )}
           </div>
 
           {/* Date Inputs */}
@@ -528,51 +510,49 @@ const ItemProfitLoss: React.FC = () => {
           </div>
         )}
 
-        {/* Report Table */}
+        {/* Report Table - Showing ONLY API Data */}
         <div ref={printRef}>
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader className="bg-gray-50">
                 <TableRow>
-                  <TableHead className="w-[200px]">Product Name</TableHead>
-                  <TableHead className="text-right">Purchase Rate</TableHead>
-                  <TableHead className="text-right">Sale Rate</TableHead>
-                  <TableHead className="text-right">Sold Qty</TableHead>
-                  <TableHead className="text-right">Diff/Unit</TableHead>
+                  <TableHead className="w-[250px]">Product Name</TableHead>
+                  <TableHead className="text-right">Total Purchase</TableHead>
+                  <TableHead className="text-right">Total Sale</TableHead>
+                  <TableHead className="text-right">Sold Quantity</TableHead>
                   <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Total Profit</TableHead>
-                  <TableHead className="text-right">Total Loss</TableHead>
+                  <TableHead className="text-right">Profit</TableHead>
+                  <TableHead className="text-right">Loss</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {report.length > 0 ? (
-                  report.map((r) => (
-                    <TableRow key={r.item_id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">{r.item_name}</TableCell>
-                      <TableCell className="text-right">{formatNumber(r.purchase_rate)}</TableCell>
-                      <TableCell className="text-right">{formatNumber(r.sale_rate)}</TableCell>
-                      <TableCell className="text-right">{formatNumber(r.sold_quantity)}</TableCell>
-                      <TableCell className={`text-right font-semibold ${
-                        r.difference_per_unit > 0 ? 'text-green-600' : 
-                        r.difference_per_unit < 0 ? 'text-red-600' : 'text-gray-500'
-                      }`}>
-                        {formatNumber(r.difference_per_unit)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {getStatusBadge(r.difference_per_unit)}
-                      </TableCell>
-                      <TableCell className="text-right text-green-600 font-semibold">
-                        {formatNumber(r.profit || 0)}
-                      </TableCell>
-                      <TableCell className="text-right text-red-600 font-semibold">
-                        {formatNumber(r.loss || 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  report.map((r) => {
+                    const profitNum = parseFloat(r.profit) || 0;
+                    const lossNum = parseFloat(r.loss) || 0;
+                    
+                    return (
+                      <TableRow key={r.product_id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{r.product_name}</TableCell>
+                        <TableCell className="text-right">{formatNumber(r.total_purchase)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(r.total_sale)}</TableCell>
+                        <TableCell className="text-right">{formatNumber(r.sold_quantity)}</TableCell>
+                        <TableCell className="text-center">
+                          {getStatusBadge(r.profit, r.loss)}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600 font-semibold">
+                          {formatNumber(r.profit)}
+                        </TableCell>
+                        <TableCell className="text-right text-red-600 font-semibold">
+                          {formatNumber(r.loss)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       {loading ? (
                         <div className="flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin mr-2" />
