@@ -17,7 +17,7 @@ const City: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingCity, setEditingCity] = useState<City | null>(null);
-          const [showScrollToTop, setShowScrollToTop] = useState(false); // ✅ New state for scroll button
+          const [showScrollToTop, setShowScrollToTop] = useState(false); 
   
   const [Cities, setCities] = useState<City[]>([]);
 
@@ -25,15 +25,6 @@ const City: React.FC = () => {
   useEffect(() => {
     loadCities();
   }, []);
-
-
-
-
-  
-
-
-
-
 
   const loadCities = async () => {
     try {

@@ -1,4 +1,3 @@
-// src/api/cityApi.ts  <-- (Recommended change from departmentApi.ts to reflect content)
 import axios from "axios";
 
 const API_URL = "http://84.16.235.111:2140/api/city";

@@ -1,13 +1,53 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search } from "lucide-react";
-// TopBar component handles search input, barcode scanning, and user profile display
-const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnterPress }) => {
+import { Search, User, ChevronDown, UserPlus, CreditCard, TrendingUp } from "lucide-react";
+
+// TopBar component handles search input, barcode scanning, and customer selection
+const TopBar = ({ 
+  searchTerm, 
+  setSearchTerm, 
+  onSearch, 
+  onBarcodeScanned, 
+  onEnterPress,
+  selectedCustomer,
+  onCustomerSelect 
+}) => {
   // Local state for immediate input updates while maintaining parent state
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || "");
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [localSelectedCustomer, setLocalSelectedCustomer] = useState(selectedCustomer || null);
+  
   // Refs for barcode scanner input buffer and timing
   const inputBuffer = useRef("");
   const lastTime = useRef(0);
   const barcodeTimeout = useRef(null);
+  const customerDropdownRef = useRef(null);
+
+  // Customer options
+  const customerOptions = [
+    { id: 'walkin', name: 'Walk In Customer', icon: UserPlus, type: 'walkin' },
+    { id: 'debit', name: 'Debit Customer', icon: CreditCard, type: 'debit' },
+    { id: 'credit', name: 'Credit Customer', icon: TrendingUp, type: 'credit' }
+  ];
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalSelectedCustomer(selectedCustomer);
+  }, [selectedCustomer]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Effect to handle barcode scanner input by capturing rapid key presses
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -91,12 +131,14 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
       }
     };
   }, [onBarcodeScanned, setSearchTerm]);
+
   // Handle manual input changes from search field
   const handleInputChange = (e) => {
     const value = e.target.value;
     setLocalSearchTerm(value);
     setSearchTerm(value);
   };
+
   // Handle Enter key press for manual search
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -112,6 +154,7 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
       }
     }
   };
+
   // Handle search icon click for manual search
   const handleSearchClick = () => {
     if (localSearchTerm.trim()) {
@@ -119,6 +162,24 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
       onSearch(localSearchTerm);
     }
   };
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer) => {
+    console.log("Customer selected in TopBar:", customer);
+    setLocalSelectedCustomer(customer);
+    onCustomerSelect(customer);
+    setIsCustomerDropdownOpen(false);
+  };
+
+  // Get selected customer details
+  const getSelectedCustomerDetails = () => {
+    if (localSelectedCustomer) {
+      return customerOptions.find(c => c.id === localSelectedCustomer.id);
+    }
+    return null;
+  };
+
+  const selectedCustomerDetails = getSelectedCustomerDetails();
 
   return (
     <div className="flex items-center justify-between gap-2 sm:gap-3 w-full">
@@ -139,19 +200,81 @@ const TopBar = ({ searchTerm, setSearchTerm, onSearch, onBarcodeScanned, onEnter
           className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-300 border border-transparent focus:border-red-300 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm"
         />
       </div>
-      {/* User profile section */}
-      {/* <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-        <img
-          src="/img_category.webp"
-          alt="avatar"
-          className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-full object-cover border-2 border-gray-200"
-        />
-        <div className="text-right hidden xs:block">
-          <p className="font-semibold text-xs sm:text-sm md:text-base whitespace-nowrap">Lauren Smith</p>
-          <p className="text-[10px] sm:text-xs text-gray-400 whitespace-nowrap">Cashier</p>
-        </div>
-      </div> */}
+
+      {/* Customer Dropdown Menu */}
+      <div className="relative flex-shrink-0" ref={customerDropdownRef}>
+        <button
+          onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors border border-transparent focus:outline-none focus:ring-2 focus:ring-red-300 min-w-[140px] sm:min-w-[160px]"
+          type="button"
+        >
+          <div className="flex items-center gap-2 flex-1">
+            {selectedCustomerDetails ? (
+              <>
+                <selectedCustomerDetails.icon size={16} className="text-gray-600" />
+                <span className="text-xs sm:text-sm font-medium truncate">
+                  {selectedCustomerDetails.name}
+                </span>
+              </>
+            ) : (
+              <>
+                <User size={16} className="text-gray-600" />
+                <span className="text-xs sm:text-sm font-medium text-gray-600">
+                  Select Customer
+                </span>
+              </>
+            )}
+          </div>
+          <ChevronDown 
+            size={14} 
+            className={`text-gray-500 transition-transform duration-200 ${isCustomerDropdownOpen ? 'rotate-180' : ''}`} 
+          />
+        </button>
+        
+        {/* Dropdown Menu */}
+        {isCustomerDropdownOpen && (
+          <div className="absolute top-full right-0 mt-1 w-48 sm:w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+            <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
+              SELECT CUSTOMER TYPE
+            </div>
+            {customerOptions.map((customer) => {
+              const Icon = customer.icon;
+              const isSelected = localSelectedCustomer?.id === customer.id;
+              
+              return (
+                <button
+                  key={customer.id}
+                  onClick={() => handleCustomerSelect(customer)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs sm:text-sm hover:bg-gray-50 transition-colors ${
+                    isSelected ? 'bg-red-50 text-red-600' : 'text-gray-700'
+                  }`}
+                  type="button"
+                >
+                  <Icon size={16} className={isSelected ? 'text-red-500' : 'text-gray-500'} />
+                  <span className="flex-1 text-left font-medium">{customer.name}</span>
+                  {customer.type === 'walkin' && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">
+                      Default
+                    </span>
+                  )}
+                  {customer.type === 'debit' && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                      Prepaid
+                    </span>
+                  )}
+                  {customer.type === 'credit' && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                      Postpaid
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
 export default TopBar;
