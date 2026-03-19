@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, User, ChevronDown, UserPlus, CreditCard, TrendingUp } from "lucide-react";
+import { getCustomers } from "../../api/customerApi"; // Adjust the import path as needed
 
 // TopBar component handles search input, barcode scanning, and customer selection
 const TopBar = ({ 
@@ -16,23 +17,72 @@ const TopBar = ({
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [localSelectedCustomer, setLocalSelectedCustomer] = useState(selectedCustomer || null);
   
+  // State for customers from API
+  const [customers, setCustomers] = useState([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
   // Refs for barcode scanner input buffer and timing
   const inputBuffer = useRef("");
   const lastTime = useRef(0);
   const barcodeTimeout = useRef(null);
   const customerDropdownRef = useRef(null);
 
-  // Customer options
-  const customerOptions = [
-    { id: 'walkin', name: 'Walk In Customer', icon: UserPlus, type: 'walkin' },
-    { id: 'debit', name: 'Debit Customer', icon: CreditCard, type: 'debit' },
-    { id: 'credit', name: 'Credit Customer', icon: TrendingUp, type: 'credit' }
-  ];
+  // Load customers from API
+  const loadCustomers = async (isInitialLoad = false) => {
+    setLoadingCustomers(true);
+    try {
+      const response = await getCustomers();
+      // Extract customers from response (handle different response structures)
+      const customersData = response?.data || response || [];
+      setCustomers(customersData);
+      console.log("Loaded customers:", customersData);
+      
+      // 👇 BY DEFAULT FIRST CUSTOMER SELECT KARO (SIRF PEHLI BAR)
+      if (isInitialLoad && customersData.length > 0 && !selectedCustomer) {
+        const firstCustomer = customersData[0];
+        const defaultCustomer = {
+          id: firstCustomer.customer_id,
+          name: firstCustomer.customer_name,
+          phone: firstCustomer.phone,
+          email: firstCustomer.email,
+          address: firstCustomer.address,
+          city: firstCustomer.city,
+          type: firstCustomer.customer_type || 'debit',
+          icon: firstCustomer.customer_type === 'credit' ? TrendingUp : CreditCard
+        };
+        
+        console.log("✅ Auto-selecting first customer:", defaultCustomer);
+        setLocalSelectedCustomer(defaultCustomer);
+        onCustomerSelect(defaultCustomer);
+      }
+      
+    } catch (error) {
+      console.error("Error loading customers:", error);
+    } finally {
+      setLoadingCustomers(false);
+      setInitialLoadDone(true);
+    }
+  };
+
+  // 👇 COMPONENT MOUNT PE CUSTOMERS LOAD KARO AUR FIRST SELECT KARO
+  useEffect(() => {
+    loadCustomers(true); // true means initial load
+  }, []);
 
   // Update local state when prop changes
   useEffect(() => {
-    setLocalSelectedCustomer(selectedCustomer);
+    if (selectedCustomer) {
+      setLocalSelectedCustomer(selectedCustomer);
+    }
   }, [selectedCustomer]);
+
+  // Load customers when dropdown opens (refresh list)
+  useEffect(() => {
+    if (isCustomerDropdownOpen) {
+      loadCustomers(false); // false means not initial load, don't auto-select
+    }
+  }, [isCustomerDropdownOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -163,20 +213,35 @@ const TopBar = ({
     }
   };
 
-  // Handle customer selection
-  const handleCustomerSelect = (customer) => {
-    console.log("Customer selected in TopBar:", customer);
-    setLocalSelectedCustomer(customer);
-    onCustomerSelect(customer);
+  // Handle existing customer selection from API
+  const handleExistingCustomerSelect = (customer) => {
+    const selectedCustomer = {
+      id: customer.customer_id,
+      name: customer.customer_name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      city: customer.city,
+      type: customer.customer_type || 'debit',
+      icon: customer.customer_type === 'credit' ? TrendingUp : CreditCard
+    };
+    
+    console.log("Existing customer selected:", selectedCustomer);
+    setLocalSelectedCustomer(selectedCustomer);
+    onCustomerSelect(selectedCustomer);
     setIsCustomerDropdownOpen(false);
   };
 
-  // Get selected customer details
+  // Get selected customer details for display
   const getSelectedCustomerDetails = () => {
-    if (localSelectedCustomer) {
-      return customerOptions.find(c => c.id === localSelectedCustomer.id);
-    }
-    return null;
+    if (!localSelectedCustomer) return null;
+    
+    return {
+      id: localSelectedCustomer.id,
+      name: localSelectedCustomer.name,
+      phone: localSelectedCustomer.phone,
+      icon: localSelectedCustomer.icon || (localSelectedCustomer.type === 'credit' ? TrendingUp : CreditCard)
+    };
   };
 
   const selectedCustomerDetails = getSelectedCustomerDetails();
@@ -231,45 +296,62 @@ const TopBar = ({
           />
         </button>
         
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu - Only API Customers */}
         {isCustomerDropdownOpen && (
-          <div className="absolute top-full right-0 mt-1 w-48 sm:w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-            <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100">
-              SELECT CUSTOMER TYPE
+          <div className="absolute top-full right-0 mt-1 w-64 sm:w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
+            {/* Header */}
+            <div className="px-3 py-2 text-xs font-semibold text-gray-500 border-b border-gray-100 sticky top-0 bg-white">
+              SELECT CUSTOMER
             </div>
-            {customerOptions.map((customer) => {
-              const Icon = customer.icon;
-              const isSelected = localSelectedCustomer?.id === customer.id;
-              
-              return (
-                <button
-                  key={customer.id}
-                  onClick={() => handleCustomerSelect(customer)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-xs sm:text-sm hover:bg-gray-50 transition-colors ${
-                    isSelected ? 'bg-red-50 text-red-600' : 'text-gray-700'
-                  }`}
-                  type="button"
-                >
-                  <Icon size={16} className={isSelected ? 'text-red-500' : 'text-gray-500'} />
-                  <span className="flex-1 text-left font-medium">{customer.name}</span>
-                  {customer.type === 'walkin' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">
-                      Default
-                    </span>
-                  )}
-                  {customer.type === 'debit' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                      Prepaid
-                    </span>
-                  )}
-                  {customer.type === 'credit' && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-full">
-                      Postpaid
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            
+            {/* Loading State */}
+            {loadingCustomers ? (
+              <div className="px-4 py-8 text-xs text-gray-500 text-center">
+                Loading customers...
+              </div>
+            ) : (
+              <>
+                {/* Customers List */}
+                {customers.length > 0 ? (
+                  customers.map((customer) => (
+                    <button
+                      key={customer.customer_id}
+                      onClick={() => handleExistingCustomerSelect(customer)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-xs sm:text-sm hover:bg-gray-50 transition-colors text-gray-700 border-b border-gray-50 last:border-b-0 ${
+                        localSelectedCustomer?.id === customer.customer_id ? 'bg-red-50' : ''
+                      }`}
+                      type="button"
+                    >
+                      {customer.customer_type === 'credit' ? (
+                        <TrendingUp size={16} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
+                      ) : (
+                        <CreditCard size={16} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
+                      )}
+                      <div className="flex-1 text-left">
+                        <div className={`font-medium ${localSelectedCustomer?.id === customer.customer_id ? 'text-red-600' : 'text-gray-700'}`}>
+                          {customer.customer_name}
+                        </div>
+                        {customer.phone && (
+                          <div className="text-xs text-gray-500">{customer.phone}</div>
+                        )}
+                      </div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        customer.customer_type === 'credit' 
+                          ? 'bg-orange-100 text-orange-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {customer.customer_type === 'credit' ? 'Credit' : 'Debit'}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  /* No customers message */
+                  <div className="px-4 py-8 text-xs text-gray-500 text-center">
+                    No customers found
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

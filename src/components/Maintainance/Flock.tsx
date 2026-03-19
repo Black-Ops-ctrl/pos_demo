@@ -27,7 +27,7 @@ import { getCompanies } from "@/api/companyApi";
 import { getCity } from "@/api/cityApi";
 import { getAccounts } from "@/api/accountsApi";
 
-const FLOCK_STATUS_API_URL = "http://84.16.235.111:2091/api/flock-status";
+const FLOCK_STATUS_API_URL = "http://84.16.235.111:2140/api/flock-status";
 
 interface Partner {
   partner_account_id: number;

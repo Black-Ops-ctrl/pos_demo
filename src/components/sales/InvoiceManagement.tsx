@@ -188,6 +188,11 @@ const SalesInvoice: React.FC = () => {
                 ? await getSaleInvoices(from, to)
                 : await getSaleInvoices();
             
+            console.log("📦 Loaded invoices:", data);
+            if (data.length > 0) {
+                console.log("Sample invoice customer:", data[0].customer_name);
+            }
+            
             setSalesInvoices(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Error loading sales invoices", error);
@@ -402,6 +407,9 @@ const SalesInvoice: React.FC = () => {
     const totalAmount = Number(invoice.total_amount || 0);
     const grandTotal = totalAmount;
     
+    // Get customer name for display
+    const customerDisplay = invoice.customer_name || 'Walk In Customer';
+    
     // Fixed payment term extraction - handles "POS Sale - card payment" format
     let paymentMethod = 'Not Specified';
     
@@ -597,8 +605,11 @@ const SalesInvoice: React.FC = () => {
 
                 <table class="details-table">
                     <tr>
+                        <td><strong>Customer:</strong> ${customerDisplay}</td>
                         <td><strong>Payment Method:</strong> ${paymentMethod}</td>
-                        <!-- <td><strong>Narration:</strong> ${invoice.remarks || ""}</td> -->
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Narration:</strong> ${invoice.remarks || ""}</td>
                     </tr>
                 </table>
 
@@ -681,10 +692,14 @@ const SalesInvoice: React.FC = () => {
         ? salesInvoices.filter((si) => {
             if (!si) return false;
             const term = (searchTerm || "").toLowerCase();
+            
+            // Ensure customer_name has a default value for searching
+            const customerName = si.customer_name || 'Walk In Customer';
+            
             return (
+                customerName.toLowerCase().includes(term) ||
                 (si.branch_name || "").toLowerCase().includes(term) ||
-                (si.sales_invoice_no?.toString() || "").includes(term) ||
-                (si.customer_name || "").toLowerCase().includes(term)
+                (si.sales_invoice_no?.toString() || "").includes(term)
             );
         })
         : [];
@@ -799,7 +814,7 @@ const SalesInvoice: React.FC = () => {
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
-                            placeholder="Search Invoices..."
+                            placeholder="Search by Customer, Branch or Invoice No..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10"
@@ -855,6 +870,7 @@ const SalesInvoice: React.FC = () => {
                             <TableRow>
                                 <TableHead>Invoice No</TableHead>
                                 <TableHead>Invoice Date</TableHead>
+                                <TableHead>Customer Name</TableHead>
                                 <TableHead>Total Amount</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>
@@ -869,11 +885,20 @@ const SalesInvoice: React.FC = () => {
                                     const isClosed = si.status === 'CLOSED';
                                     const isEditable = si.status === 'CREATED';
 
+                                    // Default to "Walk In Customer" if customer_name is empty
+                                    const customerDisplay = si.customer_name || 'Walk In Customer';
+
                                     return (
                                         <TableRow key={si.sales_invoice_id}>
                                             <TableCell className="font-medium">{si.sales_invoice_no}</TableCell>
                                             <TableCell>{si.invoice_date ? new Date(si.invoice_date).toLocaleDateString() : ''}</TableCell>
-                                            <TableCell>{si.total_amount}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Users className="h-3 w-3 text-gray-400" />
+                                                    <span className="font-medium">{customerDisplay}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-medium">Rs {si.total_amount?.toLocaleString() || '0'}</TableCell>
                                             <TableCell className="flex gap-2">
                                                 <Button
                                                     size="sm"
@@ -883,17 +908,6 @@ const SalesInvoice: React.FC = () => {
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
-
-                                                {/* {isEditable && (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleEditSI(si.sales_invoice_id)}
-                                                        title="Edit Invoice"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                )} */}
 
                                                 {si.status === "CREATED" && (
                                                     <Button
@@ -919,7 +933,7 @@ const SalesInvoice: React.FC = () => {
                                 })
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                                         {isLoading ? "Loading..." : "No invoices found"}
                                     </TableCell>
                                 </TableRow>
@@ -945,6 +959,12 @@ const SalesInvoice: React.FC = () => {
                                 <tr>
                                     <td className="p-2 font-medium text-gray-600 border">Invoice Date</td>
                                     <td className="p-2 border">{viewingSO.invoice_date ? new Date(viewingSO.invoice_date).toLocaleDateString() : ''}</td>
+                                </tr>
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Customer Name</td>
+                                    <td className="p-2 border font-medium">
+                                        {viewingSO.customer_name || 'Walk In Customer'}
+                                    </td>
                                 </tr>
                                 {/* Extract from remarks if payment_term is null */}
                                 {!viewingSO.payment_term && viewingSO.remarks && viewingSO.remarks.includes('payment') && (
@@ -993,6 +1013,12 @@ const SalesInvoice: React.FC = () => {
                                             ? viewingSO.items.reduce((sum, item) => 
                                                 sum + Number(item.tax || 0), 0).toFixed(2)
                                             : '0.00'}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td className="p-2 font-medium text-gray-600 border">Total Amount</td>
+                                    <td className="p-2 border font-bold text-blue-600">
+                                        Rs {Number(viewingSO.total_amount || 0).toFixed(2)}
                                     </td>
                                 </tr>
                             </tbody>
@@ -1048,8 +1074,8 @@ const SalesInvoice: React.FC = () => {
                                                 sum + Number(item.tax || 0), 0).toFixed(2)
                                             : '0.00'}
                                     </td>
-                                    <td className="p-2 border">
-                                        {Number(viewingSO.total_amount || 0).toFixed(2)}
+                                    <td className="p-2 border font-bold">
+                                        Rs {Number(viewingSO.total_amount || 0).toFixed(2)}
                                     </td>
                                 </tr>
                             </tfoot>

@@ -903,7 +903,7 @@ const PurchaseOrders: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Purchase Orders
+              Purchase Invoice
             </CardTitle>
             <div className="flex items-center gap-2">
               {/* Approve and Unapprove buttons - only show when items are selected */}
@@ -932,7 +932,7 @@ const PurchaseOrders: React.FC = () => {
                 className="bg-gradient-to-r from-purple-500 to-indigo-400 text-primary"
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Create PO
+                Create
               </Button>
             </div>
           </div>
@@ -1057,7 +1057,8 @@ const PurchaseOrders: React.FC = () => {
                           title={`Select PO ${po.po_id}`}
                           className="cursor-pointer"
                           style={{
-                            display: po.status === 'APPROVED' ? 'none' : 'inline-block'
+                            // Hide checkbox for APPROVED and CLOSED statuses, show only for CREATED
+                            display: po.status === 'APPROVED' || po.status === 'CLOSED' ? 'none' : 'inline-block'
                           }}
                         />
                       </TableCell>
@@ -1246,16 +1247,11 @@ interface PurchaseOrderFormProps {
   }) => void;
 }
 
-// ... (previous code remains the same until PurchaseOrderForm component)
-
 export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClose, onSave }) => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Item[]>([]);
   const [vehicles, setVehicles] = useState<BirdsVehicle[]>([]);
-  // Remove uomList and uomLoading states
-  // const [uomList, setUomList] = useState<any[]>([]);
-  // const [uomLoading, setUomLoading] = useState(false);
   
   // Add warehouses state
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -1265,8 +1261,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   const [vendorOpen, setVendorOpen] = useState(false);
   const [itemDropdown, setItemDropdown] = useState<number | null>(null);
   const [vehicleOpen, setVehicleOpen] = useState(false);
-  // Remove uomDropdown state
-  // const [uomDropdown, setUomDropdown] = useState<number | null>(null);
   
   const [isLoading, setIsLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -1337,27 +1331,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }
   };
 
-  // Remove UOM loading useEffect
-  // useEffect(() => {
-  //   const loadUOMs = async () => {
-  //     try {
-  //       const response = await getUOM();
-  //       let uomData = [];
-  //       if (response?.data && Array.isArray(response.data)) {
-  //         uomData = response.data;
-  //       } else if (Array.isArray(response)) {
-  //         uomData = response;
-  //       }
-  //       setUomList(uomData);
-  //     } catch (error) {
-  //       console.error("Failed to load UOMs:", error);
-  //     }
-  //   };
-  //   
-  //   loadUOMs();
-  //   loadWarehouses();
-  // }, []);
-  
   // Updated useEffect - only load warehouses
   useEffect(() => {
     loadWarehouses();
@@ -1671,9 +1644,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
     }
     setItemDropdown(null);
   };
-
-  // Remove handleSelectUOM function - no longer needed
-  // const handleSelectUOM = (rowIndex: number, uomId: number, uomName: string) => { ... }
 
   const handleChangeRow = (index: number, field: keyof POItem, value: string | number) => {
     setPoItems((prev) => {
@@ -2149,7 +2119,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
                   Inserting...
                 </>
               ) : (
-                "Save PO"
+                "Save"
               )}
             </Button>
           </div>

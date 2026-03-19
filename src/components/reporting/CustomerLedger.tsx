@@ -40,14 +40,10 @@ interface Company {
 interface CustomerLedger {
   journal_entry_id: number;
   voucher_id: number;
-  category: string;
+  voucher_name: string;
   entry_date: string | Date;
   tran_no: string;
   remarks: string;
-  // item_name:string; // Commented out
-  // quantity:string; // Commented out
-  // vehicle_no: string; // Commented out
-  // live_birds: string; // Commented out
   rate: string;
   line_id: number;
   account_id: number;
@@ -195,18 +191,14 @@ const CustomerLedger: React.FC = () => {
   // Filter ledger based on search term
   const filteredLedgers = ledger.filter((ledger) => {
     const refNumber = ledger.tran_no?.toLowerCase() || '';
-    const voucherName = ledger.category?.toLowerCase() || '';
+    const customerName = ledger.voucher_name?.toLowerCase() || ''; // Changed from voucher_name to customerName for clarity
     const accountCode = ledger.account_code?.toLowerCase() || '';
-    // const itemName = ledger.item_name?.toLowerCase() || ''; // Commented out
-    // const vehicleNo = ledger.vehicle_no?.toLowerCase() || ''; // Commented out
     const searchLower = searchTerm.toLowerCase();
 
     return (
       refNumber.includes(searchLower) ||
-      voucherName.includes(searchLower) ||
+      customerName.includes(searchLower) ||
       accountCode.includes(searchLower)
-      // itemName.includes(searchLower) || // Commented out
-      // vehicleNo.includes(searchLower) // Commented out
     );
   });
     
@@ -514,14 +506,8 @@ const CustomerLedger: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-center align-middle">Date</TableHead>
-                  <TableHead className="text-center align-middle">Customer Name</TableHead>
+                  <TableHead className="text-center align-middle">Customer Name</TableHead> {/* Changed back to Customer Name */}
                   <TableHead className="text-center align-middle">Invoice Number</TableHead>
-                  {/* <TableHead className="text-center align-middle">Narration</TableHead> Commented out */}
-                  {/* <TableHead className="text-center align-middle">Item</TableHead> Commented out */}
-                  {/* <TableHead className="text-center align-middle">Quantity</TableHead> Commented out */}
-                  {/* <TableHead className="text-center align-middle">Vehicle No</TableHead> Commented out */}
-                  {/* <TableHead className="text-center align-middle">Weight</TableHead> Commented out */}
-                  <TableHead className="text-center align-middle">Total Amount</TableHead>
                   <TableHead className="text-center align-middle">Debit</TableHead>
                   <TableHead className="text-center align-middle">Credit</TableHead>
                   <TableHead className="text-center align-middle">Remaining Balance</TableHead>
@@ -534,14 +520,8 @@ const CustomerLedger: React.FC = () => {
                   return (
                     <TableRow key={ledger.journal_entry_id}>
                       <TableCell className="text-center align-middle">{formatDate(ledger.entry_date)}</TableCell>
-                      <TableCell className="text-center align-middle">{ledger.category}</TableCell> {/* Customer name */}
+                      <TableCell className="text-center align-middle">{ledger.voucher_name || 'N/A'}</TableCell> {/* This shows customer name */}
                       <TableCell className="text-center align-middle font-mono">{ledger.tran_no}</TableCell> {/* Invoice number */}
-                      {/* <TableCell className="text-center align-middle">{ledger.remarks}</TableCell> Commented out */}
-                      {/* <TableCell className="text-center align-middle">{ledger.item_name}</TableCell> Commented out */}
-                      {/* <TableCell className="text-center align-middle">{ledger.quantity}</TableCell> Commented out */}
-                      {/* <TableCell className="text-center align-middle">{ledger.vehicle_no}</TableCell> Commented out */}
-                      {/* <TableCell className="text-center align-middle">{ledger.live_birds}</TableCell> Commented out */}
-                      <TableCell className="text-center align-middle">{ledger.rate}</TableCell> {/* Total amount */}
                       <TableCell className="text-center align-middle">{formatNumber(ledger.debit)}</TableCell>
                       <TableCell className="text-center align-middle">{formatNumber(ledger.credit)}</TableCell>
                       <TableCell className={`text-center align-middle ${
@@ -583,14 +563,8 @@ const CustomerLedger: React.FC = () => {
           <thead className="border-b border-gray-400">
             <tr>
               <th className="text-center border px-2 py-1 align-middle">Date</th>
-              <th className="text-center border px-2 py-1 align-middle">Customer Name</th>
+              <th className="text-center border px-2 py-1 align-middle">Customer Name</th> {/* Changed back to Customer Name */}
               <th className="text-center border px-2 py-1 align-middle">Invoice Number</th>
-              {/* <th className="text-center border px-2 py-1 align-middle">Narration</th> Commented out */}
-              {/* <th className="text-center border px-2 py-1 align-middle">Item</th> Commented out */}
-              {/* <th className="text-center border px-2 py-1 align-middle">Quantity</th> Commented out */}
-              {/* <th className="text-center border px-2 py-1 align-middle">Vehicle No</th> Commented out */}
-              {/* <th className="text-center border px-2 py-1 align-middle">Weight</th> Commented out */}
-              <th className="text-center border px-2 py-1 align-middle">Total Amount</th>
               <th className="text-center border px-2 py-1 align-middle">Debit</th>
               <th className="text-center border px-2 py-1 align-middle">Credit</th>
               <th className="text-center border px-2 py-1 align-middle">Balance</th>
@@ -602,14 +576,8 @@ const CustomerLedger: React.FC = () => {
               return (
                 <tr key={ledger.journal_entry_id}>
                   <td className="border px-2 py-1 text-center align-middle">{formatDate(ledger.entry_date)}</td>
-                  <td className="border px-2 py-1 text-center align-middle">{ledger.category}</td> {/* Customer name */}
+                  <td className="border px-2 py-1 text-center align-middle">{ledger.voucher_name || 'N/A'}</td> {/* This shows customer name */}
                   <td className="border px-2 py-1 text-center align-middle">{ledger.tran_no}</td> {/* Invoice number */}
-                  {/* <td className="text-left">{(ledger.remarks || "").toUpperCase()}</td> Commented out */}  
-                  {/* <td className="border px-2 py-1 text-center align-middle">{ledger.item_name}</td> Commented out */}
-                  {/* <td className="border px-2 py-1 text-center align-middle">{ledger.quantity}</td> Commented out */}
-                  {/* <td className="border px-2 py-1 text-center align-middle">{ledger.vehicle_no}</td> Commented out */}
-                  {/* <td className="border px-2 py-1 text-center align-middle">{ledger.live_birds}</td> Commented out */}
-                  <td className="border px-2 py-1 text-center align-middle">{ledger.rate}</td> {/* Total amount */}
                   <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.debit)}</td>
                   <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.credit)}</td>
                   <td className={`border px-2 py-1 text-center align-middle ${
@@ -624,7 +592,7 @@ const CustomerLedger: React.FC = () => {
           </tbody>
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={6} className="border px-2 py-1 text-center align-middle font-bold">
+              <td colSpan={3} className="border px-2 py-1 text-center align-middle font-bold">
                 Totals:
               </td>
               <td className="border px-2 py-1 text-center align-middle font-bold">{formatNumber(totalDebit)}</td>

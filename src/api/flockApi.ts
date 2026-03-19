@@ -4,11 +4,15 @@ import { getCurrentUserId } from "@/components/security/LoginPage";
 
 const API_URL = "http://84.16.235.111:2140/api/flock";
 
-const getModuleId = (): string => {
-  return sessionStorage.getItem('selectedBranchId') || 'N/A';
+const getModuleId = (): number | null => {
+  const selectedBranchId = sessionStorage.getItem('selectedBranchId');
+  // Parse the ID to a number if it's not "N/A", otherwise set to null for the API
+  const module_id = selectedBranchId && selectedBranchId !== 'N/A'
+    ? parseInt(selectedBranchId, 10)
+    : null;
+  return module_id;
 };
 
-const module_id = getModuleId();
 const user_id = getCurrentUserId(); 
 
 // 🔹 Centralized error handler
@@ -40,25 +44,25 @@ export const getFlock = async () => {
 
 export const addFlock = async (
   flock_name: string,
-  partners: number, // Changed from qty to partners
+  partners: number,
   branch_id: number,
   company_id: number,
   city_id: number,
   region_id: number,
-  flock_details: any[] = [] // New parameter for partner details
+  flock_details: any[] = []
 ) => {
   try {
     const res = await axios.post(API_URL, {
-      operation: 2, // Operation for "Add"
+      operation: 2,
       flock_name,
-      partners: partners, // Changed from qty to partners
+      partners: partners,
       branch_id,
       company_id,
       city_id,
       region_id,
-      module_id,
+      module_id: getModuleId(), // Convert to number or null
       created_by: user_id,
-      flock_details: flock_details.length > 0 ? flock_details : undefined // Include partner details if any
+      flock_details: flock_details.length > 0 ? flock_details : undefined
     });
     return res.data.data;
   } catch (error) {
@@ -69,25 +73,26 @@ export const addFlock = async (
 export const updateFlock = async (
   flock_id: number,
   flock_name: string,
-  partners: number, // Changed from qty to partners
+  partners: number,
   branch_id: number,
   company_id: number,
   city_id: number,
   region_id: number,
-  flock_details: any[] = [] // New parameter for partner details
+  flock_details: any[] = []
 ) => {
   try {
     const res = await axios.post(API_URL, {
-      operation: 3, // Operation for "Update"
+      operation: 3,
       flock_id,
       flock_name,
-      partners: partners, // Changed from qty to partners
+      partners: partners,
       branch_id,
       company_id,
       city_id,
       region_id,
       updated_by: user_id,
-      flock_details: flock_details.length > 0 ? flock_details : undefined // Include partner details if any
+      module_id: getModuleId(), // Convert to number or null
+      flock_details: flock_details.length > 0 ? flock_details : undefined
     });
     return res.data.data;
   } catch (error) {
@@ -100,7 +105,7 @@ export const deleteFlock = async (flock_id: number) => {
     const res = await axios.post(API_URL, {
       operation: 4,
       flock_id,
-      module_id
+      module_id: getModuleId() // Convert to number or null
     });
     return res.data.data;
   } catch (error) {
@@ -111,7 +116,11 @@ export const deleteFlock = async (flock_id: number) => {
 // Get by branch_id
 export const getFlockByBranch = async (branch_id: number) => {
   try {
-    const res = await axios.post(API_URL, { operation: 6, branch_id, module_id });
+    const res = await axios.post(API_URL, { 
+      operation: 6, 
+      branch_id, 
+      module_id: getModuleId() // Convert to number or null
+    });
     return res.data.data;
   } catch (error) {
     handleApiError(error);

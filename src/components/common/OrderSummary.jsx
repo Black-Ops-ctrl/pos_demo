@@ -10,7 +10,8 @@ const OrderSummary = ({
   scannedBarcode, 
   onBarcodeProcessed, 
   products = [],
-  onRefreshProducts
+  onRefreshProducts,
+  selectedCustomer // 👈 YEH PROP ADD KIYA
 }) => {
   // State management
   const [cartItems, setCartItems] = useState([]);
@@ -205,7 +206,7 @@ const OrderSummary = ({
   const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
 
   // Dynamic tax based on payment method
-  const taxPercentage = paymentMethod === "cash" ? 16 : 7;
+  const taxPercentage = paymentMethod === "cash" ? 0 : 0;
   const taxAmount = Math.round((subtotal - discountAmount) * taxPercentage / 100);
   const totalAmount = Math.round(subtotal - discountAmount + taxAmount);
   const payback = receivedAmount && Math.round(parseFloat(receivedAmount) - totalAmount);
@@ -240,7 +241,6 @@ const OrderSummary = ({
     return true;
   };
 
-
   const handlePrint = async () => {
     if (isProcessing) return;
     
@@ -267,7 +267,7 @@ const OrderSummary = ({
       const selectedBranchId = sessionStorage.getItem("selectedBranchId");
       const companyId = sessionStorage.getItem("companyId");
 
-      // Prepare items for API - include item details
+      // Prepare items for API
       const itemsForApi = cartItems.map(item => ({
         item_id: item.id,
         quantity: item.quantity,
@@ -277,10 +277,16 @@ const OrderSummary = ({
         tax: taxPercentage,
         extra_discount: 0,
         commission_percentge: 0,
-        commission_amount: 0,
-        // Include item_name for reference (though API might not store it)
-        item_name: item.title
+        commission_amount: 0
       }));
+
+      // 👇 CUSTOMER ID NIKALO - agar walkin hai to 0 bhejo
+      const customerIdValue = selectedCustomer?.id && selectedCustomer.id !== 'walkin' 
+        ? parseInt(selectedCustomer.id) 
+        : 0;
+
+      console.log("Selected Customer:", selectedCustomer);
+      console.log("Customer ID being sent:", customerIdValue);
 
       // Prepare receipt data
       const receiptData = {
@@ -302,22 +308,28 @@ const OrderSummary = ({
         shopName: "Smart Shop",
         shopAddress: "Abc Street, City, Country",
         shopPhone: "+92-308-4416769",
-        currency: "Rs"
+        currency: "Rs",
+        customerName: selectedCustomer?.name || 'Walk In Customer'
       };
 
       // Update stock
       const stockUpdateResult = await updateStockAfterSale(receiptData, products);
       
       if (stockUpdateResult.success) {
-        // Save invoice to database
+        // Save invoice to database with customer_id
         try {
           const companyIdValue = companyId ? parseInt(companyId) : null;
           const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
           
+          const description = `POS Sale - ${paymentMethod} payment`;
+          
+          console.log("Calling createSalesInvoice with customer_id:", customerIdValue);
+          
+          // 👇 CUSTOMER_ID YAHAN SEND KARO
           await createSalesInvoice(
-            1, 
+            customerIdValue, // 👈 YEH CUSTOMER ID HAI
             new Date(),
-            `POS Sale - ${paymentMethod} payment`,
+            description,
             totalAmount,
             0,
             companyIdValue,
@@ -328,6 +340,8 @@ const OrderSummary = ({
             payback ? Math.round(payback) : 0,
             'POS'
           );
+          
+          console.log(`✅ Sale completed for customer ID: ${customerIdValue}`);
           
         } catch (invoiceError) {
           console.error('Failed to save invoice:', invoiceError);
@@ -360,8 +374,25 @@ const OrderSummary = ({
       setIsProcessing(false);
     }
   };
+
   return (
     <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border">
+      {/* Customer Info Header - Show selected customer */}
+      {selectedCustomer && (
+        <div className="bg-blue-50 px-3 py-2 border-b border-blue-100">
+          <div className="flex items-center gap-2 text-xs text-blue-700">
+            <span className="font-medium">Customer:</span>
+            <span>{selectedCustomer.name}</span>
+            {selectedCustomer.phone && (
+              <>
+                <span className="text-gray-400">|</span>
+                <span>{selectedCustomer.phone}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast.show && (
         <Toast 

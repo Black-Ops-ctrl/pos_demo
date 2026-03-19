@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { toast } from '@/hooks/use-toast';
 
 // --- API Constant ---
-const VENDOR_STATUS_API_URL = 'http://84.16.235.111:2091/api/vendor-status';
+const VENDOR_STATUS_API_URL = 'http://84.16.235.111:2140/api/vendor-status';
 
 // --- Status Options ---
 const VENDOR_STATUSES = {

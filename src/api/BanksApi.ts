@@ -25,7 +25,7 @@ export const getBAccounts = async () => {
   return response.data;
 };
 
-// --- NEW BANK DETAILS API FUNCTIONS (http://84.16.235.111:2091/api/bank) ---
+// --- NEW BANK DETAILS API FUNCTIONS (http://84.16.235.111:2140/api/bank) ---
 
 /**
  * GET operation for Bank Details.

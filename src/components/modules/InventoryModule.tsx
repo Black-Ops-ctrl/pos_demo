@@ -79,15 +79,15 @@ const InventoryModule: React.FC = () => {
                     <ColorfulTabsTrigger value="warehouses" icon={Warehouse}>
                         Warehouses
                     </ColorfulTabsTrigger>
-                    <ColorfulTabsTrigger value="transactions" icon={ArrowRightLeft}>
+                    {/* <ColorfulTabsTrigger value="transactions" icon={ArrowRightLeft}>
                         Transactions
                     </ColorfulTabsTrigger>
                     <ColorfulTabsTrigger value="valuation" icon={Calculator}>
                         Valuation
-                    </ColorfulTabsTrigger>
-                    <ColorfulTabsTrigger value="reports" icon={FileText}>
+                    </ColorfulTabsTrigger> */}
+                    {/* <ColorfulTabsTrigger value="reports" icon={FileText}>
                         Reports
-                    </ColorfulTabsTrigger>
+                    </ColorfulTabsTrigger> */}
                 </ColorfulTabsList>
 
                 <ColorfulTabsContent value="overview" className="mt-6">

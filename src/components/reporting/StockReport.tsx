@@ -49,7 +49,7 @@ const FarmReports = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://84.16.235.111:2091/api/item-stock", {
+      const response = await fetch("http://84.16.235.111:2140/api/item-stock", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

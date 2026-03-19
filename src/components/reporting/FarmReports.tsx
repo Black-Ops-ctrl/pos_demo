@@ -107,7 +107,7 @@ const FarmReports = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://84.16.235.111:2091/api/form-ledger", {
+      const response = await fetch("http://84.16.235.111:2140/api/form-ledger", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,7 +140,7 @@ const FarmReports = () => {
     setCategoryLoading(true);
     setCategoryError("");
     try {
-      const response = await fetch("http://84.16.235.111:2091/api/form-ledger-category-wise", {
+      const response = await fetch("http://84.16.235.111:2140/api/form-ledger-category-wise", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ const FarmReports = () => {
     setSummaryLoading(true);
     setSummaryError("");
     try {
-      const response = await fetch("http://84.16.235.111:2091/api/form-ledger-summary", {
+      const response = await fetch("http://84.16.235.111:2140/api/form-ledger-summary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -323,7 +323,7 @@ export const UpdatePOStatus = async (
     
     // Update PO status
     const res = await axios.post(API_URL, {
-      operation: 4,
+      operation: 5,
       module_id: module_id,
       po_ids,
       status,

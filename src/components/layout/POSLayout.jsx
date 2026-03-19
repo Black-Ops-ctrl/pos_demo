@@ -15,6 +15,9 @@ const POSLayout = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); 
+  
+  // State for selected customer - default to null (Walk In)
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   // Load categories on component mount
   useEffect(() => {
@@ -178,6 +181,12 @@ const POSLayout = () => {
     setSelectedCategory(category);
   };
 
+  // Handle customer selection from TopBar
+  const handleCustomerSelect = (customer) => {
+    console.log("Customer selected in POSLayout:", customer);
+    setSelectedCustomer(customer);
+  };
+
   return (
     <div className="h-screen bg-rose-50 p-2 sm:p-3 md:p-4 overflow-hidden">
       {/* Main container with responsive padding */}
@@ -195,6 +204,8 @@ const POSLayout = () => {
               onSearch={handleSearch}
               onBarcodeScanned={handleBarcodeScanned}
               onEnterPress={handleEnterPress}
+              selectedCustomer={selectedCustomer}
+              onCustomerSelect={handleCustomerSelect}
             />
           </div>
           
@@ -223,13 +234,14 @@ const POSLayout = () => {
               </div>
             </div>
             
-            {/* Right Column - Order Summary (shifted up) */}
+            {/* Right Column - Order Summary with selectedCustomer */}
             <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
               <OrderSummary 
                 scannedBarcode={scannedBarcode}
                 onBarcodeProcessed={handleBarcodeProcessed}
                 products={products}
-                onRefreshProducts={refreshProducts} 
+                onRefreshProducts={refreshProducts}
+                selectedCustomer={selectedCustomer} // 👈 YEH PROP PASS HO RAHA HAI
               />
             </div>
           </div>
@@ -239,4 +251,4 @@ const POSLayout = () => {
   );
 };
 
-export default POSLayout; 
+export default POSLayout;
