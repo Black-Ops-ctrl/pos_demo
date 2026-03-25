@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/pos";
+const API_URL = "http://84.16.235.111:2149/api/pos";
 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {

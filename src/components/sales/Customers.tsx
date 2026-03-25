@@ -42,7 +42,7 @@ import axios from "axios";
 
 
 // --- API Constants ---
-const CUSTOMER_STATUS_API_URL = "http://84.16.235.111:2140/api/customer-status";
+const CUSTOMER_STATUS_API_URL = "http://84.16.235.111:2149/api/customer-status";
 const USER_ID = getCurrentUserId(); // Assuming getCurrentUserId is a valid hook/function to get the user ID for API payloads
 
 // --- Interfaces (unchanged) ---

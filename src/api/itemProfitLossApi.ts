@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 
-const PROFIT_LOSS_API_URL = "http://84.16.235.111:2140/api/product-profit-loss";
+const PROFIT_LOSS_API_URL = "http://84.16.235.111:2149/api/product-profit-loss";
 
 const getModuleId = (): string | null => {
   return sessionStorage.getItem('selectedBranchId');

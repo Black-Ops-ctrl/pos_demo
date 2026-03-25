@@ -1,13 +1,13 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/getaccounts";
+const API_URL = "http://84.16.235.111:2149/api/getaccounts";
 
 export const getAccounts = async () => {
   const response = await axios.get(API_URL);
   return response.data;
 };
 ////     Vendors Accounts
-const venderAccounts_API_URL = "http://84.16.235.111:2140/api/venderAccounts";
+const venderAccounts_API_URL = "http://84.16.235.111:2149/api/venderAccounts";
 
 export const getVendorAccounts = async () => {
   const response = await axios.get(venderAccounts_API_URL);
@@ -15,7 +15,7 @@ export const getVendorAccounts = async () => {
 };
 
 ////////     Items Accounts 
-const ItemsAccounts_API_URL = "http://84.16.235.111:2140/api/itemAccounts";
+const ItemsAccounts_API_URL = "http://84.16.235.111:2149/api/itemAccounts";
 
 export const getItemsAccounts = async () => {
   const response = await axios.get(ItemsAccounts_API_URL);
@@ -23,7 +23,7 @@ export const getItemsAccounts = async () => {
 };
 
 ////        Bank Accounts
-const BankAccounts_API_URL = "http://84.16.235.111:2140/api/bankAccounts";
+const BankAccounts_API_URL = "http://84.16.235.111:2149/api/bankAccounts";
 
 export const getBanksAccounts = async () => {
   const response = await axios.get(BankAccounts_API_URL);
@@ -31,7 +31,7 @@ export const getBanksAccounts = async () => {
 };
 
 /////////  Customer Accounts
-const CustomerAccounts_API_URL = "http://84.16.235.111:2140/api/customerAccounts";
+const CustomerAccounts_API_URL = "http://84.16.235.111:2149/api/customerAccounts";
 
 export const getCustomerAccounts = async () => {
   const response = await axios.post(CustomerAccounts_API_URL,{operation:1});
@@ -43,7 +43,7 @@ export const getCustomerParentAccounts = async () => {
   return response.data;
 };
 /////////  Cash Accounts
-const CashAccounts_API_URL = "http://84.16.235.111:2140/api/cashAccounts";
+const CashAccounts_API_URL = "http://84.16.235.111:2149/api/cashAccounts";
 
 export const getCashAccounts = async () => {
   const response = await axios.get(CashAccounts_API_URL);

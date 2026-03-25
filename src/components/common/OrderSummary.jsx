@@ -11,7 +11,7 @@ const OrderSummary = ({
   onBarcodeProcessed, 
   products = [],
   onRefreshProducts,
-  selectedCustomer // 👈 YEH PROP ADD KIYA
+  selectedCustomer 
 }) => {
   // State management
   const [cartItems, setCartItems] = useState([]);
@@ -378,7 +378,7 @@ const OrderSummary = ({
   return (
     <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border">
       {/* Customer Info Header - Show selected customer */}
-      {selectedCustomer && (
+      {/* {selectedCustomer && (
         <div className="bg-blue-50 px-3 py-2 border-b border-blue-100">
           <div className="flex items-center gap-2 text-xs text-blue-700">
             <span className="font-medium">Customer:</span>
@@ -391,7 +391,7 @@ const OrderSummary = ({
             )}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Toast Notification */}
       {toast.show && (
@@ -438,7 +438,7 @@ const OrderSummary = ({
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto min-h-0"
-        style={{ maxHeight: "calc(100vh - 450px)" }}
+        style={{ maxHeight: "calc(100vh - 380px)" }}
       >
         {cartItems.length === 0 ? (
           <p className="text-center text-secondary flex items-center justify-center h-full text-xs sm:text-sm p-4">
@@ -492,11 +492,11 @@ const OrderSummary = ({
 
       {/* Checkout Section */}
       {cartItems.length > 0 && (
-        <div className="p-3 sm:p-4 border-t border-gray-200 bg-white space-y-2 sm:space-y-3">
-          <div className="space-y-1.5 sm:space-y-2">
+        <div className="p-2 sm:p-3 md:p-4 border-t border-gray-200 bg-white space-y-1.5 sm:space-y-2 md:space-y-3">
+          <div className="space-y-1 sm:space-y-1.5 md:space-y-2">
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">Rs {subtotal}</span>
+              <span className="font-bold">Rs {subtotal}</span>
             </div>
             
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -508,10 +508,10 @@ const OrderSummary = ({
                   onChange={handleDiscountChange}
                   onBlur={handleDiscountBlur}
                   disabled={isProcessing}
-                  className="w-10 sm:w-12 p-1 border border-gray-300 rounded text-center text-xs sm:text-sm"
+                  className="w-10 sm:w-12 p-0.5 sm:p-1 border border-gray-300 rounded text-center text-xs"
                   placeholder="2"
                 />
-                <span className="text-red-500 text-xs sm:text-sm font-medium">
+                <span className="text-red-500 text-xs sm:text-sm font-bold">
                   -Rs {discountAmount}
                 </span>
               </div>
@@ -519,10 +519,10 @@ const OrderSummary = ({
             
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-gray-600">Tax ({taxPercentage}%)</span>
-              <span className="font-medium">Rs {taxAmount}</span>
+              <span className="font-bold">Rs {taxAmount}</span>
             </div>
             
-            <div className="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
+            <div className="border-t border-gray-200 pt-1 sm:pt-1.5 md:pt-2 mt-1 sm:mt-1.5 md:mt-2">
               <div className="flex justify-between font-bold text-sm sm:text-base">
                 <span>Total</span>
                 <span className="text-red-500">Rs {totalAmount}</span>
@@ -530,7 +530,7 @@ const OrderSummary = ({
             </div>
           </div>
 
-          <div className="space-y-2 sm:space-y-3">
+          <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs sm:text-sm text-gray-600">Payment</span>
               <div className="flex gap-2 sm:gap-3">
@@ -542,7 +542,7 @@ const OrderSummary = ({
                     checked={paymentMethod === "cash"}
                     onChange={() => handlePaymentMethodChange("cash")}
                     disabled={isProcessing}
-                    className="accent-red-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                    className="accent-red-500 w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
                   />
                   <span className="text-xs sm:text-sm">Cash</span>
                 </label>
@@ -554,7 +554,7 @@ const OrderSummary = ({
                     checked={paymentMethod === "card"}
                     onChange={() => handlePaymentMethodChange("card")}
                     disabled={isProcessing}
-                    className="accent-red-500 w-3.5 h-3.5 sm:w-4 sm:h-4"
+                    className="accent-red-500 w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
                   />
                   <span className="text-xs sm:text-sm">Card</span>
                 </label>
@@ -568,7 +568,7 @@ const OrderSummary = ({
                 value={receivedAmount}
                 onChange={handleReceivedAmountChange}
                 disabled={isProcessing}
-                className="w-20 sm:w-24 p-1 sm:p-1.5 border border-gray-300 rounded text-xs sm:text-sm text-right"
+                className="w-20 sm:w-24 p-1 border border-gray-300 rounded text-xs sm:text-sm text-right"
                 min="0"
                 step="1"
                 placeholder="0"
@@ -587,7 +587,7 @@ const OrderSummary = ({
             <button 
               onClick={handlePrint}
               disabled={isProcessing || cartItems.length === 0}
-              className={`w-full bg-red-500 text-white py-2 sm:py-3 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm sm:text-base mt-1 sm:mt-2 ${
+              className={`w-full bg-red-500 text-white py-1.5 sm:py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm mt-1 ${
                 isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -596,7 +596,7 @@ const OrderSummary = ({
           </div>
         </div>
       )}
-    </div>
+  </div>
   );
 };
 

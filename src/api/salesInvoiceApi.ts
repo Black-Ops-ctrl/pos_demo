@@ -1,8 +1,8 @@
 import { getCurrentUserId } from "@/components/security/LoginPage";
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/sales-invoices";
-const PRODUCTS_API_URL = "http://84.16.235.111:2140/api/products";
+const API_URL = "http://84.16.235.111:2149/api/sales-invoices";
+const PRODUCTS_API_URL = "http://84.16.235.111:2149/api/products";
 const user_id = getCurrentUserId();
 
 const getModuleId = (): string | null => {
@@ -268,7 +268,7 @@ export const deleteSalesInvoice = async (sales_invoice_id: number) => {
 // 🔹 Get Company Image/Info
 export const getCompanyimg = async () => {
   try {
-    const image_URL = "http://84.16.235.111:2140/api/company";
+    const image_URL = "http://84.16.235.111:2149/api/company";
     const requestData = { operation: 1 };
     
     const res = await axios.post(image_URL, requestData);

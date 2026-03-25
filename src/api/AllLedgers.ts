@@ -1,7 +1,7 @@
 // src/api/branchApi.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/getAllLedgers";
+const API_URL = "http://84.16.235.111:2149/api/getAllLedgers";
 
 const handleApiError = (error: any) => {
   if (axios.isAxiosError(error)) {

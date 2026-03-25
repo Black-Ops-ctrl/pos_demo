@@ -31,13 +31,13 @@ interface Balances {
 }
 const AccountingModule: React.FC = () => {
     
-  // ⭐️ CHANGE 1: Initialize activeTab from Session Storage or default to 'dashboard'
+  // Initialize activeTab from Session Storage or default to 'coa' (Chart of Accounts)
   const [activeTab, setActiveTab] = useState(() => {
     // Check if a tab ID is saved in session storage
-    return sessionStorage.getItem('accountingActiveTab') || 'dashboard';
+    return sessionStorage.getItem('accountingActiveTab') || 'coa';
   });
 
-  // ⭐️ CHANGE 2: Save activeTab to Session Storage whenever it changes
+  // Save activeTab to Session Storage whenever it changes
   useEffect(() => {
     // Save the current active tab to session storage with a specific key
     sessionStorage.setItem('accountingActiveTab', activeTab);
@@ -231,35 +231,35 @@ const { totalAssets, totalLiabilities, totalEquity, netIncome } = balances;
 
         <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
         
-          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 mb-6">
-            <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger>
+          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 mb-6">
+            {/* <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger> */}
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
             {/* <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger> */}
             <ColorfulTabsTrigger value='ledger' icon={CreditCard}>Accounts Ledger</ColorfulTabsTrigger>
-                        <ColorfulTabsTrigger value='Journal' icon={CreditCard}>Vouchers</ColorfulTabsTrigger>
+            <ColorfulTabsTrigger value='Journal' icon={CreditCard}>Vouchers</ColorfulTabsTrigger>
 
             {/* <ColorfulTabsTrigger value="ar" icon={CreditCard}>Accounts Receivable</ColorfulTabsTrigger>
             <ColorfulTabsTrigger value="ap" icon={DollarSign}>Accounts Payable</ColorfulTabsTrigger>
             
             <ColorfulTabsTrigger value="bank" icon={Building}>Bank Reconciliation</ColorfulTabsTrigger>
             */}
-            <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger>
+            {/* <ColorfulTabsTrigger value="balance" icon={Building}>Trial Balance</ColorfulTabsTrigger> */}
             <ColorfulTabsTrigger value="reports" icon={TrendingUp}>Financial Reports</ColorfulTabsTrigger>
-                        {/* <ColorfulTabsTrigger value="bank" icon={TrendingUp}> Bank</ColorfulTabsTrigger> */}
+            {/* <ColorfulTabsTrigger value="bank" icon={TrendingUp}> Bank</ColorfulTabsTrigger> */}
 
             {/* <ColorfulTabsTrigger value="others" icon={Building}>Others</ColorfulTabsTrigger> */}
           </ColorfulTabsList>
 
-          <ColorfulTabsContent value="dashboard">
+          {/* <ColorfulTabsContent value="dashboard">
             <DashboardContent />
-          </ColorfulTabsContent>
+          </ColorfulTabsContent> */}
 
           <ColorfulTabsContent value="coa">
             <ChartOfAccounts />
           </ColorfulTabsContent>
 
 
-                    <ColorfulTabsContent value="Journal">
+          <ColorfulTabsContent value="Journal">
             <Journal />
           </ColorfulTabsContent>
 
@@ -286,7 +286,7 @@ const { totalAssets, totalLiabilities, totalEquity, netIncome } = balances;
             <FinancialReports />
           </ColorfulTabsContent>
 
-                    <ColorfulTabsContent value="bank">
+          <ColorfulTabsContent value="bank">
             <ItemCategories />
           </ColorfulTabsContent>
 

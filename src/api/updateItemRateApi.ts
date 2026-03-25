@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/updateItemRate";
+const API_URL = "http://84.16.235.111:2149/api/updateItemRate";
 
 const getModuleId = (): string => {
   return sessionStorage.getItem('selectedBranchId') || 'N/A';

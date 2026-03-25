@@ -5,8 +5,8 @@ const getSelectedBranchId = (): string | null => {
     return sessionStorage.getItem("selectedBranchId");
 };
 
-const API_URL = "http://84.16.235.111:2140/api/customers";
-const SALES_PERSON_API_URL = "http://84.16.235.111:2140/api/salespersons";
+const API_URL = "http://84.16.235.111:2149/api/customers";
+const SALES_PERSON_API_URL = "http://84.16.235.111:2149/api/salespersons";
 import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();
 

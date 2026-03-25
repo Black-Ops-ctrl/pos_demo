@@ -4,8 +4,8 @@ import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();
 
 
-const API_URL = "http://84.16.235.111:2140/api/salespersons";
-const REGION_API_URL = "http://84.16.235.111:2140/api/getregions";
+const API_URL = "http://84.16.235.111:2149/api/salespersons";
+const REGION_API_URL = "http://84.16.235.111:2149/api/getregions";
 
 // 🔹 Centralized error handler
 const handleApiError = (error: any) => {

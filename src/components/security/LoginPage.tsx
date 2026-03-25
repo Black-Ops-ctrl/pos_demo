@@ -16,6 +16,7 @@ export const getCurrentUserId = (): number | null => {
     return null;
   }
 };
+
 const Login: React.FC = () => {
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -80,31 +81,27 @@ const Login: React.FC = () => {
       <div className="w-full max-w-sm">
         {/* Logo and Title */}
         <div className="text-left">
-          
           <div className="flex items-center space-x-2">
             <img src={metabooksLogo} alt="MetaBooks Logo" className="h-11 w-11" />
-             <h1 className="text-4xl text-blue-600 font-bold">MetaBooks</h1>
-            
+            <h1 className="text-4xl text-blue-600 font-bold">MetaBooks</h1>
           </div>
-          <span className=" text-gray-500 ml-12">ERP</span>
+          <span className="text-gray-500 ml-12">ERP</span>
         </div>
+        
         {/* Card */}
         <form
           onSubmit={handleLogin}
-          className="bg-white p-6 space-y-5 "
+          className="bg-white p-6 space-y-5"
         >
           {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-            <span
-            className="text-3xl font-semibold mb-4"
-            >
-              LogIn
-            </span>
-          {/* Username */}
-          <div
+          <span className="text-3xl font-semibold mb-4">
+            LogIn
+          </span>
           
-          >
+          {/* Username */}
+          <div>
             <Input
-             className="bg-white rounded-none h-10 "
+              className="bg-white rounded-md h-10 border border-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               type="text"
               placeholder="Username"
               value={username}
@@ -116,7 +113,7 @@ const Login: React.FC = () => {
           {/* Password */}
           <div className="relative">
             <Input
-              className="bg-white rounded-none h-10"
+              className="bg-white rounded-md h-10 border border-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
@@ -143,19 +140,19 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Button */}
-          <Button
-          
-          type="submit" className="w-full " disabled={loading}>
+          <Button 
+            type="submit" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md transition-colors" 
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Log in"}
           </Button>
 
           <h6 className="ml-[30%] text-[12px] font-[300]">Powered By Metasage</h6>
         </form>
-
       </div>
     </div>
   );
 };
 
 export default Login;
-

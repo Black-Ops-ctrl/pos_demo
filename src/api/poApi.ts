@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
-const Items_API_URL = "http://84.16.235.111:2140/api/items";
-const vendor_new = "http://84.16.235.111:2140/api/getvendors";
-const API_URL = "http://84.16.235.111:2140/api/purchase-orders";
-const PRODUCTS_API_URL = "http://84.16.235.111:2140/api/products";
+const Items_API_URL = "http://84.16.235.111:2149/api/items";
+const vendor_new = "http://84.16.235.111:2149/api/getvendors";
+const API_URL = "http://84.16.235.111:2149/api/purchase-orders";
+const PRODUCTS_API_URL = "http://84.16.235.111:2149/api/products";
 
 import { getCurrentUserId } from "@/components/security/LoginPage";
 const user_id = getCurrentUserId();

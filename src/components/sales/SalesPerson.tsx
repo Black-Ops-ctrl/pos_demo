@@ -312,13 +312,12 @@ const SalesPersonForm: React.FC<{
         // const regionData: Region[] = await getRegions();
 
         // Filter only approved branches
-        // const approvedBranches = branchData.filter((branch: Branch) => 
-        //   branch.status === 'APPROVED'
-        // );
+        const approvedBranches = branchData.filter((branch: Branch) => 
+          branch.status === 'APPROVED'
+        );
           
         setAccounts(accountData);
-       // setBranches(approvedBranches); // Set filtered branches
-       setBranches(branchData)
+        setBranches(approvedBranches); // Set filtered branches
         setCompanies(companyData);
         // setRegions(regionData);
 
@@ -327,6 +326,13 @@ const SalesPersonForm: React.FC<{
         if (companyData.length > 0) {
             // Assuming the first company in the list is the default company
             defaultCompanyId = companyData[0].company_id;
+        }
+
+        // **Logic to set default branch_id**
+        let defaultBranchId = 0;
+        if (approvedBranches.length > 0) {
+            // Get the first approved branch from the list
+            defaultBranchId = approvedBranches[0].branch_id;
         }
 
         if (salesPerson) {
@@ -345,7 +351,8 @@ const SalesPersonForm: React.FC<{
           setFatherName("");
           setPhone("");
           setAccountId(0);
-          setBranchId(0);
+          // Set to the first approved branch ID for new forms
+          setBranchId(defaultBranchId);
           // Set to the first company's ID for new forms
           setCompanyId(defaultCompanyId);
           //setRegionId(0);
@@ -377,7 +384,7 @@ const SalesPersonForm: React.FC<{
   
   
   const selectedCompanyName = companies.find((c) => c.company_id === company_id)?.company_name;
-
+  const selectedBranchName = branches.find((b) => b.branch_id === branch_id)?.branch_name;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

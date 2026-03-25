@@ -31,6 +31,7 @@ import {
   ArrowRightLeft,
   Receipt,
   Undo,
+  Loader2,
 } from 'lucide-react';
 import { useAppContext } from '@/contexts/AppContext';
 import StatsCard from './dashboard/StatsCard';
@@ -50,6 +51,16 @@ import InvoiceForm from './forms/InvoiceForm';
 import FarmsInvoicesModule from './Maintainance/farmsinvoices';
 import ReturnNewFarmInvoice from './Maintainance/Returnnewfarminvoice';
 import HRModule from './modules/HRModule';
+import axios from 'axios';
+
+interface DashboardData {
+  total_sales?: string | number;
+  inventory_products?: string | number;
+  low_stock_alert?: string | number;
+  total_purchases?: number;
+  total_expenses?: number;
+  profit?: number;
+}
 
 const ERPDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -58,6 +69,10 @@ const ERPDashboard: React.FC = () => {
   const [selectedBranchId] = useState(
     () => sessionStorage.getItem('selectedBranchId') || 'N/A'
   );
+
+  const [dashboardData, setDashboardData] = useState<DashboardData>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const getBranchName = (id: string | null): string => {
     switch (id) {
@@ -91,6 +106,56 @@ const ERPDashboard: React.FC = () => {
   useEffect(() => {
     sessionStorage.setItem('activeModule', activeModule);
   }, [activeModule]);
+
+  // Fetch dashboard data from API
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.post('http://84.16.235.111:2149/api/dashboard', {
+          p_operation: 1
+        }, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('Dashboard API Response:', response.data);
+
+        if (response.data && response.data.status === 'success') {
+          // Extract data from the response based on actual API structure
+          const data = response.data.data;
+          
+          setDashboardData({
+            total_sales: data.total_sales || 0,
+            inventory_products: data.inventory_products || 0,
+            low_stock_alert: data.low_stock_alert || 0,
+          });
+        } else {
+          console.error('Invalid API response structure:', response.data);
+          setDashboardData({
+            total_sales: 0,
+            inventory_products: 0,
+            low_stock_alert: 0
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+        // Set default values on error
+        setDashboardData({
+          total_sales: 0,
+          inventory_products: 0,
+          low_stock_alert: 0
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
 const permissions = (() => {
   const stored = sessionStorage.getItem('role_permissions');
@@ -133,25 +198,6 @@ const permissions = (() => {
   // Define modules with conditions:
   // - For branch ID 2 (Broiler Farm): Show Purchases first, then FarmsInvoices, ReturnNewFarmInvoice
   // - For other branches: Show Purchasing and Sales & POS
-  // const modules = [
-  //   { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-  //   { id: 'maintainance', name: 'Maintainance', icon: Package },
-  //   { id: 'accounting', name: 'Accounting', icon: DollarSign },
-  //   { id: 'inventory', name: 'Inventory', icon: Package },
-  //   ...(selectedBranchId === '2' 
-  //     ? [
-  //         { id: 'purchasing', name: 'Purchases', icon: Truck },
-  //         { id: 'farmsinvoices', name: 'Farms Invoices', icon: Receipt },
-  //         { id: 'returnnewfarminvoice', name: 'Return Farm Invoice', icon: Undo },
-  //       ] 
-  //     : [
-  //         { id: 'purchasing', name: 'Purchases', icon: Truck },
-  //         { id: 'sales', name: 'Sales & POS', icon: ShoppingCart }
-  //       ]
-  //   ),
-  //   { id: 'reports', name: 'Reports', icon: TrendingUp },
-  //   { id: 'security', name: 'Security', icon: Shield },
-  // ];
  const modules = [
   {
     id: 'dashboard',
@@ -163,7 +209,7 @@ const permissions = (() => {
 
   permissions.inventory_read === 1 && {
     id: 'maintainance',
-    name: 'Maintainance',
+    name: 'Maintenance',
     icon: Package,
   },
 
@@ -242,42 +288,35 @@ const permissions = (() => {
     setActiveQuickAction(null);
   };
 
-  const totalSales = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalInventoryValue = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  const lowStockItems = items.filter((item) => item.quantity <= item.minStock).length;
+  // Use data from API
+  const totalSales = dashboardData.total_sales || 0;
+  const inventoryProducts = dashboardData.inventory_products || 0;
+  const lowStockAlert = dashboardData.low_stock_alert || 0;
 
   const stats = [
     {
       title: 'Total Sales',
-      value: `${totalSales.toLocaleString()}`,
+      value: loading ? 'Loading...' : `Rs ${parseFloat(totalSales.toString()).toLocaleString()}`,
       change: '+12%',
       trend: 'up' as const,
       icon: DollarSign,
       color: 'from-blue-500 to-blue-600',
     },
     {
-      title: 'Inventory Items',
-      value: items.length.toString(),
+      title: 'Inventory Products',
+      value: loading ? 'Loading...' : inventoryProducts.toString(),
       change: '+5%',
       trend: 'up' as const,
       icon: Package,
       color: 'from-green-500 to-green-600',
     },
     {
-      title: 'Active Employees',
-      value: employees.filter((e) => e.status === 'Active').length.toString(),
-      change: '+3%',
-      trend: 'up' as const,
-      icon: UserCheck,
-      color: 'from-purple-500 to-purple-600',
-    },
-    {
       title: 'Low Stock Alerts',
-      value: lowStockItems.toString(),
-      change: '+2',
-      trend: 'up' as const,
+      value: loading ? 'Loading...' : lowStockAlert.toString(),
+      change: lowStockAlert > 0 ? `${lowStockAlert} items low` : 'All good',
+      trend: lowStockAlert > 0 ? 'up' as const : 'down' as const,
       icon: Bell,
-      color: 'from-red-500 to-red-600',
+      color: lowStockAlert > 0 ? 'from-red-500 to-red-600' : 'from-yellow-500 to-yellow-600',
     },
   ];
 
@@ -321,32 +360,9 @@ const permissions = (() => {
             <h1 className={`text-4xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               MetaBooks
             </h1>
-            {/* Switch Module Button */}
-            {/* <Button
-              onClick={handleSwitchModule}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 border-blue-500 text-blue-600 hover:bg-blue-50"
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Switch Module
-            </Button> */}
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Selected Branch */}
-            {/* <Card className="p-2 border-none shadow-sm bg-white/70 backdrop-blur-md">
-              <div className="flex items-center space-x-2">
-                <Factory className="h-5 w-5 text-green-600" />
-                <span className="font-semibold text-sm text-gray-800 hidden sm:inline">
-                  {getBranchName(selectedBranchId)}
-                </span>
-                <Badge variant="secondary" className="hidden sm:inline">
-                  {selectedBranchId}
-                </Badge>
-              </div>
-            </Card> */}
-
             {/* User Info */}
             <Card className="p-2 border-none shadow-sm bg-white/70 backdrop-blur-md">
               <div className="flex items-center space-x-2">
@@ -367,17 +383,6 @@ const permissions = (() => {
             >
               <LogOut className="h-4 w-4" />
             </Button>
-
-            {/* Notifications - Commented out */}
-            {/* <Button variant="outline" size="sm" className="relative">
-              <Bell className="h-4 w-4" />
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs">3</Badge>
-            </Button> */}
-
-            {/* Dark Mode Toggle - Commented out */}
-            {/* <Button variant="outline" size="sm" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button> */}
           </div>
         </div>
 
@@ -401,45 +406,65 @@ const permissions = (() => {
           {/* Dashboard Content */}
           <ColorfulTabsContent value="dashboard">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
-                  <StatsCard key={index} {...stat} />
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="ml-2 text-gray-600">Loading dashboard data...</span>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <p className="text-red-500">{error}</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline" 
+                    className="mt-4"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {stats.map((stat, index) => (
+                      <StatsCard key={index} {...stat} />
+                    ))}
+                  </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DonutChart title="Sales by Category" data={salesData} />
-                <CustomLineChart title="Monthly Revenue Trends" data={revenueData} color="#2F80ED" gradientId="revenueGradient" />
-              </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <DonutChart title="Sales by Category" data={salesData} />
+                    <CustomLineChart title="Monthly Revenue Trends" data={revenueData} color="#2F80ED" gradientId="revenueGradient" />
+                  </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CustomBarChart title="Expenses by Department" data={expenseData} color="#EB5757" />
-                <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
-                  <CardHeader>
-                    <CardTitle>Recent Activities</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                        <span className="text-sm">New sale order #SO-001</span>
-                        <Badge>New</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <span className="text-sm">User role updated</span>
-                        <Badge variant="secondary">Security</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                        <span className="text-sm">Failed login detected</span>
-                        <Badge variant="outline">Alert</Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <span className="text-sm">Audit log exported</span>
-                        <Badge variant="secondary">Compliance</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <CustomBarChart title="Expenses by Department" data={expenseData} color="#EB5757" />
+                    <Card className="bg-white/90 backdrop-blur-sm shadow-lg">
+                      <CardHeader>
+                        <CardTitle>Recent Activities</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <span className="text-sm">New sale order #SO-001</span>
+                            <Badge>New</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <span className="text-sm">User role updated</span>
+                            <Badge variant="secondary">Security</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                            <span className="text-sm">Failed login detected</span>
+                            <Badge variant="outline">Alert</Badge>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <span className="text-sm">Audit log exported</span>
+                            <Badge variant="secondary">Compliance</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
             </div>
           </ColorfulTabsContent>
 

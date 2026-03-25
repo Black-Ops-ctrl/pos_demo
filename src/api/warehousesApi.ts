@@ -1,7 +1,7 @@
 // api/warehouse.ts
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/warehouses";
+const API_URL = "http://84.16.235.111:2149/api/warehouses";
 
 export interface Warehouse {
   warehouse_id: number;

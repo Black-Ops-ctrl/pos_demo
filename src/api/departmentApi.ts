@@ -2,8 +2,8 @@
 import axios from "axios";
 
 // API URLs for different endpoints
-const UOM_API_URL = "http://84.16.235.111:2140/api/uom";
-const DEPARTMENT_API_URL = "http://84.16.235.111:2140/api/departments";
+const UOM_API_URL = "http://84.16.235.111:2149/api/uom";
+const DEPARTMENT_API_URL = "http://84.16.235.111:2149/api/departments";
 
 const getModuleId = (): string | null => {
   return sessionStorage.getItem('selectedBranchId');

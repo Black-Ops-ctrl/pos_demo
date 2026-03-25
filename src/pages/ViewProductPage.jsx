@@ -141,7 +141,7 @@ const ViewProductsByCategory = () => {
         );
         
         // Get image URL from the API response
-        const imageUrl = item.image_url || `http://84.16.235.111:2140/uploads/products/prod_${item.product_id}.png`;
+        const imageUrl = item.image_url || `http://84.16.235.111:2149/uploads/products/prod_${item.product_id}.png`;
         
         return {
           id: item?.product_id,

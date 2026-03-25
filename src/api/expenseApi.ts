@@ -1,7 +1,7 @@
 // src/api/ExpenseApi.ts  <-- (Recommended change from departmentApi.ts to reflect content)
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/expense";
+const API_URL = "http://84.16.235.111:2149/api/expense";
 
 // 💡 Helper to get the module_id from session storage
 const getModuleId = (): string => {

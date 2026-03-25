@@ -213,37 +213,37 @@ const SalesModule: React.FC = () => {
                 </ColorfulTabsContent>
 
                 <ColorfulTabsContent value="dashboard" className="!p-0 !m-0">
-    {activeTab === 'dashboard' && (
-        <div className="fixed inset-0 z-50 overflow-auto bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
-            {/* Header with Back Button and Centered Text */}
-            <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 shadow-lg">
-                <div className="relative flex items-center justify-center p-4">
-                    {/* Back Button - Left */}
-                    <Button 
-                        variant="ghost" 
-                        onClick={() => setActiveTab('overview')}
-                        className="absolute left-4 bg-white/20 text-white hover:bg-white/30 hover:text-white border-0"
-                    >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Back
-                    </Button>
-                    
-                    {/* Centered Title */}
-                    <h2 className="text-2xl font-bold text-primary tracking-wide">
-                        POS System
-                    </h2>                    
-                </div>
-            </div>
-            
-            {/* Content Area with Gradient Background */}
-            <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 min-h-screen">
-                <Dashboard />
-            </div>
-        </div>
-    )}
-</ColorfulTabsContent>
+                {activeTab === 'dashboard' && (
+                    <div className="fixed inset-0 z-50 overflow-auto bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
+                        {/* Header with Back Button and Centered Text - REDUCED HEIGHT */}
+                        <div className="sticky top-0 z-10 bg-gradient-to-br from-teal-900 via-teal-700 to-black shadow-lg">
+                            <div className="relative flex items-center justify-center py-2 px-4">
+                                {/* Back Button - Left */}
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={() => setActiveTab('overview')}
+                                    className="absolute left-4 bg-white/20 text-white hover:bg-white/30 hover:text-white border-0 text-sm py-1 h-auto"
+                                >
+                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                    </svg>
+                                    Back
+                                </Button>
+                                
+                                {/* Centered Title - REDUCED TEXT SIZE */}
+                                <h2 className="text-xl font-bold text-primary tracking-wide">
+                                    POS System
+                                </h2>                    
+                            </div>
+                        </div>
+                        
+                        {/* Content Area with Gradient Background */}
+                        <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 min-h-screen">
+                            <Dashboard />
+                        </div>
+                    </div>
+                )}
+            </ColorfulTabsContent>
 
 
                                 <ColorfulTabsContent value="SalesInvoiceReturn">

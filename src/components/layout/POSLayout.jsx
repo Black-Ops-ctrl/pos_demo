@@ -98,11 +98,11 @@ const POSLayout = () => {
         } 
         // Construct from image_ext and product_id if available
         else if (prod.image_ext && prod.product_id) {
-          imageUrl = `http://84.16.235.111:2140/uploads/products/prod_${prod.product_id}.${prod.image_ext}`;
+          imageUrl = `http://84.16.235.111:2149/uploads/products/prod_${prod.product_id}.${prod.image_ext}`;
         }
         // Construct from product_id only (assuming png)
         else if (prod.product_id) {
-          imageUrl = `http://84.16.235.111:2140/uploads/products/prod_${prod.product_id}.png`;
+          imageUrl = `http://84.16.235.111:2149/uploads/products/prod_${prod.product_id}.png`;
         }
         
         // Parse quantity to number
@@ -188,15 +188,15 @@ const POSLayout = () => {
   };
 
   return (
-    <div className="h-screen bg-rose-50 p-2 sm:p-3 md:p-4 overflow-hidden">
+    <div className="h-screen overflow-hidden">
       {/* Main container with responsive padding */}
-      <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-xl h-full flex flex-col lg:flex-row overflow-hidden">
+      <div className="bg-white h-full flex flex-col lg:flex-row overflow-hidden">
         {/* Sidebar navigation */}
-        <Sidebar />
+        {/* <Sidebar /> */}
         
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top bar with search and user profile */}
+          {/* Top bar with search */}
           <div className="p-2 sm:p-3 md:p-4 lg:p-5 pb-1 sm:pb-2 md:pb-2 lg:pb-3">
             <TopBar 
               searchTerm={searchTerm}
@@ -236,13 +236,20 @@ const POSLayout = () => {
             
             {/* Right Column - Order Summary with selectedCustomer */}
             <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
-              <OrderSummary 
+              <div className="
+                h-[calc(70vh-80px)] 
+                sm:h-[calc(70vh-90px)] 
+                md:h-[calc(80vh-100px)] 
+                lg:h-[calc(90vh-110px)] 
+                overflow-y-auto">
+               <OrderSummary 
                 scannedBarcode={scannedBarcode}
                 onBarcodeProcessed={handleBarcodeProcessed}
                 products={products}
                 onRefreshProducts={refreshProducts}
-                selectedCustomer={selectedCustomer} // 👈 YEH PROP PASS HO RAHA HAI
+                selectedCustomer={selectedCustomer} 
               />
+             </div>
             </div>
           </div>
         </div>

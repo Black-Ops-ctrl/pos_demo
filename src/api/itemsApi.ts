@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/items";
-const Sale_Items_Accounts_API_URL = "http://84.16.235.111:2140/api/getSaleItemsAccounts";
-const Puchase_Items_Accounts_API_URL = "http://84.16.235.111:2140/api/getPurchaseItemsAccounts";
+const API_URL = "http://84.16.235.111:2149/api/items";
+const Sale_Items_Accounts_API_URL = "http://84.16.235.111:2149/api/getSaleItemsAccounts";
+const Puchase_Items_Accounts_API_URL = "http://84.16.235.111:2149/api/getPurchaseItemsAccounts";
 
 /**
  * Retrieves the 'module_id' (which corresponds to 'selectedBranchId') from sessionStorage.

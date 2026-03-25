@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/vendors";
-const naya_url = "http://84.16.235.111:2140/api/getvendors";
+const API_URL = "http://84.16.235.111:2149/api/vendors";
+const naya_url = "http://84.16.235.111:2149/api/getvendors";
 
 const getModuleId = (): number | null => {
   const branchId = sessionStorage.getItem('selectedBranchId');

@@ -321,7 +321,7 @@ const Branches: React.FC = () => {
                 Approve Selected ({selectedUnapprovedCount})
               </Button>
               <Button
-                className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white"
                 onClick={handleAddBranch}
                 disabled={loading}
               >
@@ -370,116 +370,85 @@ const Branches: React.FC = () => {
               <span className="ml-2">Loading branches...</span>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Select</TableHead>
-                  <TableHead>Branch No</TableHead>
-                  <TableHead>Branch Name</TableHead>
-                  {/* {module_id !== 3 && <TableHead>Farm Type</TableHead>}
-                  {module_id === 2 && (
-                    <>
-                      <TableHead>No. of Partners</TableHead>
-                      <TableHead>Discounts</TableHead>
-                      <TableHead>Extra Discount</TableHead>
-                      <TableHead>Remarks</TableHead>
-                    </>
-                  )}
-                  {module_id !== 3 && (
-                    <>
-                      <TableHead>Owned</TableHead>
-                      <TableHead>Rent</TableHead>
-                    </>
-                  )} */}
-                  {/* <TableHead>City</TableHead> */}
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBranches.map((branch) => (
-                  <TableRow key={branch.branch_id}>
-                    <TableCell className="text-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-blue-600 cursor-pointer"
-                        checked={selectedBranchIds.includes(branch.branch_id)}
-                        onChange={(e) =>
-                          handleCheckboxChange(branch.branch_id, e.target.checked)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{branch.branch_id}</TableCell>
-                    <TableCell className="font-medium">{branch.branch_name}</TableCell>
-                    {/* {module_id !== 3 && <TableCell>{branch.farm_type}</TableCell>}
-                    {module_id === 2 && (
-                      <>
-                        <TableCell>{branch.no_of_partners}</TableCell>
-                        <TableCell>{branch.discounts}%</TableCell>
-                        <TableCell>{branch.extra_discount}%</TableCell>
-                        <TableCell>{branch.remarks}</TableCell>
-                      </>
-                    )} */}
-                    {/* {module_id !== 3 && (
-                      <>
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 accent-green-600"
-                            checked={branch.is_owned || false}
-                            readOnly
-                          />
+            <div className="overflow-x-auto">
+              <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
+                <Table className="w-full table-fixed min-w-[600px]">
+                  <TableHeader className="sticky top-0 bg-white z-10">
+                    <TableRow>
+                      <TableHead className="w-[0%] text-center">Select</TableHead>
+                      <TableHead className="w-[15%] text-center">Branch No</TableHead>
+                      <TableHead className="w-[40%] text-left">Branch Name</TableHead>
+                      <TableHead className="w-[10%] text-center">Status</TableHead>
+                      <TableHead className="w-[15%] text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBranches.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                          No branches found
                         </TableCell>
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 accent-blue-600"
-                            checked={branch.is_rent || false}
-                            readOnly
-                          />
-                        </TableCell>
-                      </>
-                    )} */}
-                    {/* <TableCell>{branch.city}</TableCell> */}
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          branch.status === "APPROVED"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {branch.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {branch.status !== "APPROVED" ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditBranch(branch)}
+                      </TableRow>
+                    ) : (
+                      filteredBranches.map((branch) => (
+                        <TableRow key={branch.branch_id}>
+                          <TableCell className="text-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 accent-blue-600 cursor-pointer"
+                              checked={selectedBranchIds.includes(branch.branch_id)}
+                              onChange={(e) =>
+                                handleCheckboxChange(branch.branch_id, e.target.checked)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium text-center">{branch.branch_id}</TableCell>
+                          <TableCell className="font-medium truncate">{branch.branch_name}</TableCell>
+                          <TableCell className="text-center">
+                            <span
+                              className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+                                branch.status === "APPROVED"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
                             >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteBranch(branch.branch_id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No actions</span>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                              {branch.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {branch.status !== "APPROVED" ? (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditBranch(branch)}
+                                    className="h-8 px-2"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteBranch(branch.branch_id)}
+                                    className="h-8 px-2"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                // <span className="text-gray-500 text-xs">No actions</span>
+                                null
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

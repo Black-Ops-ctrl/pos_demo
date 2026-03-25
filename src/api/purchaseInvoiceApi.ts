@@ -1,11 +1,11 @@
 import { getCurrentUserId } from "@/components/security/LoginPage";
 import axios from "axios";
 
-const API_URL = "http://84.16.235.111:2140/api/purchase-invoices";
-const image_URL = "http://84.16.235.111:2140/api/company";
-const Vehicle_URL = "http://84.16.235.111:2140/api/vehicles";
-const PO_API_URL = "http://84.16.235.111:2140/api/getPOdetail";
-const grn_detail_API_URL = "http://84.16.235.111:2140/api/getGRNdetail";
+const API_URL = "http://84.16.235.111:2149/api/purchase-invoices";
+const image_URL = "http://84.16.235.111:2149/api/company";
+const Vehicle_URL = "http://84.16.235.111:2149/api/vehicles";
+const PO_API_URL = "http://84.16.235.111:2149/api/getPOdetail";
+const grn_detail_API_URL = "http://84.16.235.111:2149/api/getGRNdetail";
 const user_id = getCurrentUserId();
 
 /**
