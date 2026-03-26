@@ -873,20 +873,20 @@ const PurchaseOrders: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total POs</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total Purchase Invoices</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalPOs}</div>
           </CardContent>
         </Card>
-        <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
+        {/* <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Created POs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{createdPOs}</div>
           </CardContent>
-        </Card>
+        </Card> */}
         <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Value</CardTitle>
@@ -993,7 +993,7 @@ const PurchaseOrders: React.FC = () => {
               <div className="relative w-full md:w-1/3 min-w-[200px]">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search POs/Vendor..."
+                  placeholder="Search Purchase Invoices..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -1034,8 +1034,8 @@ const PurchaseOrders: React.FC = () => {
                       className="cursor-pointer"
                     />
                   </TableHead>
-                  <TableHead>PO NO</TableHead>
-                  <TableHead>PO Date</TableHead>
+                  <TableHead>Invoice No</TableHead>
+                  <TableHead>Purchase Date</TableHead>
                   <TableHead>Warehouse</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>
@@ -1144,18 +1144,18 @@ const PurchaseOrders: React.FC = () => {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Purchase Order Details</DialogTitle>
+            <DialogTitle>Purchase Invoice Details</DialogTitle>
           </DialogHeader>
           {viewingPO && (
             <>
               <table className="w-full border border-gray-300 mb-4 text-sm">
                 <tbody>
                   <tr>
-                    <td className="p-2 font-medium text-gray-600 border">PO Number</td>
+                    <td className="p-2 font-medium text-gray-600 border">Invoice No</td>
                     <td className="p-2 border">{viewingPO.po_id}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-medium text-gray-600 border">Order Date</td>
+                    <td className="p-2 font-medium text-gray-600 border">Purchase Date</td>
                     <td className="p-2 border">{new Date(viewingPO.order_date || '').toLocaleDateString()}</td>
                   </tr>
                   <tr>
@@ -1767,14 +1767,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ po, onClos
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto">
       <div className="bg-white p-6 rounded-lg w-[90%] md:w-[70%] max-w-[1000px] overflow-y-auto border-2 border-blue-700 rounded-xl">
-        <h2 className="text-lg font-semibold mb-4">{po ? "Edit Purchase Order" : "Create Purchase Order"}</h2>
+        <h2 className="text-lg font-semibold mb-4">{po ? "Edit Purchase Invoice" : "Create Purchase Invoice"}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Main Selectors with Border */}
           <div className="border p-4 rounded-lg space-y-4 md:space-y-0 md:space-x-4 md:flex md:flex-wrap">
             {/* Order Date */}
             <div className="flex flex-col flex-1 min-w-[150px]">
-              <span className="text-sm font-medium text-gray-700">PO Date</span>
+              <span className="text-sm font-medium text-gray-700">Invoice Date</span>
               <Input
                 type="date"
                 value={order_date}

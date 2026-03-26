@@ -30,9 +30,9 @@ const ProductGrid = ({ onProductSelect, searchTerm = "", selectedCategory = "", 
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Sticky header showing product count */}
-      <div className="sticky top-0 bg-white z-10 pb-3">
-        <h2 className="font-semibold text-secondary text-sm sm:text-base">
+      {/* Sticky header showing product count - REDUCED SIZE */}
+      <div className="sticky top-0 bg-white z-10 pb-2">
+        <h2 className="font-semibold text-secondary text-xs sm:text-sm">
           {loading ? "Loading Products..." : `Total Products ${searchTerm ? `(Found: ${filteredProducts.length})` : `(${filteredProducts.length})`}`}
         </h2>
       </div>
@@ -41,24 +41,23 @@ const ProductGrid = ({ onProductSelect, searchTerm = "", selectedCategory = "", 
       <div className="flex-1 overflow-y-auto min-h-0">
         {loading ? (
           // Loading skeleton - displays animated placeholder cards while loading
-          <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-gray-50 rounded-xl p-2 sm:p-3 shadow-sm border border-gray-200">
-                <div className="w-full aspect-square bg-gray-200 rounded-lg mb-2 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2 animate-pulse"></div>
-                <div className="h-5 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+          <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1 sm:gap-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+              <div key={i} className="bg-gray-50 rounded-lg p-1 shadow-sm border border-gray-200">
+                <div className="w-full aspect-square bg-gray-200 rounded-md mb-1 animate-pulse"></div>
+                <div className="h-2 bg-gray-200 rounded w-3/4 mb-1 animate-pulse"></div>
+                <div className="h-2 bg-gray-200 rounded w-1/2 animate-pulse"></div>
               </div>
             ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           // No results message
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-sm">No Products Found {searchTerm && `"${searchTerm}"`}</p>
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-xs">No Products Found {searchTerm && `"${searchTerm}"`}</p>
           </div>
         ) : (
-          // Actual product grid with filtered items
-          <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          // Actual product grid with filtered items - MAXIMUM PRODUCTS IN A ROW
+          <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1 sm:gap-2">
             {filteredProducts.map((item, index) => (
               <ProductCard 
                 key={item.barcode || item.id || index}

@@ -120,11 +120,14 @@ const POSLayout = () => {
           quantity: quantity,
           stockStatus: quantity <= 0 ? "out" : quantity < 5 ? "low" : "in",
           image_ext: prod.image_ext,
-          image_url: prod.image_url
+          image_url: prod.image_url,
+          uom_name: prod.uom_name || "Pieces"  // ✅ ADD THIS LINE - Dynamic UOM from API
         };
       }) : [];
       
       console.log("Formatted products for POS:", formattedProducts);
+      console.log("UOM values in products:", formattedProducts.map(p => ({ name: p.title, uom: p.uom_name })));
+      
       setProducts(formattedProducts);
     } catch (error) {
       console.error("Error loading products:", error);

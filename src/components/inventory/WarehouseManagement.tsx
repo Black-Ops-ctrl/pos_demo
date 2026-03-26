@@ -153,14 +153,14 @@ const Warehouses: React.FC = () => {
                       <Button size="sm" variant="outline" onClick={() => handleEditWarehouse(wh)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      {/* <Button
+                      <Button
                         size="sm"
                         variant="outline"
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDeleteWarehouse(wh.warehouse_id)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button> */}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

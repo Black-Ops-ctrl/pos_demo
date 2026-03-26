@@ -231,7 +231,7 @@ const { totalAssets, totalLiabilities, totalEquity, netIncome } = balances;
 
         <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
         
-          <ColorfulTabsList className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 mb-6">
+          <ColorfulTabsList className="grid grid-cols-4 mb-6">
             {/* <ColorfulTabsTrigger value="dashboard" icon={BarChart3}>Dashboard</ColorfulTabsTrigger> */}
             <ColorfulTabsTrigger value="coa" icon={Building}>Chart of Accounts</ColorfulTabsTrigger>
             {/* <ColorfulTabsTrigger value="journal" icon={FileText}>Journal Entries</ColorfulTabsTrigger> */}

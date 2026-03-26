@@ -50,7 +50,7 @@ const Maintainance: React.FC = () => {
 
                 <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
                    <ColorfulTabsList
-                        className="grid w-full grid-cols-5 mb-4 overflow-hidden"
+                        className="grid w-full grid-cols-4 mb-4 overflow-hidden"
                         >
                         {/* <ColorfulTabsTrigger value="company" icon={Building}>Company</ColorfulTabsTrigger> */}
 

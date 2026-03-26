@@ -105,7 +105,7 @@ const City: React.FC = () => {
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Citys</CardTitle>
+            <CardTitle>Cities</CardTitle>
             <Button className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary" onClick={handleAddCity}>
               <Plus className="h-4 w-4 mr-2" />
               Add City

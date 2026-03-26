@@ -646,7 +646,7 @@ const handlePrint = (invoice: Invoice) => {
     const allSelectedInvoicesApproved = selectedInvoices.length > 0 && 
         selectedInvoices.every(invoiceId => {
             const invoice = Invoices.find(inv => inv.purchase_invoice_id === invoiceId);
-            return invoice?.status === 'CLOSED';
+            return invoice?.status === 'APPROVED';
         });
 
     const allSelectedInvoicesCreated = selectedInvoices.length > 0 && 
@@ -816,7 +816,7 @@ const filteredInvoices = Invoices.filter(
                                             {[
                                                 { label: "All Statuses", value: "ALL" },
                                                 { label: "CREATED", value: "CREATED" },
-                                                { label: "CLOSED", value: "CLOSED" },
+                                                { label: "APPROVED", value: "APPROVED" },
                                             ].map((statusOption) => (
                                                 <CommandItem
                                                     key={statusOption.value}

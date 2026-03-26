@@ -9,8 +9,10 @@ const AppLayout: React.FC = () => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
-      <ERPDashboard />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-[1300px] mx-auto">
+        <ERPDashboard />
+      </div>
     </div>
   );
 };

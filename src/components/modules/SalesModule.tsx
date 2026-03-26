@@ -23,13 +23,13 @@ import Dashboard from '@/pages/dashboard';
 
 const SalesModule: React.FC = () => {
     
-    // ⭐️ CHANGE 1: Initialize activeTab from Session Storage or default to 'overview'
+    // Initialize activeTab from Session Storage or default to 'invoices'
     const [activeTab, setActiveTab] = useState(() => {
         // Use a unique key for the sales module tab
-        return sessionStorage.getItem('salesActiveTab') || 'overview';
+        return sessionStorage.getItem('salesActiveTab') || 'invoices';
     });
 
-    // ⭐️ CHANGE 2: Save activeTab to Session Storage whenever it changes
+    // Save activeTab to Session Storage whenever it changes
     useEffect(() => {
         sessionStorage.setItem('salesActiveTab', activeTab);
     }, [activeTab]);
@@ -42,7 +42,7 @@ const SalesModule: React.FC = () => {
 
     const overviewData = {
         totalSales: 203500,
-        completedOrders: 45,
+        // completedOrders: 45,
         pendingOrders: 12,
         activeQuotations: 8,
         outstandingInvoices: 15,
@@ -82,8 +82,8 @@ const SalesModule: React.FC = () => {
 
             <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
                 <ColorfulTabsList className="grid w-full grid-cols-3 overflow-hidden">
-                    <ColorfulTabsTrigger value="overview">Overview</ColorfulTabsTrigger>
-                                        {/* <ColorfulTabsTrigger value="SalesInvoiceReturn">SalesInvoiceReturn</ColorfulTabsTrigger> */}
+                    {/* <ColorfulTabsTrigger value="overview">Overview</ColorfulTabsTrigger> */}
+                    {/* <ColorfulTabsTrigger value="SalesInvoiceReturn">SalesInvoiceReturn</ColorfulTabsTrigger> */}
 
                     
                     {/* <ColorfulTabsTrigger value="orders">Sales Orders</ColorfulTabsTrigger> */}
@@ -109,13 +109,13 @@ const SalesModule: React.FC = () => {
                 </DropdownMenu> */}
                     {/* <ColorfulTabsTrigger value="delivery-challans">Delivery Challans</ColorfulTabsTrigger> */}
                     <ColorfulTabsTrigger value="invoices">Invoices</ColorfulTabsTrigger>
-                    { <ColorfulTabsTrigger value="dashboard">POS System</ColorfulTabsTrigger>}
+                    <ColorfulTabsTrigger value="dashboard">POS System</ColorfulTabsTrigger>
                     <ColorfulTabsTrigger value="reports">Reports</ColorfulTabsTrigger>
-                    
-
+                    {/* <ColorfulTabsTrigger value="salesperson">Sales Persons</ColorfulTabsTrigger> */}
+                    {/* <ColorfulTabsTrigger value="customer">Customers</ColorfulTabsTrigger> */}
                 </ColorfulTabsList>
 
-                <ColorfulTabsContent value="overview" className="space-y-6">
+                {/* <ColorfulTabsContent value="overview" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
                             <CardHeader className="pb-2">
@@ -127,19 +127,6 @@ const SalesModule: React.FC = () => {
                                     <span className="text-2xl font-bold"> Rs.{overviewData.totalSales.toLocaleString()}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">+12% from last month</p>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-gray-600">Completed Orders</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                                    <span className="text-2xl font-bold">{overviewData.completedOrders}</span>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">{overviewData.pendingOrders} pending</p>
                             </CardContent>
                         </Card>
 
@@ -198,7 +185,7 @@ const SalesModule: React.FC = () => {
                             </div>
                         </CardContent>
                     </Card>
-                </ColorfulTabsContent>
+                </ColorfulTabsContent> */}
 
                 
 
@@ -221,7 +208,7 @@ const SalesModule: React.FC = () => {
                                 {/* Back Button - Left */}
                                 <Button 
                                     variant="ghost" 
-                                    onClick={() => setActiveTab('overview')}
+                                    onClick={() => setActiveTab('invoices')}
                                     className="absolute left-4 bg-white/20 text-white hover:bg-white/30 hover:text-white border-0 text-sm py-1 h-auto"
                                 >
                                     <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,19 +233,21 @@ const SalesModule: React.FC = () => {
             </ColorfulTabsContent>
 
 
-                                <ColorfulTabsContent value="SalesInvoiceReturn">
-                    <SalesInvoiceReturn />
-                </ColorfulTabsContent>
+            <ColorfulTabsContent value="SalesInvoiceReturn">
+                <SalesInvoiceReturn />
+            </ColorfulTabsContent>
 
-                <ColorfulTabsContent value="reports">
-                    <SalesReports />
-                </ColorfulTabsContent>
-                <ColorfulTabsContent value="salesperson">
-                    <SalesPerson />
-                </ColorfulTabsContent>
-                <ColorfulTabsContent value="customer">
-                    <Customers />
-                </ColorfulTabsContent>
+            <ColorfulTabsContent value="reports">
+                <SalesReports />
+            </ColorfulTabsContent>
+            
+            <ColorfulTabsContent value="salesperson">
+                <SalesPerson />
+            </ColorfulTabsContent>
+            
+            <ColorfulTabsContent value="customer">
+                <Customers />
+            </ColorfulTabsContent>
             </ColorfulTabs>
 
             {/* Dialog Forms */}

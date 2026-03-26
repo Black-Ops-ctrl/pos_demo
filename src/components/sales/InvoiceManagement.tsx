@@ -893,10 +893,7 @@ const SalesInvoice: React.FC = () => {
                                             <TableCell className="font-medium">{si.sales_invoice_no}</TableCell>
                                             <TableCell>{si.invoice_date ? new Date(si.invoice_date).toLocaleDateString() : ''}</TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-3 w-3 text-gray-400" />
-                                                    <span className="font-medium">{customerDisplay}</span>
-                                                </div>
+                                                 <span className="font-medium">{customerDisplay}</span>
                                             </TableCell>
                                             <TableCell className="font-medium">Rs {si.total_amount?.toLocaleString() || '0'}</TableCell>
                                             <TableCell className="flex gap-2">

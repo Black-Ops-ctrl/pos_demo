@@ -299,8 +299,8 @@ const permissions = (() => {
       value: loading ? 'Loading...' : `Rs ${parseFloat(totalSales.toString()).toLocaleString()}`,
       change: '+12%',
       trend: 'up' as const,
-      icon: DollarSign,
-      color: 'from-blue-500 to-blue-600',
+      icon: () => null, 
+     color: 'from-blue-500 to-blue-600',
     },
     {
       title: 'Inventory Products',
@@ -389,7 +389,7 @@ const permissions = (() => {
         {/* Tabs */}
         <ColorfulTabs value={activeModule} onValueChange={setActiveModule}>
           <div className="flex justify-center mb-6 no-print">
-            <ColorfulTabsList className={`w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 p-2`}>
+            <ColorfulTabsList className={`w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-2 p-2`}>
               {modules.map((module) => (
                 <ColorfulTabsTrigger
                   key={module.id}
@@ -449,7 +449,7 @@ const permissions = (() => {
                           </div>
                           <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                             <span className="text-sm">User role updated</span>
-                            <Badge variant="secondary">Security</Badge>
+                            <Badge variant="primary">Security</Badge>
                           </div>
                           <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                             <span className="text-sm">Failed login detected</span>
@@ -457,7 +457,7 @@ const permissions = (() => {
                           </div>
                           <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                             <span className="text-sm">Audit log exported</span>
-                            <Badge variant="secondary">Compliance</Badge>
+                            <Badge variant="primary">Compliance</Badge>
                           </div>
                         </div>
                       </CardContent>

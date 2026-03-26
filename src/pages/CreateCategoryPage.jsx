@@ -222,14 +222,14 @@ const CreateCategoryPage = () => {
           <button
             onClick={() => setOpen(true)}
             disabled={apiLoading.create}
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white px-5 py-2 rounded-full font-poppins disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
+            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white px-5 py-2 rounded-md font-poppins disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
           >
             <Plus size={16} />
             {apiLoading.create ? 'Creating...' : 'Create Category'}
           </button>
           <button
             onClick={() => setOpenProductModal(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-400 text-white px-5 py-2 rounded-full font-poppins hover:shadow-lg transition"
+            className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-400 text-white px-5 py-2 rounded-md font-poppins hover:shadow-lg transition"
           >
             <Plus size={16} />
             Add New Product

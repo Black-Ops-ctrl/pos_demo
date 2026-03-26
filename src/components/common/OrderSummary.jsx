@@ -5,13 +5,16 @@ import { printReceipt } from "./../common/PrintReceipt";
 import { updateStockAfterSale } from "../../core/services/api/updateStock";
 import Toast from "./../common/Toast"; 
 import { createSalesInvoice } from "../../api/salesInvoiceApi";
+import { getCustomers } from "../../api/customerApi";
+import { User, ChevronDown, CreditCard, TrendingUp } from "lucide-react";
 
 const OrderSummary = ({ 
   scannedBarcode, 
   onBarcodeProcessed, 
   products = [],
   onRefreshProducts,
-  selectedCustomer 
+  selectedCustomer: propSelectedCustomer,
+  onCustomerSelect 
 }) => {
   // State management
   const [cartItems, setCartItems] = useState([]);
@@ -21,7 +24,15 @@ const OrderSummary = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); 
   
+  // Customer dropdown states
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [localSelectedCustomer, setLocalSelectedCustomer] = useState(propSelectedCustomer || null);
+  const [customers, setCustomers] = useState([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const customerDropdownRef = useRef(null);
+  
   const scrollContainerRef = useRef(null);
+  const quantityInputRefs = useRef({});
 
   // Show toast function
   const showToast = (message, type = 'success') => {
@@ -33,19 +44,84 @@ const OrderSummary = ({
     setToast({ show: false, message: '', type: 'success' });
   };
 
+  // Load customers from API
+  const loadCustomers = async (isInitialLoad = false) => {
+    setLoadingCustomers(true);
+    try {
+      const response = await getCustomers();
+      const customersData = response?.data || response || [];
+      setCustomers(customersData);
+      console.log("Loaded customers:", customersData);
+      
+      if (isInitialLoad && customersData.length > 0 && !propSelectedCustomer && !localSelectedCustomer) {
+        const firstCustomer = customersData[0];
+        const defaultCustomer = {
+          id: firstCustomer.customer_id,
+          name: firstCustomer.customer_name,
+          phone: firstCustomer.phone,
+          email: firstCustomer.email,
+          address: firstCustomer.address,
+          city: firstCustomer.city,
+          type: firstCustomer.customer_type || 'debit',
+          icon: firstCustomer.customer_type === 'credit' ? TrendingUp : CreditCard
+        };
+        
+        console.log("✅ Auto-selecting first customer:", defaultCustomer);
+        setLocalSelectedCustomer(defaultCustomer);
+        if (onCustomerSelect) onCustomerSelect(defaultCustomer);
+      }
+    } catch (error) {
+      console.error("Error loading customers:", error);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  // Load customers on mount
+  useEffect(() => {
+    loadCustomers(true);
+  }, []);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    if (propSelectedCustomer) {
+      setLocalSelectedCustomer(propSelectedCustomer);
+    }
+  }, [propSelectedCustomer]);
+
+  // Load customers when dropdown opens
+  useEffect(() => {
+    if (isCustomerDropdownOpen) {
+      loadCustomers(false);
+    }
+  }, [isCustomerDropdownOpen]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target)) {
+        setIsCustomerDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Create product lookup database
   const productDatabase = React.useMemo(() => {
     const db = {};
     products.forEach(product => {
-      if (product.barcode) {
-        db[product.barcode] = {
-          id: product.id,
-          barcode: product.barcode,
-          title: product.title,
-          desc: product.desc || "",
+      const barcode = product.bar_code || product.barcode;
+      if (barcode) {
+        db[barcode] = {
+          id: product.product_id || product.id,
+          barcode: barcode,
+          title: product.product_name || product.title,
+          uom: product.uom_name || "Pieces",
+          desc: product.description || product.desc || "",
           price: Math.round(parseFloat(product.price) || 0),
-          image: product.image || "/img_category.webp",
-          quantity: product.quantity || 0
+          image: product.image_url || product.image || "/img_category.webp",
+          quantity: parseFloat(product.quantity) || 0
         };
       }
     });
@@ -58,6 +134,15 @@ const OrderSummary = ({
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [cartItems.length]);
+
+  // Update input values when cartItems change
+  useEffect(() => {
+    cartItems.forEach(item => {
+      if (quantityInputRefs.current[item.barcode]) {
+        quantityInputRefs.current[item.barcode].value = item.quantity;
+      }
+    });
+  }, [cartItems]);
 
   // Handle barcode scanning
   useEffect(() => {
@@ -72,6 +157,33 @@ const OrderSummary = ({
       onBarcodeProcessed();
     }
   }, [scannedBarcode]);
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer) => {
+    const selectedCustomerData = {
+      id: customer.customer_id,
+      name: customer.customer_name,
+      phone: customer.phone,
+      email: customer.email,
+      address: customer.address,
+      city: customer.city,
+      type: customer.customer_type || 'debit',
+      icon: customer.customer_type === 'credit' ? TrendingUp : CreditCard
+    };
+    
+    console.log("Customer selected:", selectedCustomerData);
+    setLocalSelectedCustomer(selectedCustomerData);
+    if (onCustomerSelect) onCustomerSelect(selectedCustomerData);
+    setIsCustomerDropdownOpen(false);
+  };
+
+  // Get selected customer details for display
+  const selectedCustomerDetails = localSelectedCustomer ? {
+    id: localSelectedCustomer.id,
+    name: localSelectedCustomer.name,
+    phone: localSelectedCustomer.phone,
+    icon: localSelectedCustomer.icon || (localSelectedCustomer.type === 'credit' ? TrendingUp : CreditCard)
+  } : null;
 
   // Check stock availability
   const checkStockAvailability = (product, requestedQuantity) => {
@@ -146,7 +258,7 @@ const OrderSummary = ({
     showToast('Selected items removed from cart', 'info');
   };
 
-  // Handle quantity change
+  // Handle quantity change with buttons
   const handleQuantityChange = (barcode, delta) => {
     const item = cartItems.find(i => i.barcode === barcode);
     const newQuantity = item.quantity + delta;
@@ -168,6 +280,56 @@ const OrderSummary = ({
           : item
       )
     );
+  };
+
+  // Handle manual quantity change - clears on click, user enters manually
+  const handleManualQuantityChange = (barcode, e) => {
+    const item = cartItems.find(i => i.barcode === barcode);
+    if (!item) return;
+    
+    let newQuantity = parseInt(e.target.value);
+    
+    // If empty string (user cleared the field)
+    if (e.target.value === "") {
+      return; // Keep empty until user types
+    }
+    
+    if (isNaN(newQuantity) || newQuantity < 1) {
+      newQuantity = 1;
+    }
+    
+    const stockCheck = checkStockAvailability(item, newQuantity);
+    if (!stockCheck.available) {
+      showToast(`Only ${stockCheck.currentStock} ${item.title} available in stock!`, 'warning');
+      // Reset to current quantity
+      if (quantityInputRefs.current[barcode]) {
+        quantityInputRefs.current[barcode].value = item.quantity;
+      }
+      return;
+    }
+    
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.barcode === barcode
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    );
+  };
+
+  // Handle quantity input focus - clear the field for user to type
+  const handleQuantityFocus = (barcode, e) => {
+    e.target.value = "";
+  };
+
+  // Handle quantity input blur - restore if empty
+  const handleQuantityBlur = (barcode, e) => {
+    const item = cartItems.find(i => i.barcode === barcode);
+    if (!item) return;
+    
+    if (e.target.value === "") {
+      e.target.value = item.quantity;
+    }
   };
 
   // Handle received amount
@@ -204,8 +366,6 @@ const OrderSummary = ({
   );
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
   const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
-
-  // Dynamic tax based on payment method
   const taxPercentage = paymentMethod === "cash" ? 0 : 0;
   const taxAmount = Math.round((subtotal - discountAmount) * taxPercentage / 100);
   const totalAmount = Math.round(subtotal - discountAmount + taxAmount);
@@ -267,7 +427,6 @@ const OrderSummary = ({
       const selectedBranchId = sessionStorage.getItem("selectedBranchId");
       const companyId = sessionStorage.getItem("companyId");
 
-      // Prepare items for API
       const itemsForApi = cartItems.map(item => ({
         item_id: item.id,
         quantity: item.quantity,
@@ -280,15 +439,13 @@ const OrderSummary = ({
         commission_amount: 0
       }));
 
-      // 👇 CUSTOMER ID NIKALO - agar walkin hai to 0 bhejo
-      const customerIdValue = selectedCustomer?.id && selectedCustomer.id !== 'walkin' 
-        ? parseInt(selectedCustomer.id) 
+      const customerIdValue = localSelectedCustomer?.id && localSelectedCustomer.id !== 'walkin' 
+        ? parseInt(localSelectedCustomer.id) 
         : 0;
 
-      console.log("Selected Customer:", selectedCustomer);
+      console.log("Selected Customer:", localSelectedCustomer);
       console.log("Customer ID being sent:", customerIdValue);
 
-      // Prepare receipt data
       const receiptData = {
         cartItems: cartItems.map(item => ({
           ...item,
@@ -309,25 +466,19 @@ const OrderSummary = ({
         shopAddress: "Abc Street, City, Country",
         shopPhone: "+92-308-4416769",
         currency: "Rs",
-        customerName: selectedCustomer?.name || 'Walk In Customer'
+        customerName: localSelectedCustomer?.name || 'Walk In Customer'
       };
 
-      // Update stock
       const stockUpdateResult = await updateStockAfterSale(receiptData, products);
       
       if (stockUpdateResult.success) {
-        // Save invoice to database with customer_id
         try {
           const companyIdValue = companyId ? parseInt(companyId) : null;
           const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
-          
           const description = `POS Sale - ${paymentMethod} payment`;
           
-          console.log("Calling createSalesInvoice with customer_id:", customerIdValue);
-          
-          // 👇 CUSTOMER_ID YAHAN SEND KARO
           await createSalesInvoice(
-            customerIdValue, // 👈 YEH CUSTOMER ID HAI
+            customerIdValue,
             new Date(),
             description,
             totalAmount,
@@ -342,13 +493,11 @@ const OrderSummary = ({
           );
           
           console.log(`✅ Sale completed for customer ID: ${customerIdValue}`);
-          
         } catch (invoiceError) {
           console.error('Failed to save invoice:', invoiceError);
           showToast('Sale completed but invoice was not saved', 'warning');
         }
 
-        // Print receipt and clear cart
         printReceipt(receiptData);
         setCartItems([]);
         setReceivedAmount("");
@@ -376,23 +525,7 @@ const OrderSummary = ({
   };
 
   return (
-    <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border">
-      {/* Customer Info Header - Show selected customer */}
-      {/* {selectedCustomer && (
-        <div className="bg-blue-50 px-3 py-2 border-b border-blue-100">
-          <div className="flex items-center gap-2 text-xs text-blue-700">
-            <span className="font-medium">Customer:</span>
-            <span>{selectedCustomer.name}</span>
-            {selectedCustomer.phone && (
-              <>
-                <span className="text-gray-400">|</span>
-                <span>{selectedCustomer.phone}</span>
-              </>
-            )}
-          </div>
-        </div>
-      )} */}
-
+    <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border border-gray-300">
       {/* Toast Notification */}
       {toast.show && (
         <Toast 
@@ -403,85 +536,185 @@ const OrderSummary = ({
       )}
 
       {/* Header */}
-      <div className="p-3 sm:p-4 border-b bg-primary">
-        <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-xs sm:text-sm md:text-base text-secondary">
-            Cart Items ({cartItems.length})
+      <div className="p-2 sm:p-3 border-b bg-primary">
+        <div className="flex justify-between items-center gap-2">
+          <h2 className="font-semibold text-xs sm:text-sm text-secondary whitespace-nowrap">
+            Cart ({cartItems.length})
           </h2>
+          
+          {/* Customer Dropdown */}
+          <div className="flex-1 max-w-[180px] sm:max-w-[220px]" ref={customerDropdownRef}>
+            <div className="relative">
+              <button
+                onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
+                className="flex items-center justify-between w-full px-2 py-1 rounded-lg bg-white hover:bg-gray-50 transition-all border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-300"
+                type="button"
+              >
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  {selectedCustomerDetails ? (
+                    <>
+                      <selectedCustomerDetails.icon size={12} className="text-gray-600 flex-shrink-0" />
+                      <span className="text-[11px] sm:text-xs font-medium text-gray-700 truncate">
+                        {selectedCustomerDetails.name}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <User size={12} className="text-gray-500 flex-shrink-0" />
+                      <span className="text-[11px] sm:text-xs font-medium text-gray-600 truncate">
+                        Customer
+                      </span>
+                    </>
+                  )}
+                </div>
+                <ChevronDown 
+                  size={10} 
+                  className={`text-gray-500 flex-shrink-0 ml-1 transition-transform duration-200 ${isCustomerDropdownOpen ? 'rotate-180' : ''}`} 
+                />
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isCustomerDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-64 overflow-y-auto">
+                  <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-500 border-b border-gray-100 sticky top-0 bg-white">
+                    SELECT CUSTOMER
+                  </div>
+                  
+                  {loadingCustomers ? (
+                    <div className="px-3 py-4 text-[10px] text-gray-500 text-center">
+                      Loading...
+                    </div>
+                  ) : (
+                    <>
+                      {customers.length > 0 ? (
+                        customers.map((customer) => (
+                          <button
+                            key={customer.customer_id}
+                            onClick={() => handleCustomerSelect(customer)}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] sm:text-xs hover:bg-gray-50 transition-colors text-gray-700 border-b border-gray-50 last:border-b-0 ${
+                              localSelectedCustomer?.id === customer.customer_id ? 'bg-red-50' : ''
+                            }`}
+                            type="button"
+                          >
+                            {customer.customer_type === 'credit' ? (
+                              <TrendingUp size={12} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
+                            ) : (
+                              <CreditCard size={12} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
+                            )}
+                            <div className="flex-1 text-left">
+                              <div className={`font-medium text-[11px] sm:text-xs ${localSelectedCustomer?.id === customer.customer_id ? 'text-red-600' : 'text-gray-700'}`}>
+                                {customer.customer_name}
+                              </div>
+                            </div>
+                            <span className={`text-[9px] px-1 py-0.5 rounded-full ${
+                              customer.customer_type === 'credit' 
+                                ? 'bg-orange-100 text-orange-700' 
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {customer.customer_type === 'credit' ? 'Credit' : 'Debit'}
+                            </span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-4 text-[10px] text-gray-500 text-center">
+                          No customers found
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          
           <button
             onClick={handleDelete}
             disabled={!isAnySelected || isProcessing}
-            className={`rounded-lg transition-colors ${
+            className={`rounded-lg transition-colors flex-shrink-0 ${
               isAnySelected && !isProcessing
                 ? "" 
                 : "opacity-30 cursor-not-allowed"
             }`}
           >
-            <img src={deleteIcon} alt="delete" className="w-5 h-5 sm:w-6 sm:h-6" />
+            <img src={deleteIcon} alt="delete" className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
+        
         {cartItems.length > 0 && (
-          <div className="flex items-center gap-2 mt-2 sm:mt-3">
+          <div className="flex items-center gap-2 mt-1.5">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={handleSelectAll}
               disabled={isProcessing}
-              className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-red-500 cursor-pointer rounded"
+              className="w-3 h-3 accent-red-500 cursor-pointer rounded"
             />
-            <span className="text-xs sm:text-sm text-gray-500">Select All</span>
+            <span className="text-[10px] sm:text-xs text-gray-500">Select All</span>
           </div>
         )}
       </div>
 
-      {/* Cart Items */}
+      {/* Cart Items - COMPACTED FOR MAXIMUM PRODUCTS */}
       <div 
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto min-h-0"
         style={{ maxHeight: "calc(100vh - 380px)" }}
       >
         {cartItems.length === 0 ? (
-          <p className="text-center text-secondary flex items-center justify-center h-full text-xs sm:text-sm p-4">
+          <p className="text-center text-secondary flex items-center justify-center h-full text-xs p-3">
             Empty Cart.
           </p>
         ) : (
-          <div className="p-2 sm:p-3 space-y-2">
+          <div className="p-1.5 space-y-1">
             {cartItems.map((item) => (
-              <div key={item.barcode} className="flex items-center gap-2 sm:gap-3 bg-white p-2 sm:p-3 rounded-lg shadow-sm">
+              <div key={item.barcode} className="flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm">
                 <input
                   type="checkbox"
                   checked={item.selected}
                   onChange={() => handleSelect(item.barcode)}
                   disabled={isProcessing}
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 accent-red-500 cursor-pointer flex-shrink-0"
-                />
-                <img 
-                  src={item.image} 
-                  alt={item.title} 
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover flex-shrink-0" 
+                  className="w-2.5 h-2.5 accent-red-500 cursor-pointer flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-xs sm:text-sm truncate">{item.title}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 truncate">{item.desc}</p>
-                  <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-2">
+                  {/* Product name with UOM in brackets */}
+                  <div className="flex items-center gap-0.5 flex-wrap">
+                    <p className="font-medium text-[11px] truncate">{item.title}</p>
+                    <span className="text-[9px] text-gray-500">
+                      ({item.uom})
+                    </span>
+                  </div>
+                  {/* Quantity controls - COMPACT */}
+                  <div className="flex items-center gap-0.5 mt-0.5">
                     <button
                       onClick={() => handleQuantityChange(item.barcode, -1)}
                       disabled={isProcessing}
-                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0 disabled:opacity-50"
+                      className="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-[10px] flex-shrink-0 disabled:opacity-50"
                     >
                       -
                     </button>
-                    <span className="text-xs sm:text-sm font-medium w-5 sm:w-6 text-center">{item.quantity}</span>
+                    <input
+                      ref={(el) => quantityInputRefs.current[item.barcode] = el}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      defaultValue={item.quantity}
+                      onFocus={(e) => handleQuantityFocus(item.barcode, e)}
+                      onChange={(e) => handleManualQuantityChange(item.barcode, e)}
+                      onBlur={(e) => handleQuantityBlur(item.barcode, e)}
+                      disabled={isProcessing}
+                      className="w-7 text-center text-[10px] border border-gray-200 rounded px-0.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-red-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      style={{ MozAppearance: 'textfield' }}
+                    />
                     <button
                       onClick={() => handleQuantityChange(item.barcode, 1)}
                       disabled={isProcessing}
-                      className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-xs sm:text-sm flex-shrink-0 disabled:opacity-50"
+                      className="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-[10px] flex-shrink-0 disabled:opacity-50"
                     >
                       +
                     </button>
                   </div>
                 </div>
-                <p className="font-bold text-red-500 text-xs sm:text-sm whitespace-nowrap ml-1">
+                <p className="font-bold text-red-500 text-[10px] whitespace-nowrap">
                   Rs {Math.round(item.price * item.quantity)}
                 </p>
               </div>
@@ -492,48 +725,48 @@ const OrderSummary = ({
 
       {/* Checkout Section */}
       {cartItems.length > 0 && (
-        <div className="p-2 sm:p-3 md:p-4 border-t border-gray-200 bg-white space-y-1.5 sm:space-y-2 md:space-y-3">
-          <div className="space-y-1 sm:space-y-1.5 md:space-y-2">
-            <div className="flex justify-between text-xs sm:text-sm">
+        <div className="p-2 sm:p-3 border-t border-gray-200 bg-white space-y-1.5">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
               <span className="text-gray-600">Subtotal</span>
               <span className="font-bold">Rs {subtotal}</span>
             </div>
             
-            <div className="flex justify-between items-center text-xs sm:text-sm">
+            <div className="flex justify-between items-center text-xs">
               <span className="text-gray-600">Discount</span>
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1">
                 <input
                   type="text"
                   value={discountPercentage}
                   onChange={handleDiscountChange}
                   onBlur={handleDiscountBlur}
                   disabled={isProcessing}
-                  className="w-10 sm:w-12 p-0.5 sm:p-1 border border-gray-300 rounded text-center text-xs"
+                  className="w-10 p-0.5 border border-gray-300 rounded text-center text-[11px]"
                   placeholder="2"
                 />
-                <span className="text-red-500 text-xs sm:text-sm font-bold">
+                <span className="text-red-500 text-xs font-bold">
                   -Rs {discountAmount}
                 </span>
               </div>
             </div>
             
-            <div className="flex justify-between text-xs sm:text-sm">
+            <div className="flex justify-between text-xs">
               <span className="text-gray-600">Tax ({taxPercentage}%)</span>
               <span className="font-bold">Rs {taxAmount}</span>
             </div>
             
-            <div className="border-t border-gray-200 pt-1 sm:pt-1.5 md:pt-2 mt-1 sm:mt-1.5 md:mt-2">
-              <div className="flex justify-between font-bold text-sm sm:text-base">
+            <div className="border-t border-gray-200 pt-1 mt-1">
+              <div className="flex justify-between font-bold text-sm">
                 <span>Total</span>
                 <span className="text-red-500">Rs {totalAmount}</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm text-gray-600">Payment</span>
-              <div className="flex gap-2 sm:gap-3">
+              <span className="text-xs text-gray-600">Payment</span>
+              <div className="flex gap-2">
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="radio"
@@ -542,9 +775,9 @@ const OrderSummary = ({
                     checked={paymentMethod === "cash"}
                     onChange={() => handlePaymentMethodChange("cash")}
                     disabled={isProcessing}
-                    className="accent-red-500 w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                    className="accent-red-500 w-2.5 h-2.5"
                   />
-                  <span className="text-xs sm:text-sm">Cash</span>
+                  <span className="text-[11px]">Cash</span>
                 </label>
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input
@@ -554,21 +787,21 @@ const OrderSummary = ({
                     checked={paymentMethod === "card"}
                     onChange={() => handlePaymentMethodChange("card")}
                     disabled={isProcessing}
-                    className="accent-red-500 w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4"
+                    className="accent-red-500 w-2.5 h-2.5"
                   />
-                  <span className="text-xs sm:text-sm">Card</span>
+                  <span className="text-[11px]">Card</span>
                 </label>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs sm:text-sm text-gray-600">Received</span>
+              <span className="text-xs text-gray-600">Received</span>
               <input
                 type="number"
                 value={receivedAmount}
                 onChange={handleReceivedAmountChange}
                 disabled={isProcessing}
-                className="w-20 sm:w-24 p-1 border border-gray-300 rounded text-xs sm:text-sm text-right"
+                className="w-20 p-0.5 border border-gray-300 rounded text-xs text-right"
                 min="0"
                 step="1"
                 placeholder="0"
@@ -576,7 +809,7 @@ const OrderSummary = ({
             </div>
 
             {receivedAmount && payback !== undefined && (
-              <div className="flex justify-between text-xs sm:text-sm">
+              <div className="flex justify-between text-xs">
                 <span className="text-gray-600">Change</span>
                 <span className={payback < 0 ? "text-red-500" : "text-green-600 font-medium"}>
                   Rs {Math.abs(payback)} {payback < 0 ? "(Due)" : ""}
@@ -587,7 +820,7 @@ const OrderSummary = ({
             <button 
               onClick={handlePrint}
               disabled={isProcessing || cartItems.length === 0}
-              className={`w-full bg-red-500 text-white py-1.5 sm:py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm mt-1 ${
+              className={`w-full bg-red-500 text-white py-1.5 rounded-lg hover:bg-red-600 transition-colors font-medium text-xs mt-1 ${
                 isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
@@ -596,7 +829,7 @@ const OrderSummary = ({
           </div>
         </div>
       )}
-  </div>
+    </div>
   );
 };
 

@@ -321,6 +321,11 @@ const VendorMaster: React.FC = () => {
     }
   };
 
+  // Check if there are any approved vendors in filtered list
+  const hasApprovedVendors = filteredVendors.some(v => v.status?.toUpperCase() === VENDOR_STATUSES.APPROVED);
+  // Check if there are any created vendors in filtered list
+  const hasCreatedVendors = filteredVendors.some(v => v.status?.toUpperCase() === VENDOR_STATUSES.CREATED);
+
   return (
     <>
       <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
@@ -409,10 +414,10 @@ const VendorMaster: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {statusFilter.toUpperCase() !== VENDOR_STATUSES.APPROVED && (
+                      {hasCreatedVendors && statusFilter !== VENDOR_STATUSES.APPROVED && (
                         <SelectItem value="approve">Select All for Approve</SelectItem>
                       )}
-                      {statusFilter.toUpperCase() !== VENDOR_STATUSES.CREATED && (
+                      {hasApprovedVendors && statusFilter !== VENDOR_STATUSES.CREATED && (
                         <SelectItem value="unapprove">Select All for Unapprove</SelectItem>
                       )}
                     </SelectContent>
@@ -461,26 +466,42 @@ const VendorMaster: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditVendor(vendor)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteVendor(vendor.vendor_id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {/* Only show Edit and Delete buttons if status is NOT APPROVED */}
+                        {!isApproved && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditVendor(vendor)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteVendor(vendor.vendor_id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {isApproved && (
+                          // <span className="text-xs text-gray-500">No actions</span>
+                          null
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
+              {filteredVendors.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    No vendors found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

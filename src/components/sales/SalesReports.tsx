@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart3, TrendingUp, Users, Package, Download, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Package, Download, Calendar, Loader2 } from 'lucide-react';
 
 interface SalesData {
   period: string;
   revenue: number;
   orders: number;
   customers: number;
+  avg_order: number;
 }
 
 interface ProductSales {
@@ -21,7 +22,6 @@ interface ProductSales {
   category: string;
   quantity: number;
   revenue: number;
-  profit: number;
 }
 
 interface SalespersonPerformance {
@@ -36,20 +36,16 @@ interface SalespersonPerformance {
 const SalesReports: React.FC = () => {
   const [dateRange, setDateRange] = useState('month');
   const [reportType, setReportType] = useState('summary');
-
-  const [salesData] = useState<SalesData[]>([
-    { period: 'Jan 2024', revenue: 45000, orders: 120, customers: 85 },
-    { period: 'Feb 2024', revenue: 52000, orders: 140, customers: 92 },
-    { period: 'Mar 2024', revenue: 48000, orders: 135, customers: 88 },
-    { period: 'Apr 2024', revenue: 58000, orders: 155, customers: 105 },
-  ]);
-
-  const [topProducts] = useState<ProductSales[]>([
-    { id: '1', name: 'Laptop Computer', category: 'Electronics', quantity: 45, revenue: 44995, profit: 9000 },
-    { id: '2', name: 'Office Chair', category: 'Furniture', quantity: 32, revenue: 6398, profit: 1920 },
-    { id: '3', name: 'Wireless Mouse', category: 'Electronics', quantity: 120, revenue: 3599, profit: 1200 },
-    { id: '4', name: 'Desk Lamp', category: 'Furniture', quantity: 28, revenue: 1400, profit: 420 },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [topProductsLoading, setTopProductsLoading] = useState(true);
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [topProducts, setTopProducts] = useState<ProductSales[]>([]);
+  const [summaryData, setSummaryData] = useState({
+    total_revenue: 0,
+    total_orders: 0,
+    total_customers: 0,
+    avg_order_value: 0
+  });
 
   const [salespeople] = useState<SalespersonPerformance[]>([
     { id: '1', name: 'John Smith', orders: 45, revenue: 125000, commission: 6250, target: 120000 },
@@ -58,10 +54,148 @@ const SalesReports: React.FC = () => {
     { id: '4', name: 'Lisa Brown', orders: 41, revenue: 115000, commission: 5750, target: 110000 },
   ]);
 
-  const totalRevenue = salesData.reduce((sum, data) => sum + data.revenue, 0);
-  const totalOrders = salesData.reduce((sum, data) => sum + data.orders, 0);
-  const totalCustomers = salesData.reduce((sum, data) => sum + data.customers, 0);
-  const avgOrderValue = totalRevenue / totalOrders;
+  // Fetch top products data from API
+  const fetchTopProducts = async (range: string) => {
+    try {
+      setTopProductsLoading(true);
+      
+      // Map frontend date range to API operation for top products
+      let operation = 3; // Operation 3 for top products
+      
+      const response = await fetch('http://84.16.235.111:2149/api/sales-dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_operation: operation
+        })
+      });
+
+      const result = await response.json();
+      console.log('Top Products API Response:', result);
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        // Transform API data for top products table
+        const transformedProducts: ProductSales[] = result.data.map((item: any, index: number) => ({
+          id: item.product_id?.toString() || index.toString(),
+          name: item.product_name || 'N/A',
+          category: item.category_name || 'N/A',
+          quantity: parseFloat(item.quantity) || 0,
+          revenue: parseFloat(item.total_revenue) || 0
+        }));
+        
+        setTopProducts(transformedProducts);
+      } else {
+        setTopProducts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching top products data:', error);
+      setTopProducts([]);
+    } finally {
+      setTopProductsLoading(false);
+    }
+  };
+
+  // Fetch dashboard data from API based on selected date range
+  const fetchDashboardData = async (range: string) => {
+    try {
+      setLoading(true);
+      
+      // Map frontend date range to API operation
+      let operation = 1;
+      switch(range) {
+        case 'week':
+          operation = 2; 
+          break;
+        case 'month':
+          operation = 2; 
+          break;
+        case 'year':
+          operation = 2; 
+          break;
+        default:
+          operation = 1;
+      }
+      
+      const response = await fetch('http://84.16.235.111:2149/api/sales-dashboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          p_operation: operation
+        })
+      });
+
+      const result = await response.json();
+      console.log('API Response for', range, ':', result);
+      
+      if (result.status === 'success' && result.data && result.data.length > 0) {
+        const apiData = result.data[0];
+        
+        // Update summary data
+        setSummaryData({
+          total_revenue: parseFloat(apiData.total_revenue) || 0,
+          total_orders: parseFloat(apiData.total_orders) || 0,
+          total_customers: parseFloat(apiData.total_customers) || 0,
+          avg_order_value: parseFloat(apiData.avg_order_value) || 0
+        });
+        
+        // Update table data
+        const transformedData: SalesData[] = result.data.map((item: any) => ({
+          period: item.periods && item.periods !== null ? item.periods : getPeriodLabel(range),
+          revenue: parseFloat(item.total_revenue) || 0,
+          orders: parseFloat(item.total_orders) || 0,
+          customers: parseFloat(item.total_customers) || 0,
+          avg_order: parseFloat(item.avg_order_value) || 0
+        }));
+        
+        setSalesData(transformedData);
+      } else {
+        // Handle empty response
+        setSummaryData({
+          total_revenue: 0,
+          total_orders: 0,
+          total_customers: 0,
+          avg_order_value: 0
+        });
+        setSalesData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setSummaryData({
+        total_revenue: 0,
+        total_orders: 0,
+        total_customers: 0,
+        avg_order_value: 0
+      });
+      setSalesData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to get period label
+  const getPeriodLabel = (range: string): string => {
+    const now = new Date();
+    switch(range) {
+      case 'week':
+        return `Week ${Math.ceil(now.getDate() / 7)} ${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
+      case 'month':
+        return `${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
+      case 'year':
+        return `${now.getFullYear()}`;
+      default:
+        return `${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
+    }
+  };
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    fetchDashboardData(dateRange);
+    fetchTopProducts(dateRange);
+  }, [dateRange]);
 
   const getPerformanceColor = (actual: number, target: number) => {
     const percentage = (actual / target) * 100;
@@ -81,7 +215,11 @@ const SalesReports: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-500" />
-              <span className="text-2xl font-bold">${totalRevenue.toLocaleString()}</span>
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-2xl font-bold">Rs. {summaryData.total_revenue.toLocaleString()}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -92,7 +230,11 @@ const SalesReports: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-blue-500" />
-              <span className="text-2xl font-bold">{totalOrders}</span>
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-2xl font-bold">{summaryData.total_orders.toLocaleString()}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -103,7 +245,11 @@ const SalesReports: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-purple-500" />
-              <span className="text-2xl font-bold">{totalCustomers}</span>
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-2xl font-bold">{summaryData.total_customers.toLocaleString()}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -114,7 +260,11 @@ const SalesReports: React.FC = () => {
           <CardContent>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-orange-500" />
-              <span className="text-2xl font-bold">${avgOrderValue.toFixed(0)}</span>
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-2xl font-bold">Rs. {summaryData.avg_order_value.toLocaleString()}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -133,7 +283,6 @@ const SalesReports: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="week">This Week</SelectItem>
                   <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">This Quarter</SelectItem>
                   <SelectItem value="year">This Year</SelectItem>
                 </SelectContent>
               </Select>
@@ -146,102 +295,89 @@ const SalesReports: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-              <TabsTrigger value="products">Top Products</TabsTrigger>
-              <TabsTrigger value="performance">Performance</TabsTrigger>
-              <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-1">
+              <TabsTrigger 
+                value="summary" 
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+              >
+                Summary
+              </TabsTrigger>
+              <TabsTrigger 
+                value="products" 
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
+              >
+                Top Products
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="summary" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Customers</TableHead>
-                    <TableHead>Avg Order</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salesData.map((data, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{data.period}</TableCell>
-                      <TableCell>${data.revenue.toLocaleString()}</TableCell>
-                      <TableCell>{data.orders}</TableCell>
-                      <TableCell>{data.customers}</TableCell>
-                      <TableCell>${(data.revenue / data.orders).toFixed(0)}</TableCell>
+              {loading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : salesData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Revenue</TableHead>
+                      <TableHead>Orders</TableHead>
+                      <TableHead>Customers</TableHead>
+                      <TableHead>Avg Order</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {salesData.map((data, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{data.period}</TableCell>
+                        <TableCell>Rs. {data.revenue.toLocaleString()}</TableCell>
+                        <TableCell>{data.orders.toLocaleString()}</TableCell>
+                        <TableCell>{data.customers.toLocaleString()}</TableCell>
+                        <TableCell>Rs. {data.avg_order.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No sales data available for selected {dateRange}</p>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="products" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Profit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.category}</Badge>
-                      </TableCell>
-                      <TableCell>{product.quantity}</TableCell>
-                      <TableCell>${product.revenue.toLocaleString()}</TableCell>
-                      <TableCell className="text-green-600">${product.profit.toLocaleString()}</TableCell>
+              {topProductsLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              ) : topProducts.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Revenue</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            
-            <TabsContent value="performance" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Salesperson</TableHead>
-                    <TableHead>Orders</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Achievement</TableHead>
-                    <TableHead>Commission</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salespeople.map((person) => (
-                    <TableRow key={person.id}>
-                      <TableCell className="font-medium">{person.name}</TableCell>
-                      <TableCell>{person.orders}</TableCell>
-                      <TableCell>${person.revenue.toLocaleString()}</TableCell>
-                      <TableCell>${person.target.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge className={getPerformanceColor(person.revenue, person.target)}>
-                          {((person.revenue / person.target) * 100).toFixed(0)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell>${person.commission.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
-            
-            <TabsContent value="trends" className="space-y-4">
-              <div className="text-center py-8 text-gray-500">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Sales trend charts would be displayed here</p>
-                <p className="text-sm">Integration with charting library needed</p>
-              </div>
+                  </TableHeader>
+                  <TableBody>
+                    {topProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{product.category}</Badge>
+                        </TableCell>
+                        <TableCell>{product.quantity.toLocaleString()}</TableCell>
+                        <TableCell>Rs. {product.revenue.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No top products data available for selected {dateRange}</p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
