@@ -1,9 +1,18 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import ProductCard from "./ProductCard";
 
-const ProductGrid = ({ onProductSelect, searchTerm = "", selectedCategory = "", products = [], loading = false }) => {
+const ProductGrid = forwardRef(({ 
+  onProductSelect, 
+  searchTerm = "", 
+  selectedCategory = "", 
+  products = [], 
+  loading = false,
+  activeSection = false,
+  selectedProductIndex = -1
+}, ref) => {
   const [filteredProducts, setFilteredProducts] = useState([]);
+  
   useEffect(() => {
     let filtered = [...products];
     if (!searchTerm || searchTerm.trim() === "") {
@@ -28,8 +37,25 @@ const ProductGrid = ({ onProductSelect, searchTerm = "", selectedCategory = "", 
     setFilteredProducts(filtered);
   }, [searchTerm, selectedCategory, products]);
 
+  // Auto-scroll to selected product
+  useEffect(() => {
+    if (activeSection && selectedProductIndex >= 0 && selectedProductIndex < filteredProducts.length) {
+      const selectedElement = document.getElementById(`product-${selectedProductIndex}`);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      }
+    }
+  }, [selectedProductIndex, activeSection, filteredProducts]);
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div 
+      ref={ref}
+      className="h-full flex flex-col overflow-hidden"
+    >
       {/* Sticky header showing product count - REDUCED SIZE */}
       <div className="sticky top-0 bg-white z-10 pb-2">
         <h2 className="font-semibold text-secondary text-xs sm:text-sm">
@@ -59,21 +85,29 @@ const ProductGrid = ({ onProductSelect, searchTerm = "", selectedCategory = "", 
           // Actual product grid with filtered items - MAXIMUM PRODUCTS IN A ROW
           <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1 sm:gap-2">
             {filteredProducts.map((item, index) => (
-              <ProductCard 
+              <div
                 key={item.barcode || item.id || index}
-                title={item.title}
-                price={item.price}
-                image={item.image}
-                desc={item.desc}
-                barcode={item.barcode}
-                onProductClick={onProductSelect}
-              />
+                id={`product-${index}`}
+                className="cursor-pointer"
+              >
+                <ProductCard 
+                  title={item.title}
+                  price={item.price}
+                  image={item.image}
+                  desc={item.desc}
+                  barcode={item.barcode}
+                  onProductClick={onProductSelect}
+                  isSelected={activeSection && selectedProductIndex === index}
+                />
+              </div>
             ))}
           </div>
         )}
       </div>
     </div>
   );
-};
+});
+
+ProductGrid.displayName = 'ProductGrid';
 
 export default ProductGrid;

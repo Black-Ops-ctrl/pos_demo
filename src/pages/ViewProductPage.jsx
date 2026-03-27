@@ -149,15 +149,16 @@ const ViewProductsByCategory = () => {
           category_id: item?.category_id,
           category_name: productCategory?.category_name || item?.category_name || "Uncategorized",
           barcode: item?.bar_code || "N/A",
-          status: getStockStatus(parseInt(item?.quantity) || 0),
+          status: getStockStatus(parseInt(item?.quantity) || 0, item?.low_stock_qty || 5), // Pass low_stock_qty
           quantity: parseInt(item?.quantity) || 0,
           price: parseFloat(item?.price) || 0,
           image: imageUrl,
           image_ext: item?.image_ext,
           description: item?.description || "",
           productCode: item?.product_code,
-          uom_id: item?.uom_id, // Add UOM ID
-          uom_name: productUOM?.uom_name || item?.uom_name || "N/A", // Add UOM name
+          uom_id: item?.uom_id,
+          uom_name: productUOM?.uom_name || item?.uom_name || "N/A",
+          low_stock_qty: item?.low_stock_qty || 5, // Store low_stock_qty for reference
         };
       });
       
@@ -201,12 +202,22 @@ const ViewProductsByCategory = () => {
     }, 3000);
   };
   
-  // Determine stock status based on quantity
-  const getStockStatus = (quantity) => {
+  // Determine stock status based on quantity and low_stock_qty
+const getStockStatus = (quantity, lowStockQty) => {
+  // If low_stock_qty is very high (>= 999999), it means "Always Low Stock" is checked
+  const isAlwaysLowStock = lowStockQty && lowStockQty >= 999999;
+  
+  if (isAlwaysLowStock) {
+    // Always Low Stock mode
     if (quantity <= 0) return "Stock Out";
-    if (quantity < 5) return "Low Stock";
-    return "In Stock";
-  };
+    return "Low Stock";
+  }
+  
+  // Normal stock status logic
+  if (quantity <= 0) return "Stock Out";
+  if (quantity <= (lowStockQty || 5)) return "Low Stock";
+  return "In Stock";
+};
   
   // Apply search and status filters to displayed products
   const displayedProducts = filteredProducts.filter((p) => {

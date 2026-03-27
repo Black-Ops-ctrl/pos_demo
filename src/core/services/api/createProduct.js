@@ -1,6 +1,6 @@
 import api from './config';
 
-export const createProduct = async (formData, categories, barcode, imageFile, uom_id) => {
+export const createProduct = async (formData, categories, barcode, imageFile, uom_id, lowStockQty = 5) => {
   console.log("📤 Creating product with data:", formData);
   console.log("Selected category ID from form:", formData.category);
   console.log("Selected UOM ID:", uom_id);
@@ -26,6 +26,7 @@ export const createProduct = async (formData, categories, barcode, imageFile, uo
     formDataObj.append('p_sale_account_id', 3);
     formDataObj.append('p_website_chk', "N");
     formDataObj.append('p_created_by', 1);
+    formDataObj.append('p_low_stock_qty', lowStockQty);
     
     // ✅ ADD UOM ID TO THE REQUEST
     if (uom_id) {

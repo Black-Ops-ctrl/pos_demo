@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 // ProductCard component displays individual product information in a card format
-const ProductCard = ({ image, title, price, desc, barcode, onProductClick }) => {
+const ProductCard = ({ image, title, price, desc, barcode, onProductClick, isSelected = false }) => {
   const [imageError, setImageError] = useState(false);
   
   const handleClick = () => {
@@ -20,7 +20,13 @@ const ProductCard = ({ image, title, price, desc, barcode, onProductClick }) => 
   return (
     <div
       onClick={handleClick}
-      className="bg-gray-50 rounded-lg p-1 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200"
+      className={`
+        bg-gray-50 rounded-lg p-1 shadow-sm hover:shadow-md transition-all cursor-pointer border
+        ${isSelected 
+          ? 'border-blue-400 bg-blue-100' 
+          : 'border-gray-200 hover:border-blue-300'
+        }
+      `}
     >
       {/* Product image container - REDUCED SIZE */}
       <div className="w-full aspect-square rounded-md mb-1 overflow-hidden bg-gray-100">
@@ -55,7 +61,9 @@ const ProductCard = ({ image, title, price, desc, barcode, onProductClick }) => 
       </div>
       
       {/* Product title - REDUCED TEXT SIZE */}
-      <h3 className="font-semibold text-gray-800 text-[10px] sm:text-xs truncate">
+      <h3 className={`font-semibold text-[10px] sm:text-xs truncate ${
+        isSelected ? 'text-blue-700' : 'text-gray-800'
+      }`}>
         {title}
       </h3>
       

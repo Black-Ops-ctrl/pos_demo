@@ -9,10 +9,11 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [image, setImage] = useState(null);
   const [uomList, setUomList] = useState([]); 
   const [loadingUOM, setLoadingUOM] = useState(false);
+  const [alwaysLowStock, setAlwaysLowStock] = useState(false); // New state for checkbox
   const [formData, setFormData] = useState({
     productName: "",
     category: "",
-    uom_id: "", // Changed from uom to uom_id
+    uom_id: "",
     price: "",
   });
   const [loading, setLoading] = useState(false);
@@ -226,7 +227,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       return;
     }
 
-    if (!formData.uom_id) { // Changed from uom to uom_id
+    if (!formData.uom_id) {
       showToast("Please select a unit of measurement", "warning");
       return;
     }
@@ -251,8 +252,13 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     setError("");
     setSuccessMessage("");
     
-    // Pass the image file and UOM ID to createProduct
-    const result = await createProduct(formData, categories, barcode, image, formData.uom_id); // Passing uom_id
+    // Determine low_stock_qty based on checkbox
+    // If alwaysLowStock is true, set to a very high number (999999)
+    // If false, set to default 5 (or you can keep existing logic)
+    const lowStockQty = alwaysLowStock ? 999999 : 5;
+    
+    // Pass the image file, UOM ID, and low_stock_qty to createProduct
+    const result = await createProduct(formData, categories, barcode, image, formData.uom_id, lowStockQty);
     
     if (result.success) {
       showToast(result.message, "success");
@@ -265,13 +271,14 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       setFormData({ 
         productName: "", 
         category: "", 
-        uom_id: "", // Reset UOM ID
+        uom_id: "",
         price: "" 
       });
       setBarcode("");
       setImage(null);
       setBarcodeExists(false);
       setExistingProductName("");
+      setAlwaysLowStock(false); // Reset checkbox
       
       // Reset the file input
       const fileInput = document.querySelector('input[type="file"]');
@@ -350,8 +357,21 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             </p>
           )}
         </div>
+        
+        {/* Product Name row with checkbox */}
         <div className="flex flex-col">
-          <label className="font-bold text-secondary">Product Name *</label>
+          <div className="flex items-center justify-between">
+            <label className="font-bold text-secondary text-lg">Product Name *</label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={alwaysLowStock}
+                onChange={(e) => setAlwaysLowStock(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Marked as low stock product</span>
+            </label>
+          </div>
           <input
             type="text"
             name="productName"
@@ -360,7 +380,13 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             placeholder="Enter Product Name"
             className={inputClass}
           />
+          {alwaysLowStock && (
+            <p className="text-xs text-amber-600 mt-1">
+              ⚠️ This product will always show as "Low Stock" regardless of purchase quantity
+            </p>
+          )}
         </div>
+        
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Price *</label>
           <input
@@ -392,7 +418,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Unit of Measurement (UOM) *</label>
           <select
-            name="uom_id" // Changed from uom to uom_id
+            name="uom_id"
             value={formData.uom_id}
             onChange={handleInputChange}
             className={`${inputClass} ${loadingUOM ? 'opacity-50' : ''}`}
