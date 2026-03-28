@@ -402,103 +402,140 @@ const OrderSummary = ({
   };
 
   const handlePrint = async () => {
-    if (isProcessing) return;
-    
-    if (cartItems.length === 0) {
-      showToast("Cart is empty!", 'warning');
+  if (isProcessing) return;
+  
+  if (cartItems.length === 0) {
+    showToast("Cart is empty!", 'warning');
+    return;
+  }
+
+  if (paymentMethod === "cash") {
+    if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
+      showToast("Please enter valid received amount!", 'warning');
+      return;
+    }
+  }
+
+  setIsProcessing(true);
+
+  try {
+    if (!validateFinalStock()) {
+      setIsProcessing(false);
       return;
     }
 
-    if (paymentMethod === "cash") {
-      if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
-        showToast("Please enter valid received amount!", 'warning');
-        return;
-      }
+    const selectedBranchId = sessionStorage.getItem("selectedBranchId");
+    const companyId = sessionStorage.getItem("companyId");
+
+    // Format items for API
+    const itemsForApi = cartItems.map(item => ({
+      item_id: parseInt(item.id), // Ensure it's a number
+      quantity: parseInt(item.quantity), // Ensure it's a number
+      unit_price: Math.round(parseFloat(item.price)), // Ensure it's a number
+      discount_percentage: parseFloat(parsedDiscount), // Already a number
+      discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
+      tax: parseFloat(taxPercentage), // Already a number
+      extra_discount: 0,
+      commission_percentge: 0,
+      commission_amount: 0
+    }));
+
+    const customerIdValue = localSelectedCustomer?.id && localSelectedCustomer.id !== 'walkin' 
+      ? parseInt(localSelectedCustomer.id) 
+      : 0;
+
+    console.log("=== DEBUG: Preparing to create invoice ===");
+    console.log("Customer ID:", customerIdValue);
+    console.log("Items:", itemsForApi);
+    console.log("Total Amount:", totalAmount);
+    console.log("Payment Method:", paymentMethod);
+    console.log("Received Amount:", receivedAmount);
+    console.log("Payback:", payback);
+    console.log("Branch ID:", selectedBranchId);
+    console.log("Company ID:", companyId);
+
+    // Ensure all required parameters are present
+    if (customerIdValue === 0) {
+      showToast("Please select a customer!", 'warning');
+      setIsProcessing(false);
+      return;
     }
 
-    setIsProcessing(true);
+    if (itemsForApi.length === 0) {
+      showToast("No items in cart!", 'warning');
+      setIsProcessing(false);
+      return;
+    }
 
-    try {
-      if (!validateFinalStock()) {
-        setIsProcessing(false);
-        return;
-      }
+    // Create receipt data for printing
+    const receiptData = {
+      cartItems: cartItems.map(item => ({
+        ...item,
+        price: Math.round(item.price),
+        id: item.id || item.barcode
+      })),
+      subtotal,
+      discountPercentage: parsedDiscount,
+      discountAmount,
+      tax: taxAmount,
+      totalAmount,
+      paymentMethod,
+      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+      payback: payback ? Math.round(payback) : 0,
+      invoiceNo: generateInvoiceNo(),
+      fbrInvoiceNo: generateFbrInvoiceNo(),
+      shopName: "Smart Shop",
+      shopAddress: "Abc Street, City, Country",
+      shopPhone: "+92-308-4416769",
+      currency: "Rs",
+      customerName: localSelectedCustomer?.name || 'Walk In Customer'
+    };
 
-      const selectedBranchId = sessionStorage.getItem("selectedBranchId");
-      const companyId = sessionStorage.getItem("companyId");
-
-      const itemsForApi = cartItems.map(item => ({
-        item_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        discount_percentage: parsedDiscount,
-        discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
-        tax: taxPercentage,
-        extra_discount: 0,
-        commission_percentge: 0,
-        commission_amount: 0
-      }));
-
-      const customerIdValue = localSelectedCustomer?.id && localSelectedCustomer.id !== 'walkin' 
-        ? parseInt(localSelectedCustomer.id) 
-        : 0;
-
-      console.log("Selected Customer:", localSelectedCustomer);
-      console.log("Customer ID being sent:", customerIdValue);
-
-      const receiptData = {
-        cartItems: cartItems.map(item => ({
-          ...item,
-          price: Math.round(item.price),
-          id: item.id || item.barcode
-        })),
-        subtotal,
-        discountPercentage: parsedDiscount,
-        discountAmount,
-        tax: taxAmount,
-        totalAmount,
-        paymentMethod,
-        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-        payback: payback ? Math.round(payback) : 0,
-        invoiceNo: generateInvoiceNo(),
-        fbrInvoiceNo: generateFbrInvoiceNo(),
-        shopName: "Smart Shop",
-        shopAddress: "Abc Street, City, Country",
-        shopPhone: "+92-308-4416769",
-        currency: "Rs",
-        customerName: localSelectedCustomer?.name || 'Walk In Customer'
-      };
-
-      const stockUpdateResult = await updateStockAfterSale(receiptData, products);
-      
-      if (stockUpdateResult.success) {
-        try {
-          const companyIdValue = companyId ? parseInt(companyId) : null;
-          const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
-          const description = `POS Sale - ${paymentMethod} payment`;
-          
-          await createSalesInvoice(
-            customerIdValue,
-            new Date(),
-            description,
-            totalAmount,
-            0,
-            companyIdValue,
-            branchIdValue,
-            itemsForApi,
-            paymentMethod,
-            receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,
-            payback ? Math.round(payback) : 0,
-            'POS'
-          );
-          
-          console.log(`✅ Sale completed for customer ID: ${customerIdValue}`);
-        } catch (invoiceError) {
-          console.error('Failed to save invoice:', invoiceError);
-          showToast('Sale completed but invoice was not saved', 'warning');
-        }
-
+    // Update stock first
+    const stockUpdateResult = await updateStockAfterSale(receiptData, products);
+    
+    if (stockUpdateResult.success) {
+      try {
+        const companyIdValue = companyId ? parseInt(companyId) : null;
+        const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
+        const description = `POS Sale - ${paymentMethod} payment`;
+        
+        // ✅ CORRECT: Pass parameters in the order expected by the API
+        console.log("📤 Calling createSalesInvoice with parameters:");
+        console.log("1. customer_id:", customerIdValue);
+        console.log("2. invoice_date:", new Date());
+        console.log("3. remarks:", description);
+        console.log("4. total_amount:", totalAmount);
+        console.log("5. commission_amount:", 0);
+        console.log("6. company_id:", companyIdValue);
+        console.log("7. branch_id:", branchIdValue);
+        console.log("8. items:", itemsForApi);
+        console.log("9. payment_method:", paymentMethod);
+        console.log("10. received_amount:", receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0);
+        console.log("11. payback:", payback ? Math.round(payback) : 0);
+        console.log("12. source:", 'POS');
+        
+        await createSalesInvoice(
+          customerIdValue,                                    // customer_id
+          new Date(),                                         // invoice_date
+          description,                                        // remarks
+          totalAmount,                                        // total_amount
+          0,                                                  // commission_amount
+          companyIdValue,                                     // company_id
+          branchIdValue,                                      // branch_id
+          itemsForApi,                                        // items
+          paymentMethod,                                      // payment_method
+          receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,  // received_amount
+          payback ? Math.round(payback) : 0,                  // payback
+          'POS'                                               // source
+        );
+        
+        console.log(`✅ Sale completed for customer ID: ${customerIdValue}`);
+        
+        // Print receipt
         printReceipt(receiptData);
+        
+        // Reset form
         setCartItems([]);
         setReceivedAmount("");
         
@@ -507,22 +544,26 @@ const OrderSummary = ({
         if (onRefreshProducts) {
           setTimeout(() => onRefreshProducts(), 500);
         }
-      } else {
-        const failedItems = stockUpdateResult.failed || [];
-        if (failedItems.length > 0) {
-          const errorMsg = failedItems.map(f => `${f.product}: ${f.reason}`).join('\n');
-          showToast(`Stock update failed:\n${errorMsg}`, 'error');
-        } else {
-          showToast(stockUpdateResult.message || "Failed to update stock", 'error');
-        }
+      } catch (invoiceError) {
+        console.error('❌ Failed to save invoice:', invoiceError);
+        showToast('Sale completed but invoice was not saved: ' + (invoiceError.message || 'Unknown error'), 'warning');
       }
-    } catch (error) {
-      console.error('Error processing sale:', error);
-      showToast("An error occurred while processing the sale", 'error');
-    } finally {
-      setIsProcessing(false);
+    } else {
+      const failedItems = stockUpdateResult.failed || [];
+      if (failedItems.length > 0) {
+        const errorMsg = failedItems.map(f => `${f.product}: ${f.reason}`).join('\n');
+        showToast(`Stock update failed:\n${errorMsg}`, 'error');
+      } else {
+        showToast(stockUpdateResult.message || "Failed to update stock", 'error');
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error processing sale:', error);
+    showToast("An error occurred while processing the sale: " + (error.message || 'Unknown error'), 'error');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   return (
     <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border border-gray-300">

@@ -596,7 +596,7 @@ const getStockStatus = (quantity, lowStockQty) => {
                     onChange={handleSelectAllChange}
                   />
                 </th>
-                <th className="p-3">Product Name</th>
+                <th className="p-3 text-left">Product Name</th>
                 <th className="p-3">Category</th>
                 <th className="p-3">UOM</th> {/* New UOM column */}
                 <th className="p-3">Barcode</th>
@@ -617,22 +617,22 @@ const getStockStatus = (quantity, lowStockQty) => {
                       onChange={() => handleCheckboxChange(product.id)}
                     />
                   </td>
-                  <td className="p-3">
-                    <div className="flex items-center justify-center gap-3">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
-                        onError={(e) => {
-                          console.log('Image failed to load:', product.image);
-                          e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
-                        }}
-                      />
-                      <span className="text-sm text-left break-words max-w-[200px]">
-                        {product.name}
-                      </span>
-                    </div>
-                  </td>
+                  <td className="p-3 align-middle">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
+                      onError={(e) => {
+                        console.log('Image failed to load:', product.image);
+                        e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
+                      }}
+                    />
+                    <span className="text-sm">
+                      {product.name}
+                    </span>
+                  </div>
+                </td>
                   <td className="p-3 align-middle">{product.category_name}</td>
                   <td className="p-3 align-middle">{product.uom_name}</td> {/* Display UOM */}
                   <td className="p-3 align-middle">{product.barcode}</td>
