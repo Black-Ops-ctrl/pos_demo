@@ -203,7 +203,7 @@ const SalesModule: React.FC = () => {
                 {activeTab === 'dashboard' && (
                     <div className="fixed inset-0 z-50 overflow-auto bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50">
                         {/* Header with Back Button and Centered Text - REDUCED HEIGHT */}
-                        <div className="sticky top-0 z-10 bg-gradient-to-br from-teal-900 via-teal-700 to-black shadow-lg">
+                        <div className="sticky top-0 z-10 bg-blue-900 shadow-lg">
                             <div className="relative flex items-center justify-center py-2 px-4">
                                 {/* Back Button - Left */}
                                 <Button 

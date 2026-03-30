@@ -136,7 +136,7 @@ const TopBar = ({
   return (
     <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
   <Search 
-    className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-red-500 transition-colors z-10" 
+    className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-blue-900 transition-colors z-10" 
     size={16}
     onClick={handleSearchClick}
   />
@@ -147,7 +147,7 @@ const TopBar = ({
     onChange={handleInputChange}
     onKeyDown={handleKeyPress}
     placeholder="Search or scan barcode..."
-    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-300 border border-gray-300 focus:border-red-300 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm transition-colors"
+    className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-900 border border-gray-300 focus:border-blue-300 text-xs sm:text-sm placeholder:text-xs sm:placeholder:text-sm transition-colors"
   />
 </div>
   );

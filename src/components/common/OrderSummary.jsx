@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
-import deleteIcon from "/public/ic_delete_button.png";
 import { printReceipt } from "./../common/PrintReceipt";
 import { updateStockAfterSale } from "../../core/services/api/updateStock";
 import Toast from "./../common/Toast"; 
 import { createSalesInvoice } from "../../api/salesInvoiceApi";
 import { getCustomers } from "../../api/customerApi";
-import { User, ChevronDown, CreditCard, TrendingUp } from "lucide-react";
+
+// Import icons individually to avoid issues
+import { User, ChevronDown, CreditCard, TrendingUp, ShoppingCart, Banknote, Printer, Trash2 } from "lucide-react";
 
 const OrderSummary = ({ 
   scannedBarcode, 
@@ -19,7 +20,7 @@ const OrderSummary = ({
   // State management
   const [cartItems, setCartItems] = useState([]);
   const [receivedAmount, setReceivedAmount] = useState("");
-  const [discountPercentage, setDiscountPercentage] = useState("0");
+  const [discountPercentage, setDiscountPercentage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); 
@@ -33,6 +34,7 @@ const OrderSummary = ({
   
   const scrollContainerRef = useRef(null);
   const quantityInputRefs = useRef({});
+  const discountInputRef = useRef(null);
 
   // Show toast function
   const showToast = (message, type = 'success') => {
@@ -51,7 +53,6 @@ const OrderSummary = ({
       const response = await getCustomers();
       const customersData = response?.data || response || [];
       setCustomers(customersData);
-      console.log("Loaded customers:", customersData);
       
       if (isInitialLoad && customersData.length > 0 && !propSelectedCustomer && !localSelectedCustomer) {
         const firstCustomer = customersData[0];
@@ -63,10 +64,9 @@ const OrderSummary = ({
           address: firstCustomer.address,
           city: firstCustomer.city,
           type: firstCustomer.customer_type || 'debit',
-          icon: firstCustomer.customer_type === 'credit' ? TrendingUp : CreditCard
+          icon: firstCustomer.customer_type === 'credit' ? 'TrendingUp' : 'CreditCard'
         };
         
-        console.log("✅ Auto-selecting first customer:", defaultCustomer);
         setLocalSelectedCustomer(defaultCustomer);
         if (onCustomerSelect) onCustomerSelect(defaultCustomer);
       }
@@ -168,10 +168,9 @@ const OrderSummary = ({
       address: customer.address,
       city: customer.city,
       type: customer.customer_type || 'debit',
-      icon: customer.customer_type === 'credit' ? TrendingUp : CreditCard
+      icon: customer.customer_type === 'credit' ? 'TrendingUp' : 'CreditCard'
     };
     
-    console.log("Customer selected:", selectedCustomerData);
     setLocalSelectedCustomer(selectedCustomerData);
     if (onCustomerSelect) onCustomerSelect(selectedCustomerData);
     setIsCustomerDropdownOpen(false);
@@ -182,7 +181,7 @@ const OrderSummary = ({
     id: localSelectedCustomer.id,
     name: localSelectedCustomer.name,
     phone: localSelectedCustomer.phone,
-    icon: localSelectedCustomer.icon || (localSelectedCustomer.type === 'credit' ? TrendingUp : CreditCard)
+    type: localSelectedCustomer.type
   } : null;
 
   // Check stock availability
@@ -261,6 +260,7 @@ const OrderSummary = ({
   // Handle quantity change with buttons
   const handleQuantityChange = (barcode, delta) => {
     const item = cartItems.find(i => i.barcode === barcode);
+    if (!item) return;
     const newQuantity = item.quantity + delta;
     
     if (newQuantity < 1) return;
@@ -282,16 +282,15 @@ const OrderSummary = ({
     );
   };
 
-  // Handle manual quantity change - clears on click, user enters manually
+  // Handle manual quantity change
   const handleManualQuantityChange = (barcode, e) => {
     const item = cartItems.find(i => i.barcode === barcode);
     if (!item) return;
     
     let newQuantity = parseInt(e.target.value);
     
-    // If empty string (user cleared the field)
     if (e.target.value === "") {
-      return; // Keep empty until user types
+      return;
     }
     
     if (isNaN(newQuantity) || newQuantity < 1) {
@@ -301,7 +300,6 @@ const OrderSummary = ({
     const stockCheck = checkStockAvailability(item, newQuantity);
     if (!stockCheck.available) {
       showToast(`Only ${stockCheck.currentStock} ${item.title} available in stock!`, 'warning');
-      // Reset to current quantity
       if (quantityInputRefs.current[barcode]) {
         quantityInputRefs.current[barcode].value = item.quantity;
       }
@@ -317,22 +315,18 @@ const OrderSummary = ({
     );
   };
 
-  // Handle quantity input focus - clear the field for user to type
   const handleQuantityFocus = (barcode, e) => {
     e.target.value = "";
   };
 
-  // Handle quantity input blur - restore if empty
   const handleQuantityBlur = (barcode, e) => {
     const item = cartItems.find(i => i.barcode === barcode);
     if (!item) return;
-    
     if (e.target.value === "") {
       e.target.value = item.quantity;
     }
   };
 
-  // Handle received amount
   const handleReceivedAmountChange = (e) => {
     const value = e.target.value;
     if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
@@ -340,22 +334,28 @@ const OrderSummary = ({
     }
   };
 
-  // Handle discount change
+  // Handle discount change - now clears field on focus for easy typing
   const handleDiscountChange = (e) => {
     const value = e.target.value;
+    // Allow empty string or numbers only
     if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
       setDiscountPercentage(value);
     }
   };
 
-  // Handle discount blur
+  const handleDiscountFocus = (e) => {
+    // Clear the field when user clicks on it
+    e.target.value = "";
+    setDiscountPercentage("");
+  };
+
   const handleDiscountBlur = () => {
+    // If field is empty after blur, set to 0
     if (discountPercentage === "" || discountPercentage === "0") {
-      setDiscountPercentage("2");
+      setDiscountPercentage("0");
     }
   };
 
-  // Handle payment method
   const handlePaymentMethodChange = (method) => {
     setPaymentMethod(method);
   };
@@ -366,24 +366,21 @@ const OrderSummary = ({
   );
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
   const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
-  const taxPercentage = paymentMethod === "cash" ? 0 : 0;
-  const taxAmount = Math.round((subtotal - discountAmount) * taxPercentage / 100);
-  const totalAmount = Math.round(subtotal - discountAmount + taxAmount);
+  const taxPercentage = 0;
+  const taxAmount = 0;
+  const totalAmount = Math.round(subtotal - discountAmount);
   const payback = receivedAmount && Math.round(parseFloat(receivedAmount) - totalAmount);
   const isAnySelected = cartItems.some((item) => item.selected);
   const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
 
-  // Generate invoice number
   const generateInvoiceNo = () => {
     return `INV-${Date.now().toString().slice(-8)}`;
   };
 
-  // Generate FBR invoice number
   const generateFbrInvoiceNo = () => {
     return `FBR-${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`;
   };
 
-  // Final stock validation
   const validateFinalStock = () => {
     for (const item of cartItems) {
       const productInInventory = productDatabase[item.barcode];
@@ -402,171 +399,148 @@ const OrderSummary = ({
   };
 
   const handlePrint = async () => {
-  if (isProcessing) return;
-  
-  if (cartItems.length === 0) {
-    showToast("Cart is empty!", 'warning');
-    return;
-  }
-
-  if (paymentMethod === "cash") {
-    if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
-      showToast("Please enter valid received amount!", 'warning');
-      return;
-    }
-  }
-
-  setIsProcessing(true);
-
-  try {
-    if (!validateFinalStock()) {
-      setIsProcessing(false);
-      return;
-    }
-
-    const selectedBranchId = sessionStorage.getItem("selectedBranchId");
-    const companyId = sessionStorage.getItem("companyId");
-
-    // Format items for API
-    const itemsForApi = cartItems.map(item => ({
-      item_id: parseInt(item.id), // Ensure it's a number
-      quantity: parseInt(item.quantity), // Ensure it's a number
-      unit_price: Math.round(parseFloat(item.price)), // Ensure it's a number
-      discount_percentage: parseFloat(parsedDiscount), // Already a number
-      discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
-      tax: parseFloat(taxPercentage), // Already a number
-      extra_discount: 0,
-      commission_percentge: 0,
-      commission_amount: 0
-    }));
-
-    const customerIdValue = localSelectedCustomer?.id && localSelectedCustomer.id !== 'walkin' 
-      ? parseInt(localSelectedCustomer.id) 
-      : 0;
-
-    console.log("=== DEBUG: Preparing to create invoice ===");
-    console.log("Customer ID:", customerIdValue);
-    console.log("Items:", itemsForApi);
-    console.log("Total Amount:", totalAmount);
-    console.log("Payment Method:", paymentMethod);
-    console.log("Received Amount:", receivedAmount);
-    console.log("Payback:", payback);
-    console.log("Branch ID:", selectedBranchId);
-    console.log("Company ID:", companyId);
-
-    // Ensure all required parameters are present
-    if (customerIdValue === 0) {
-      showToast("Please select a customer!", 'warning');
-      setIsProcessing(false);
-      return;
-    }
-
-    if (itemsForApi.length === 0) {
-      showToast("No items in cart!", 'warning');
-      setIsProcessing(false);
-      return;
-    }
-
-    // Create receipt data for printing
-    const receiptData = {
-      cartItems: cartItems.map(item => ({
-        ...item,
-        price: Math.round(item.price),
-        id: item.id || item.barcode
-      })),
-      subtotal,
-      discountPercentage: parsedDiscount,
-      discountAmount,
-      tax: taxAmount,
-      totalAmount,
-      paymentMethod,
-      receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-      payback: payback ? Math.round(payback) : 0,
-      invoiceNo: generateInvoiceNo(),
-      fbrInvoiceNo: generateFbrInvoiceNo(),
-      shopName: "Smart Shop",
-      shopAddress: "Abc Street, City, Country",
-      shopPhone: "+92-308-4416769",
-      currency: "Rs",
-      customerName: localSelectedCustomer?.name || 'Walk In Customer'
-    };
-
-    // Update stock first
-    const stockUpdateResult = await updateStockAfterSale(receiptData, products);
+    if (isProcessing) return;
     
-    if (stockUpdateResult.success) {
-      try {
-        const companyIdValue = companyId ? parseInt(companyId) : null;
-        const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
-        const description = `POS Sale - ${paymentMethod} payment`;
-        
-        // ✅ CORRECT: Pass parameters in the order expected by the API
-        console.log("📤 Calling createSalesInvoice with parameters:");
-        console.log("1. customer_id:", customerIdValue);
-        console.log("2. invoice_date:", new Date());
-        console.log("3. remarks:", description);
-        console.log("4. total_amount:", totalAmount);
-        console.log("5. commission_amount:", 0);
-        console.log("6. company_id:", companyIdValue);
-        console.log("7. branch_id:", branchIdValue);
-        console.log("8. items:", itemsForApi);
-        console.log("9. payment_method:", paymentMethod);
-        console.log("10. received_amount:", receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0);
-        console.log("11. payback:", payback ? Math.round(payback) : 0);
-        console.log("12. source:", 'POS');
-        
-        await createSalesInvoice(
-          customerIdValue,                                    // customer_id
-          new Date(),                                         // invoice_date
-          description,                                        // remarks
-          totalAmount,                                        // total_amount
-          0,                                                  // commission_amount
-          companyIdValue,                                     // company_id
-          branchIdValue,                                      // branch_id
-          itemsForApi,                                        // items
-          paymentMethod,                                      // payment_method
-          receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,  // received_amount
-          payback ? Math.round(payback) : 0,                  // payback
-          'POS'                                               // source
-        );
-        
-        console.log(`✅ Sale completed for customer ID: ${customerIdValue}`);
-        
-        // Print receipt
-        printReceipt(receiptData);
-        
-        // Reset form
-        setCartItems([]);
-        setReceivedAmount("");
-        
-        showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
-        
-        if (onRefreshProducts) {
-          setTimeout(() => onRefreshProducts(), 500);
-        }
-      } catch (invoiceError) {
-        console.error('❌ Failed to save invoice:', invoiceError);
-        showToast('Sale completed but invoice was not saved: ' + (invoiceError.message || 'Unknown error'), 'warning');
-      }
-    } else {
-      const failedItems = stockUpdateResult.failed || [];
-      if (failedItems.length > 0) {
-        const errorMsg = failedItems.map(f => `${f.product}: ${f.reason}`).join('\n');
-        showToast(`Stock update failed:\n${errorMsg}`, 'error');
-      } else {
-        showToast(stockUpdateResult.message || "Failed to update stock", 'error');
+    if (cartItems.length === 0) {
+      showToast("Cart is empty!", 'warning');
+      return;
+    }
+
+    if (paymentMethod === "cash") {
+      if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
+        showToast("Please enter valid received amount!", 'warning');
+        return;
       }
     }
-  } catch (error) {
-    console.error('Error processing sale:', error);
-    showToast("An error occurred while processing the sale: " + (error.message || 'Unknown error'), 'error');
-  } finally {
-    setIsProcessing(false);
-  }
-};
+
+    setIsProcessing(true);
+
+    try {
+      if (!validateFinalStock()) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const selectedBranchId = sessionStorage.getItem("selectedBranchId");
+      const companyId = sessionStorage.getItem("companyId");
+
+      const itemsForApi = cartItems.map(item => ({
+        item_id: parseInt(item.id),
+        quantity: parseInt(item.quantity),
+        unit_price: Math.round(parseFloat(item.price)),
+        discount_percentage: parseFloat(parsedDiscount),
+        discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
+        tax: parseFloat(taxPercentage),
+        extra_discount: 0,
+        commission_percentge: 0,
+        commission_amount: 0
+      }));
+
+      const customerIdValue = localSelectedCustomer?.id && localSelectedCustomer.id !== 'walkin' 
+        ? parseInt(localSelectedCustomer.id) 
+        : 0;
+
+      if (customerIdValue === 0) {
+        showToast("Please select a customer!", 'warning');
+        setIsProcessing(false);
+        return;
+      }
+
+      if (itemsForApi.length === 0) {
+        showToast("No items in cart!", 'warning');
+        setIsProcessing(false);
+        return;
+      }
+
+      const receiptData = {
+        cartItems: cartItems.map(item => ({
+          ...item,
+          price: Math.round(item.price),
+          id: item.id || item.barcode
+        })),
+        subtotal,
+        discountPercentage: parsedDiscount,
+        discountAmount,
+        tax: taxAmount,
+        totalAmount,
+        paymentMethod,
+        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
+        payback: payback ? Math.round(payback) : 0,
+        invoiceNo: generateInvoiceNo(),
+        fbrInvoiceNo: generateFbrInvoiceNo(),
+        shopName: "Smart Shop",
+        shopAddress: "Abc Street, City, Country",
+        shopPhone: "+92-308-4416769",
+        currency: "Rs",
+        customerName: localSelectedCustomer?.name || 'Walk In Customer'
+      };
+
+      const stockUpdateResult = await updateStockAfterSale(receiptData, products);
+      
+      if (stockUpdateResult.success) {
+        try {
+          const companyIdValue = companyId ? parseInt(companyId) : null;
+          const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
+          const description = `POS Sale - ${paymentMethod} payment`;
+          
+          await createSalesInvoice(
+            customerIdValue,
+            new Date(),
+            description,
+            totalAmount,
+            0,
+            companyIdValue,
+            branchIdValue,
+            itemsForApi,
+            paymentMethod,
+            receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,
+            payback ? Math.round(payback) : 0,
+            'POS'
+          );
+          
+          printReceipt(receiptData);
+          setCartItems([]);
+          setReceivedAmount("");
+          setDiscountPercentage("0");
+          
+          showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
+          
+          if (onRefreshProducts) {
+            setTimeout(() => onRefreshProducts(), 500);
+          }
+        } catch (invoiceError) {
+          console.error('Failed to save invoice:', invoiceError);
+          showToast('Sale completed but invoice was not saved: ' + (invoiceError.message || 'Unknown error'), 'warning');
+        }
+      } else {
+        const failedItems = stockUpdateResult.failed || [];
+        if (failedItems.length > 0) {
+          const errorMsg = failedItems.map(f => `${f.product}: ${f.reason}`).join('\n');
+          showToast(`Stock update failed:\n${errorMsg}`, 'error');
+        } else {
+          showToast(stockUpdateResult.message || "Failed to update stock", 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Error processing sale:', error);
+      showToast("An error occurred while processing the sale: " + (error.message || 'Unknown error'), 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Helper function to render icon
+  const renderIcon = (IconComponent, size, className) => {
+    if (!IconComponent) return null;
+    try {
+      return React.createElement(IconComponent, { size, className });
+    } catch (e) {
+      return null;
+    }
+  };
 
   return (
-    <div className="bg-lightGreyColor rounded-xl h-full flex flex-col overflow-hidden shadow-lg border border-gray-300">
+    <div className="bg-white h-full flex flex-col overflow-hidden border border-gray-200">
       {/* Toast Notification */}
       {toast.show && (
         <Toast 
@@ -577,297 +551,300 @@ const OrderSummary = ({
       )}
 
       {/* Header */}
-      <div className="p-2 sm:p-3 border-b bg-primary">
-        <div className="flex justify-between items-center gap-2">
-          <h2 className="font-semibold text-xs sm:text-sm text-secondary whitespace-nowrap">
-            Cart ({cartItems.length})
-          </h2>
-          
-          {/* Customer Dropdown */}
-          <div className="flex-1 max-w-[180px] sm:max-w-[220px]" ref={customerDropdownRef}>
-            <div className="relative">
-              <button
-                onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-                className="flex items-center justify-between w-full px-2 py-1 rounded-lg bg-white hover:bg-gray-50 transition-all border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-300"
-                type="button"
-              >
-                <div className="flex items-center gap-1 flex-1 min-w-0">
-                  {selectedCustomerDetails ? (
-                    <>
-                      <selectedCustomerDetails.icon size={12} className="text-gray-600 flex-shrink-0" />
-                      <span className="text-[11px] sm:text-xs font-medium text-gray-700 truncate">
-                        {selectedCustomerDetails.name}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <User size={12} className="text-gray-500 flex-shrink-0" />
-                      <span className="text-[11px] sm:text-xs font-medium text-gray-600 truncate">
-                        Customer
-                      </span>
-                    </>
-                  )}
-                </div>
-                <ChevronDown 
-                  size={10} 
-                  className={`text-gray-500 flex-shrink-0 ml-1 transition-transform duration-200 ${isCustomerDropdownOpen ? 'rotate-180' : ''}`} 
-                />
-              </button>
-              
-              {/* Dropdown Menu */}
-              {isCustomerDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-64 overflow-y-auto">
-                  <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-500 border-b border-gray-100 sticky top-0 bg-white">
-                    SELECT CUSTOMER
-                  </div>
-                  
-                  {loadingCustomers ? (
-                    <div className="px-3 py-4 text-[10px] text-gray-500 text-center">
-                      Loading...
-                    </div>
-                  ) : (
-                    <>
-                      {customers.length > 0 ? (
-                        customers.map((customer) => (
-                          <button
-                            key={customer.customer_id}
-                            onClick={() => handleCustomerSelect(customer)}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] sm:text-xs hover:bg-gray-50 transition-colors text-gray-700 border-b border-gray-50 last:border-b-0 ${
-                              localSelectedCustomer?.id === customer.customer_id ? 'bg-red-50' : ''
-                            }`}
-                            type="button"
-                          >
-                            {customer.customer_type === 'credit' ? (
-                              <TrendingUp size={12} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
-                            ) : (
-                              <CreditCard size={12} className={localSelectedCustomer?.id === customer.customer_id ? 'text-red-500' : 'text-gray-500'} />
-                            )}
-                            <div className="flex-1 text-left">
-                              <div className={`font-medium text-[11px] sm:text-xs ${localSelectedCustomer?.id === customer.customer_id ? 'text-red-600' : 'text-gray-700'}`}>
-                                {customer.customer_name}
-                              </div>
-                            </div>
-                            <span className={`text-[9px] px-1 py-0.5 rounded-full ${
-                              customer.customer_type === 'credit' 
-                                ? 'bg-orange-100 text-orange-700' 
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {customer.customer_type === 'credit' ? 'Credit' : 'Debit'}
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-4 text-[10px] text-gray-500 text-center">
-                          No customers found
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+      <div className="px-3 pt-2 pb-1 border-b border-gray-100 bg-white">
+        <div className="flex justify-between items-center mb-1">
+          <div className="flex items-center gap-1.5">
+            {renderIcon(ShoppingCart, 16, "text-blue-900")}
+            <h2 className="font-semibold text-sm">
+              Cart <span className="text-blue-900">({cartItems.length})</span>
+            </h2>
           </div>
           
-          <button
-            onClick={handleDelete}
-            disabled={!isAnySelected || isProcessing}
-            className={`rounded-lg transition-colors flex-shrink-0 ${
-              isAnySelected && !isProcessing
-                ? "" 
-                : "opacity-30 cursor-not-allowed"
-            }`}
-          >
-            <img src={deleteIcon} alt="delete" className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+          {/* Customer Dropdown */}
+          <div className="relative" ref={customerDropdownRef}>
+            <button
+              onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
+              className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-full text-xs border border-gray-200 hover:bg-gray-100 transition-colors"
+              type="button"
+            >
+              {selectedCustomerDetails ? (
+                <>
+                  {renderIcon(User, 12, "text-gray-600")}
+                  <span className="font-medium text-gray-700 max-w-[100px] truncate text-xs">
+                    {selectedCustomerDetails.name}
+                  </span>
+                </>
+              ) : (
+                <>
+                  {renderIcon(User, 12, "text-gray-500")}
+                  <span className="text-gray-600 text-xs">Customer</span>
+                </>
+              )}
+              {renderIcon(ChevronDown, 12, "text-gray-400")}
+            </button>
+            
+            {/* Dropdown Menu */}
+            {isCustomerDropdownOpen && (
+              <div className="absolute top-full right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-56 overflow-y-auto">
+                <div className="px-2 py-1 text-[10px] font-semibold text-gray-500 border-b border-gray-100">
+                  SELECT CUSTOMER
+                </div>
+                
+                {loadingCustomers ? (
+                  <div className="px-2 py-1.5 text-[10px] text-gray-500 text-center">Loading...</div>
+                ) : (
+                  <>
+                    {customers.length > 0 ? (
+                      customers.map((customer) => (
+                        <button
+                          key={customer.customer_id}
+                          onClick={() => handleCustomerSelect(customer)}
+                          className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-50 transition-colors ${
+                            localSelectedCustomer?.id === customer.customer_id ? 'bg-blue-50' : ''
+                          }`}
+                          type="button"
+                        >
+                          {customer.customer_type === 'credit' ? (
+                            renderIcon(TrendingUp, 10, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
+                          ) : (
+                            renderIcon(CreditCard, 10, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
+                          )}
+                          <div className="flex-1 text-left">
+                            <div className={`font-medium text-[11px] ${localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-700'}`}>
+                              {customer.customer_name}
+                            </div>
+                          </div>
+                          <span className={`text-[8px] px-1 py-0.5 rounded-full ${
+                            customer.customer_type === 'credit' 
+                              ? 'bg-orange-100 text-orange-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {customer.customer_type === 'credit' ? 'Credit' : 'Debit'}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-2 py-1.5 text-[10px] text-gray-500 text-center">No customers found</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
+        {/* Select All Row */}
         {cartItems.length > 0 && (
-          <div className="flex items-center gap-2 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={handleSelectAll}
               disabled={isProcessing}
-              className="w-3 h-3 accent-red-500 cursor-pointer rounded"
+              className="w-3.5 h-3.5 accent-blue-900 cursor-pointer rounded"
             />
-            <span className="text-[10px] sm:text-xs text-gray-500">Select All</span>
+            <span className="text-[11px] text-gray-600">Select All</span>
+            {isAnySelected && (
+              <button
+                onClick={handleDelete}
+                disabled={isProcessing}
+                className="ml-auto flex items-center gap-1 px-2 py-0.5 text-blue-900 rounded-md text-[11px] font-medium transition-colors border border-blue-200"
+              >
+                {renderIcon(Trash2, 12, "")}
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Cart Items - COMPACTED FOR MAXIMUM PRODUCTS */}
+      {/* Cart Items */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto min-h-0"
-        style={{ maxHeight: "calc(100vh - 380px)" }}
+        className="flex-1 overflow-y-auto min-h-0 bg-gray-50"
       >
         {cartItems.length === 0 ? (
-          <p className="text-center text-secondary flex items-center justify-center h-full text-xs p-3">
-            Empty Cart.
-          </p>
+          <div className="text-center text-gray-400 py-8 flex flex-col items-center gap-1">
+            {renderIcon(ShoppingCart, 36, "text-gray-300")}
+            <p className="text-xs">Empty Cart</p>
+            <p className="text-[10px] text-gray-400">Scan or search products to add</p>
+          </div>
         ) : (
-          <div className="p-1.5 space-y-1">
+          <div className="space-y-1 p-1.5">
             {cartItems.map((item) => (
-              <div key={item.barcode} className="flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm">
+              <div key={item.barcode} className="bg-white p-1.5 shadow-sm border border-gray-100 flex items-center gap-1.5">
                 <input
                   type="checkbox"
                   checked={item.selected}
                   onChange={() => handleSelect(item.barcode)}
                   disabled={isProcessing}
-                  className="w-2.5 h-2.5 accent-red-500 cursor-pointer flex-shrink-0"
+                  className="w-3.5 h-3.5 accent-blue-900 cursor-pointer flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  {/* Product name with UOM in brackets */}
-                  <div className="flex items-center gap-0.5 flex-wrap">
-                    <p className="font-medium text-[11px] truncate">{item.title}</p>
-                    <span className="text-[9px] text-gray-500">
-                      ({item.uom})
-                    </span>
-                  </div>
-                  {/* Quantity controls - COMPACT */}
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    <button
-                      onClick={() => handleQuantityChange(item.barcode, -1)}
-                      disabled={isProcessing}
-                      className="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-[10px] flex-shrink-0 disabled:opacity-50"
-                    >
-                      -
-                    </button>
-                    <input
-                      ref={(el) => quantityInputRefs.current[item.barcode] = el}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      defaultValue={item.quantity}
-                      onFocus={(e) => handleQuantityFocus(item.barcode, e)}
-                      onChange={(e) => handleManualQuantityChange(item.barcode, e)}
-                      onBlur={(e) => handleQuantityBlur(item.barcode, e)}
-                      disabled={isProcessing}
-                      className="w-7 text-center text-[10px] border border-gray-200 rounded px-0.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-red-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      style={{ MozAppearance: 'textfield' }}
-                    />
-                    <button
-                      onClick={() => handleQuantityChange(item.barcode, 1)}
-                      disabled={isProcessing}
-                      className="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 text-[10px] flex-shrink-0 disabled:opacity-50"
-                    >
-                      +
-                    </button>
+                  <div className="flex items-center justify-between gap-1 flex-wrap">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <p className="font-medium text-[11px] truncate">{item.title}</p>
+                      <span className="text-[9px] text-gray-400">({item.uom})</span>
+                    </div>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <button
+                        onClick={() => handleQuantityChange(item.barcode, -1)}
+                        disabled={isProcessing}
+                        className="w-5 h-5 bg-red-500 rounded-full flex text-white items-center justify-center  text-[12px] flex-shrink-0 disabled:opacity-50 transition-colors"
+                      >
+                        -
+                      </button>
+                      <input
+                        ref={(el) => quantityInputRefs.current[item.barcode] = el}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        defaultValue={item.quantity}
+                        onFocus={(e) => handleQuantityFocus(item.barcode, e)}
+                        onChange={(e) => handleManualQuantityChange(item.barcode, e)}
+                        onBlur={(e) => handleQuantityBlur(item.barcode, e)}
+                        disabled={isProcessing}
+                        className="w-8 text-center text-[10px] border border-gray-200 rounded px-0.5 py-0 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                      />
+                      <button
+                        onClick={() => handleQuantityChange(item.barcode, 1)}
+                        disabled={isProcessing}
+                        className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center  text-[12px] flex-shrink-0 disabled:opacity-50 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <p className="font-bold text-red-500 text-[10px] whitespace-nowrap">
-                  Rs {Math.round(item.price * item.quantity)}
-                </p>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-bold text-blue-900 text-[11px]">
+                    Rs {Math.round(item.price * item.quantity)}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Checkout Section */}
+      {/* Checkout Section - REDUCED GAPS between subtotal to received and smaller button */}
       {cartItems.length > 0 && (
-        <div className="p-2 sm:p-3 border-t border-gray-200 bg-white space-y-1.5">
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
+        <div className="border-t border-gray-200 bg-white px-3 py-1.5 space-y-1">
+          {/* Summary - reduced gap */}
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-[11px]">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-bold">Rs {subtotal}</span>
+              <span className="font-semibold">Rs {subtotal}</span>
             </div>
             
-            <div className="flex justify-between items-center text-xs">
+            <div className="flex justify-between items-center text-[11px]">
               <span className="text-gray-600">Discount</span>
               <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={discountPercentage}
-                  onChange={handleDiscountChange}
-                  onBlur={handleDiscountBlur}
-                  disabled={isProcessing}
-                  className="w-10 p-0.5 border border-gray-300 rounded text-center text-[11px]"
-                  placeholder="2"
-                />
-                <span className="text-red-500 text-xs font-bold">
+                <div className="flex items-center gap-0.5">
+                  <input
+                    ref={discountInputRef}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={discountPercentage}
+                    onChange={handleDiscountChange}
+                    onFocus={handleDiscountFocus}
+                    onBlur={handleDiscountBlur}
+                    disabled={isProcessing}
+                    className="w-10 px-1 py-0 border border-gray-300 rounded text-center text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-300"
+                    placeholder="0"
+                  />
+                  <span className="text-gray-600 text-[10px]">%</span>
+                </div>
+                <span className="text-blue-900  text-[11px] font-semibold">
                   -Rs {discountAmount}
                 </span>
               </div>
             </div>
             
-            <div className="flex justify-between text-xs">
-              <span className="text-gray-600">Tax ({taxPercentage}%)</span>
-              <span className="font-bold">Rs {taxAmount}</span>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-gray-600">Tax</span>
+              <span className="font-semibold">Rs 0</span>
             </div>
             
-            <div className="border-t border-gray-200 pt-1 mt-1">
-              <div className="flex justify-between font-bold text-sm">
+            <div className="border-t border-gray-200 pt-0.5 mt-0.5">
+              <div className="flex justify-between font-semibold text-sm">
                 <span>Total</span>
-                <span className="text-red-500">Rs {totalAmount}</span>
+                <span className="text-blue-900">Rs {totalAmount}</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600">Payment</span>
-              <div className="flex gap-2">
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={paymentMethod === "cash"}
-                    onChange={() => handlePaymentMethodChange("cash")}
-                    disabled={isProcessing}
-                    className="accent-red-500 w-2.5 h-2.5"
-                  />
-                  <span className="text-[11px]">Cash</span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={() => handlePaymentMethodChange("card")}
-                    disabled={isProcessing}
-                    className="accent-red-500 w-2.5 h-2.5"
-                  />
-                  <span className="text-[11px]">Card</span>
-                </label>
-              </div>
+          {/* Payment Methods - reduced gap */}
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-[11px] text-gray-600">Payment</span>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => handlePaymentMethodChange("cash")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
+                  paymentMethod === "cash"
+                    ? "bg-blue-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+                disabled={isProcessing}
+              >
+                {renderIcon(Banknote, 10, "")}
+                Cash
+              </button>
+              <button
+                onClick={() => handlePaymentMethodChange("card")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
+                  paymentMethod === "card"
+                    ? "bg-blue-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+                disabled={isProcessing}
+              >
+                {renderIcon(CreditCard, 10, "")}
+                Card
+              </button>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-600">Received</span>
+          {/* Received Amount - reduced gap */}
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-[11px] text-gray-600">Received</span>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500 text-[10px]">Rs</span>
               <input
                 type="number"
                 value={receivedAmount}
                 onChange={handleReceivedAmountChange}
                 disabled={isProcessing}
-                className="w-20 p-0.5 border border-gray-300 rounded text-xs text-right"
+                className="w-20 px-2 py-0.5 border border-gray-300 rounded text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-blue-300"
                 min="0"
                 step="1"
                 placeholder="0"
               />
             </div>
-
-            {receivedAmount && payback !== undefined && (
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-600">Change</span>
-                <span className={payback < 0 ? "text-red-500" : "text-green-600 font-medium"}>
-                  Rs {Math.abs(payback)} {payback < 0 ? "(Due)" : ""}
-                </span>
-              </div>
-            )}
-
-            <button 
-              onClick={handlePrint}
-              disabled={isProcessing || cartItems.length === 0}
-              className={`w-full bg-red-500 text-white py-1.5 rounded-lg hover:bg-red-600 transition-colors font-medium text-xs mt-1 ${
-                isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              {isProcessing ? "Processing..." : "Print Receipt"}
-            </button>
           </div>
+
+          {/* Change - reduced gap */}
+          {receivedAmount && payback !== undefined && (
+            <div className="flex justify-between text-[10px] py-0.5 px-1.5 bg-gray-50 rounded mt-0.5">
+              <span className="text-gray-600">Change</span>
+              <span className={payback < 0 ? "text-blue-900 font-semibold" : "text-green-600 font-semibold"}>
+                Rs {Math.abs(payback)} {payback < 0 ? "(Due)" : ""}
+              </span>
+            </div>
+          )}
+
+          {/* Print Button - smaller size */}
+          <button 
+            onClick={handlePrint}
+            disabled={isProcessing || cartItems.length === 0}
+            className={`w-full bg-blue-900 text-white py-1 rounded-lg font-medium text-[11px] transition-all flex items-center justify-center gap-1 mt-1 ${
+              isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-900"
+            }`}
+          >
+            {renderIcon(Printer, 12, "")}
+            {isProcessing ? "Processing..." : "Print Receipt"}
+          </button>
         </div>
       )}
     </div>

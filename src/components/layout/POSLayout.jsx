@@ -37,25 +37,29 @@ const POSLayout = () => {
     }
   }, [categories, refreshTrigger]); 
 
-  // Filter products based on selected category (only by category, not by search)
-  const filteredProducts = products.filter(product => {
-    // Filter by category
-    if (selectedCategory && selectedCategory !== "Popular" && selectedCategory !== "") {
-      const productCategory = product.category?.toLowerCase() || "";
-      const searchCategory = selectedCategory.toLowerCase();
-      return productCategory === searchCategory;
-    }
-    return true;
-  });
+  // Filter products by search term FIRST (global search)
+const searchFilteredProducts = products.filter(product => {
+  if (!searchTerm || searchTerm.trim() === "") return true;
+  const term = searchTerm.toLowerCase().trim();
+  return product.title?.toLowerCase().includes(term) || 
+         (product.barcode && product.barcode.toLowerCase().includes(term)) ||
+         (product.desc && product.desc.toLowerCase().includes(term));
+});
 
-  // Further filter by search term for display
-  const displayedProducts = filteredProducts.filter(product => {
-    if (!searchTerm || searchTerm.trim() === "") return true;
-    const term = searchTerm.toLowerCase().trim();
-    return product.title?.toLowerCase().includes(term) || 
-           (product.barcode && product.barcode.toLowerCase().includes(term)) ||
-           (product.desc && product.desc.toLowerCase().includes(term));
-  });
+// Then filter by category (only if search is empty)
+const displayedProducts = searchFilteredProducts.filter(product => {
+  // If there's an active search term, show all search results regardless of category
+  if (searchTerm && searchTerm.trim() !== "") {
+    return true;
+  }
+  // Otherwise filter by selected category
+  if (selectedCategory && selectedCategory !== "Popular" && selectedCategory !== "") {
+    const productCategory = product.category?.toLowerCase() || "";
+    const searchCategory = selectedCategory.toLowerCase();
+    return productCategory === searchCategory;
+  }
+  return true;
+});
 
   // Reset selected product index when category changes or filtered products change
   useEffect(() => {
@@ -66,8 +70,10 @@ const POSLayout = () => {
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth;
-      if (width >= 1280) {
-        setColumns(4);
+      if (width >= 1536) {
+        setColumns(6);
+      } else if (width >= 1280) {
+        setColumns(5);
       } else if (width >= 1024) {
         setColumns(4);
       } else if (width >= 768) {
@@ -86,27 +92,23 @@ const POSLayout = () => {
   const loadCategories = async () => {
     try {
       const response = await fetchCategories();
-      
       const categoriesData = Array.isArray(response) ? response : (response?.data || []);
-      
       const categoryNames = Array.isArray(categoriesData) 
         ? categoriesData.map(cat => {
             return cat?.category_name || cat?.name || cat?.title || cat?.catName || "Unknown";
           }).filter(name => name !== "Unknown") 
         : [];
-      
       setCategories(categoryNames);
-      
       if (categoryNames.length > 0) {
         setSelectedCategory(categoryNames[0]);
         setSelectedCategoryIndex(0);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
-      const fallbackCategories = ["Popular", "Ice Cream", "Rice Bowl", "Coffee", "Snack"];
+      const fallbackCategories = ["Popular", "Fast Food", "Grains", "Electronics", "Groceries"];
       setCategories(fallbackCategories);
-      setSelectedCategory("Rice Bowl");
-      setSelectedCategoryIndex(2);
+      setSelectedCategory("Fast Food");
+      setSelectedCategoryIndex(1);
     }
   };
 
@@ -115,37 +117,28 @@ const POSLayout = () => {
     setLoading(true);
     try {
       const response = await fetchProducts();
-      
       let productsData = [];
       
       if (Array.isArray(response)) {
         productsData = response;
-      } 
-      else if (response?.data && Array.isArray(response.data)) {
+      } else if (response?.data && Array.isArray(response.data)) {
         productsData = response.data;
-      }
-      else if (response?.data) {
+      } else if (response?.data) {
         productsData = [response.data];
-      }
-      else {
+      } else {
         productsData = [];
       }
       
       const formattedProducts = Array.isArray(productsData) ? productsData.map((prod, index) => {
         let imageUrl = "/img_categoryFive.webp";
-        
         if (prod.image_url) {
           imageUrl = prod.image_url;
-        } 
-        else if (prod.image_ext && prod.product_id) {
+        } else if (prod.image_ext && prod.product_id) {
           imageUrl = `http://84.16.235.111:2149/uploads/products/prod_${prod.product_id}.${prod.image_ext}`;
-        }
-        else if (prod.product_id) {
+        } else if (prod.product_id) {
           imageUrl = `http://84.16.235.111:2149/uploads/products/prod_${prod.product_id}.png`;
         }
-        
         const quantity = parseInt(prod.quantity) || 0;
-        
         return {
           id: prod.product_id || index,
           title: prod.product_name || "Product",
@@ -171,65 +164,54 @@ const POSLayout = () => {
     }
   };
 
-  // Function to refresh products
   const refreshProducts = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle barcode scanned from TopBar
   const handleBarcodeScanned = (barcode) => {
     setScannedBarcode(barcode);
     setSearchTerm("");
   };
 
-  // Handle product selection from grid
   const handleProductSelect = (barcode) => {
     setScannedBarcode(barcode);
   };
 
-  // Handle search term changes
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
-  // Handle Enter key press
   const handleEnterPress = (searchTerm) => {
     if (!searchTerm.trim()) return;
-    
     const term = searchTerm.toLowerCase().trim();
     const matchedProduct = products.find(product => 
       product.title.toLowerCase().includes(term) ||
       (product.barcode && product.barcode.toLowerCase().includes(term)) ||
       (product.desc && product.desc.toLowerCase().includes(term))
     );
-    
     if (matchedProduct) {
       setScannedBarcode(matchedProduct.barcode);
       setSearchTerm("");
     }
   };
 
-  // Reset scanned barcode after processing
   const handleBarcodeProcessed = () => {
     setScannedBarcode(null);
   };
 
-  // Handle category selection change
   const handleCategorySelect = (category, index) => {
+    setSearchTerm("");
     setSelectedCategory(category);
     setSelectedCategoryIndex(index);
     setSelectedProductIndex(0);
   };
 
-  // Handle customer selection from TopBar
   const handleCustomerSelect = (customer) => {
-    console.log("Customer selected in POSLayout:", customer);
     setSelectedCustomer(customer);
   };
 
   // Keyboard navigation
   const handleKeyDown = (e) => {
-    // Tab key to switch between sections
     if (e.key === 'Tab') {
       e.preventDefault();
       if (activeSection === "categories") {
@@ -241,7 +223,6 @@ const POSLayout = () => {
       return;
     }
 
-    // Down arrow from categories to products
     if (e.key === 'ArrowDown' && activeSection === "categories") {
       e.preventDefault();
       if (displayedProducts.length > 0) {
@@ -251,14 +232,12 @@ const POSLayout = () => {
       return;
     }
 
-    // Up arrow from products to categories
     if (e.key === 'ArrowUp' && activeSection === "products") {
       e.preventDefault();
       setActiveSection("categories");
       return;
     }
 
-    // Navigation in categories
     if (activeSection === "categories") {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -273,9 +252,7 @@ const POSLayout = () => {
         setSelectedCategory(categories[newIndex]);
         setSelectedProductIndex(0);
       }
-    } 
-    // Navigation in products
-    else if (activeSection === "products") {
+    } else if (activeSection === "products") {
       const totalProducts = displayedProducts.length;
       if (totalProducts === 0) return;
       
@@ -285,20 +262,17 @@ const POSLayout = () => {
           const newIndex = prev - 1;
           return newIndex >= 0 ? newIndex : totalProducts - 1;
         });
-      } 
-      else if (e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         setSelectedProductIndex(prev => {
           const newIndex = prev + 1;
           return newIndex < totalProducts ? newIndex : 0;
         });
-      } 
-      else if (e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedProductIndex(prev => {
           const newIndex = prev - columns;
           if (newIndex >= 0) return newIndex;
-          // Calculate the corresponding item in last row
           const lastRowStart = Math.floor((totalProducts - 1) / columns) * columns;
           const currentCol = prev % columns;
           let lastRowIndex = lastRowStart + currentCol;
@@ -307,20 +281,17 @@ const POSLayout = () => {
           }
           return lastRowIndex >= 0 ? lastRowIndex : prev;
         });
-      } 
-      else if (e.key === 'ArrowDown') {
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedProductIndex(prev => {
           const newIndex = prev + columns;
           if (newIndex < totalProducts) return newIndex;
-          // Calculate the corresponding item in first row
           const currentCol = prev % columns;
           return currentCol < totalProducts ? currentCol : prev;
         });
       }
     }
 
-    // Enter key to add product to cart
     if (e.key === 'Enter' && activeSection === "products") {
       e.preventDefault();
       if (displayedProducts[selectedProductIndex]) {
@@ -330,7 +301,6 @@ const POSLayout = () => {
     }
   };
 
-  // Add keyboard event listener
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -339,40 +309,47 @@ const POSLayout = () => {
   }, [activeSection, selectedCategoryIndex, selectedProductIndex, categories, displayedProducts, columns]);
 
   return (
-    <div className="h-screen overflow-hidden">
-      <div className="bg-white h-full flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-screen overflow-hidden bg-gray-100">
+      <div className="h-full flex flex-col lg:flex-row overflow-hidden">
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top bar with search */}
-          <div className="p-2 sm:p-3 md:p-4 lg:p-5 pb-1 sm:pb-2 md:pb-2 lg:pb-3">
+          {/* Top bar with search - reduced padding */}
+          {/* <div className="px-4 pt-2  bg-white ">
             <TopBar 
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               onSearch={handleSearch}
               onBarcodeScanned={handleBarcodeScanned}
               onEnterPress={handleEnterPress}
-              selectedCustomer={selectedCustomer}
-              onCustomerSelect={handleCustomerSelect}
+            />
+          </div> */}
+          
+          {/* Main content - reduced gaps */}
+        
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0  pb-14  overflow-hidden">
+            {/* Left Column - Products Section */}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-white ">
+            {/* Top bar with search - reduced padding */}
+            <div className="px-4 pt-2  bg-white ">
+            <TopBar 
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              onSearch={handleSearch}
+              onBarcodeScanned={handleBarcodeScanned}
+              onEnterPress={handleEnterPress}
             />
           </div>
-          
-          {/* Main content */}
-          <div className="flex-1 flex flex-col lg:flex-row min-h-0 px-3 sm:px-4 md:px-5 gap-4 overflow-hidden">
-            {/* Left Column */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-              {/* Category tabs */}
-              <div className="pb-2 sm:pb-3 md:pb-4">
+              {/* Category tabs - reduced padding */}
+              <div className="pt-2 px-5">
                 <CategoryTabs 
                   categories={categories}
                   selectedCategory={selectedCategory}
-                  selectedCategoryIndex={selectedCategoryIndex}
                   onCategorySelect={handleCategorySelect}
-                  activeSection={activeSection}
                 />
               </div>
               
-              {/* Product grid - Pass displayedProducts directly */}
-              <div className="flex-1 min-h-0 overflow-hidden">
+              {/* Product grid - no extra padding */}
+              <div className="flex-1 min-h-0 overflow-hidden px-5 pb-3">
                 <ProductGrid 
                   onProductSelect={handleProductSelect}
                   searchTerm={searchTerm}
@@ -385,17 +362,15 @@ const POSLayout = () => {
               </div>
             </div>
             
-            {/* Right Column - Order Summary */}
-            <div className="w-full md:w-80 lg:w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
-              <div className="h-[calc(70vh-80px)] sm:h-[calc(70vh-90px)] md:h-[calc(80vh-100px)] lg:h-[calc(90vh-110px)] overflow-y-auto">
-                <OrderSummary 
-                  scannedBarcode={scannedBarcode}
-                  onBarcodeProcessed={handleBarcodeProcessed}
-                  products={products}
-                  onRefreshProducts={refreshProducts}
-                  selectedCustomer={selectedCustomer} 
-                />
-              </div>
+            <div className="w-full md:w-96 lg:w-96 xl:w-[420px] 2xl:w-[480px] flex-shrink-0">
+              <OrderSummary 
+                scannedBarcode={scannedBarcode}
+                onBarcodeProcessed={handleBarcodeProcessed}
+                products={products}
+                onRefreshProducts={refreshProducts}
+                selectedCustomer={selectedCustomer} 
+                onCustomerSelect={handleCustomerSelect}
+              />
             </div>
           </div>
         </div>
