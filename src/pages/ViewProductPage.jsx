@@ -149,7 +149,7 @@ const ViewProductsByCategory = () => {
           category_id: item?.category_id,
           category_name: productCategory?.category_name || item?.category_name || "Uncategorized",
           barcode: item?.bar_code || "N/A",
-          status: getStockStatus(parseInt(item?.quantity) || 0, item?.low_stock_qty || 5), // Pass low_stock_qty
+          status: getStockStatus(parseInt(item?.quantity) || 0, item?.low_stock_qty || 5),
           quantity: parseInt(item?.quantity) || 0,
           price: parseFloat(item?.price) || 0,
           image: imageUrl,
@@ -158,28 +158,38 @@ const ViewProductsByCategory = () => {
           productCode: item?.product_code,
           uom_id: item?.uom_id,
           uom_name: productUOM?.uom_name || item?.uom_name || "N/A",
-          low_stock_qty: item?.low_stock_qty || 5, // Store low_stock_qty for reference
+          low_stock_qty: item?.low_stock_qty || 5,
         };
       });
       
-      setProducts(transformedProducts);
-      console.log("Transformed products:", transformedProducts);
+      // Sort products alphabetically by name
+      const sortedProducts = transformedProducts.sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
+      
+      setProducts(sortedProducts);
+      console.log("Sorted products:", sortedProducts);
       
       // Filter products by current category using category_id
       let filtered = [];
       if (currentCategory) {
-        filtered = transformedProducts.filter(
+        filtered = sortedProducts.filter(
           product => product.category_id === currentCategory.category_id
         );
       } else {
         // Fallback to name matching if category not found
-        filtered = transformedProducts.filter(
+        filtered = sortedProducts.filter(
           product => product.category_name.toLowerCase() === decodedCategoryName.toLowerCase()
         );
       }
       
-      console.log("Filtered products:", filtered);
-      setFilteredProducts(filtered);
+      // Sort filtered products alphabetically
+      const sortedFiltered = filtered.sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
+      
+      console.log("Filtered products:", sortedFiltered);
+      setFilteredProducts(sortedFiltered);
       setSelectedProducts([]);
       setSelectAll(false);
     } catch (err) {
@@ -203,29 +213,33 @@ const ViewProductsByCategory = () => {
   };
   
   // Determine stock status based on quantity and low_stock_qty
-const getStockStatus = (quantity, lowStockQty) => {
-  // If low_stock_qty is very high (>= 999999), it means "Always Low Stock" is checked
-  const isAlwaysLowStock = lowStockQty && lowStockQty >= 999999;
-  
-  if (isAlwaysLowStock) {
-    // Always Low Stock mode
+  const getStockStatus = (quantity, lowStockQty) => {
+    // If low_stock_qty is very high (>= 999999), it means "Always Low Stock" is checked
+    const isAlwaysLowStock = lowStockQty && lowStockQty >= 999999;
+    
+    if (isAlwaysLowStock) {
+      // Always Low Stock mode
+      if (quantity <= 0) return "Stock Out";
+      return "Low Stock";
+    }
+    
+    // Normal stock status logic
     if (quantity <= 0) return "Stock Out";
-    return "Low Stock";
-  }
-  
-  // Normal stock status logic
-  if (quantity <= 0) return "Stock Out";
-  if (quantity <= (lowStockQty || 5)) return "Low Stock";
-  return "In Stock";
-};
+    if (quantity <= (lowStockQty || 5)) return "Low Stock";
+    return "In Stock";
+  };
   
   // Apply search and status filters to displayed products
-  const displayedProducts = filteredProducts.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus =
-      statusFilter === "All Status" || p.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const displayedProducts = filteredProducts
+    .filter((p) => {
+      const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchStatus =
+        statusFilter === "All Status" || p.status === statusFilter;
+      return matchSearch && matchStatus;
+    })
+    .sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
   
   // Update select all checkbox state based on selections
   useEffect(() => {
@@ -373,7 +387,7 @@ const getStockStatus = (quantity, lowStockQty) => {
       updateData.barcode = selectedProduct.barcode;
     }
     if (selectedProduct.uom_id !== originalProduct.uom_id) {
-      updateData.uom_id = selectedProduct.uom_id; // Include UOM ID in update
+      updateData.uom_id = selectedProduct.uom_id;
     }
     
     // Check if any changes were made (including image)
@@ -396,7 +410,7 @@ const getStockStatus = (quantity, lowStockQty) => {
       const result = await updateProduct(
         selectedProduct.id, 
         updateData, 
-        selectedProduct.imageFile // Pass the image file if selected
+        selectedProduct.imageFile
       );
       
       if (result?.success) {
@@ -598,7 +612,7 @@ const getStockStatus = (quantity, lowStockQty) => {
                 </th>
                 <th className="p-3 text-left">Product Name</th>
                 <th className="p-3">Category</th>
-                <th className="p-3">UOM</th> {/* New UOM column */}
+                <th className="p-3">UOM</th>
                 <th className="p-3">Barcode</th>
                 <th className="p-3">Stock Status</th>
                 <th className="p-3">Quantity</th>
@@ -618,23 +632,23 @@ const getStockStatus = (quantity, lowStockQty) => {
                     />
                   </td>
                   <td className="p-3 align-middle">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
-                      onError={(e) => {
-                        console.log('Image failed to load:', product.image);
-                        e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
-                      }}
-                    />
-                    <span className="text-sm">
-                      {product.name}
-                    </span>
-                  </div>
-                </td>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-10 h-10 object-cover border shadow rounded-md flex-shrink-0"
+                        onError={(e) => {
+                          console.log('Image failed to load:', product.image);
+                          e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
+                        }}
+                      />
+                      <span className="text-sm">
+                        {product.name}
+                      </span>
+                    </div>
+                  </td>
                   <td className="p-3 align-middle">{product.category_name}</td>
-                  <td className="p-3 align-middle">{product.uom_name}</td> {/* Display UOM */}
+                  <td className="p-3 align-middle">{product.uom_name}</td>
                   <td className="p-3 align-middle">{product.barcode}</td>
                   <td className="p-3 align-middle">
                     <span
@@ -672,46 +686,49 @@ const getStockStatus = (quantity, lowStockQty) => {
         </div>
       )}
 
-      {/* Edit Product Modal with UOM Dropdown */}
+      {/* Edit Product Modal - Reduced Size */}
       {modalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
-          <div className="bg-primary p-8 rounded-xl shadow-xl w-96 max-w-full">
-            <h2 className="text-xl font-semibold text-secondary font-poppins mb-4 text-start">
-              Edit Product
-            </h2>
-            <div className="space-y-4">
+          <div className="bg-primary rounded-xl shadow-xl w-[450px] max-w-[90vw]">
+            <div className="px-5 py-3 border-b border-gray-200">
+              <h2 className="text-base font-semibold text-secondary font-poppins">
+                Edit Product
+              </h2>
+            </div>
+            
+            <div className="px-5 py-3 space-y-2 max-h-[65vh] overflow-y-auto">
               {/* Product Name */}
               <div>
-                <label className="block text-secondary mb-1 font-medium">Product Name</label>
+                <label className="block text-secondary mb-0.5 text-xs font-medium">Product Name</label>
                 <input
                   type="text"
                   name="name"
                   value={selectedProduct.name}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  className="w-full border border-gray-300 px-2 py-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
 
               {/* Barcode */}
               <div>
-                <label className="block text-secondary mb-1 font-medium">Barcode</label>
+                <label className="block text-secondary mb-0.5 text-xs font-medium">Barcode</label>
                 <input
                   type="text"
                   name="barcode"
                   value={selectedProduct.barcode}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  className="w-full border border-gray-300 px-2 py-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
 
               {/* UOM Dropdown */}
               <div>
-                <label className="block text-secondary mb-1 font-medium">Unit of Measurement (UOM)</label>
+                <label className="block text-secondary mb-0.5 text-xs font-medium">Unit of Measurement (UOM)</label>
                 <select
                   name="uom_id"
                   value={selectedProduct.uom_id || ""}
                   onChange={handleUOMChange}
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  className="w-full border border-gray-300 px-2 py-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                   disabled={loadingUOM}
                 >
                   <option value="">Select UOM</option>
@@ -722,13 +739,13 @@ const getStockStatus = (quantity, lowStockQty) => {
                   ))}
                 </select>
                 {loadingUOM && (
-                  <p className="text-xs text-gray-500 mt-1">Loading UOM list...</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Loading UOM list...</p>
                 )}
               </div>
 
               {/* Price */}
               <div>
-                <label className="block text-secondary mb-1 font-medium">Price (Rs)</label>
+                <label className="block text-secondary mb-0.5 text-xs font-medium">Price (Rs)</label>
                 <input
                   type="number"
                   name="price"
@@ -736,28 +753,28 @@ const getStockStatus = (quantity, lowStockQty) => {
                   onChange={handleInputChange}
                   min="0"
                   step="0.01"
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  className="w-full border border-gray-300 px-2 py-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
 
               {/* Image Upload */}
               <div>
-                <label className="block text-secondary mb-1 font-medium">Product Image</label>
+                <label className="block text-secondary mb-0.5 text-xs font-medium">Product Image</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  className="w-full border border-gray-500 px-4 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-poppins"
+                  className="w-full border border-gray-300 px-2 py-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
                 
                 {/* Show current image */}
                 {selectedProduct.image && !selectedProduct.newImage && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 mb-1">Current Image:</p>
+                  <div className="mt-1.5">
+                    <p className="text-xs text-gray-500 mb-0.5">Current Image:</p>
                     <img 
                       src={selectedProduct.image} 
                       alt={selectedProduct.name}
-                      className="w-20 h-20 object-cover rounded border"
+                      className="w-14 h-14 object-cover rounded border"
                       onError={(e) => {
                         e.target.src = "https://placehold.co/150x150/6b7280/white?text=No+Image";
                       }}
@@ -767,35 +784,35 @@ const getStockStatus = (quantity, lowStockQty) => {
                 
                 {/* Show new image preview if selected */}
                 {selectedProduct.newImage && (
-                  <div className="mt-2">
-                    <p className="text-sm text-green-600 mb-1">New Image Preview:</p>
+                  <div className="mt-1.5">
+                    <p className="text-xs text-green-600 mb-0.5">New Image Preview:</p>
                     <img 
                       src={selectedProduct.newImage} 
                       alt="New preview" 
-                      className="w-20 h-20 object-cover rounded border border-green-500"
+                      className="w-14 h-14 object-cover rounded border border-green-500"
                     />
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Modal Actions */}
-              <div className="flex justify-end gap-4 pt-4">
-                <button
-                  onClick={handleCancelClick}
-                  className="px-4 py-2 border-2 border-gray-300 rounded-lg shadow font-poppins hover:bg-gray-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveClick}
-                  disabled={deleteLoading}
-                  className={`px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-400 text-white rounded-lg shadow border font-poppins hover:opacity-90 transition ${
-                    deleteLoading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {deleteLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+            {/* Modal Actions */}
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={handleCancelClick}
+                className="px-3 py-1 border border-gray-300 rounded-lg shadow-sm text-xs font-poppins hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveClick}
+                disabled={deleteLoading}
+                className={`px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-400 text-white rounded-lg shadow-sm text-xs font-poppins hover:opacity-90 transition ${
+                  deleteLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {deleteLoading ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </div>
         </div>

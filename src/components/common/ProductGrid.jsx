@@ -15,6 +15,8 @@ const ProductGrid = forwardRef(({
   
   useEffect(() => {
     let filtered = [...products];
+    
+    // Filter by category (only when no search term)
     if (!searchTerm || searchTerm.trim() === "") {
       if (selectedCategory && selectedCategory !== "Popular" && selectedCategory !== "") {
         filtered = filtered.filter(product => {
@@ -26,6 +28,8 @@ const ProductGrid = forwardRef(({
         });
       }
     }
+    
+    // Filter by search term
     if (searchTerm && searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(product => 
@@ -34,7 +38,15 @@ const ProductGrid = forwardRef(({
         (product.desc && product.desc.toLowerCase().includes(term))
       );
     }
-    setFilteredProducts(filtered);
+    
+    // Sort products alphabetically by title
+    const sortedFiltered = filtered.sort((a, b) => {
+      const titleA = a.title || "";
+      const titleB = b.title || "";
+      return titleA.localeCompare(titleB);
+    });
+    
+    setFilteredProducts(sortedFiltered);
   }, [searchTerm, selectedCategory, products]);
 
   // Auto-scroll to selected product
@@ -80,7 +92,7 @@ const ProductGrid = forwardRef(({
             <p className="text-gray-400 text-xs">No Products Found {searchTerm && `for "${searchTerm}"`}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6  gap-1.5">
             {filteredProducts.map((item, index) => (
               <div
                 key={item.barcode || item.id || index}
