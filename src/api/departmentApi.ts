@@ -5,8 +5,19 @@ import axios from "axios";
 const UOM_API_URL = "http://84.16.235.111:2149/api/uom";
 const DEPARTMENT_API_URL = "http://84.16.235.111:2149/api/departments";
 
-const getModuleId = (): string | null => {
-  return sessionStorage.getItem('selectedBranchId');
+const getModuleId = (): number | null => {
+  const branchId = sessionStorage.getItem('selectedBranchId');
+  console.log("Raw selectedBranchId from sessionStorage:", branchId);
+  
+  if (branchId && branchId !== 'N/A' && branchId !== 'null' && branchId !== 'undefined') {
+    const parsedId = parseInt(branchId, 10);
+    if (!isNaN(parsedId)) {
+      console.log("Parsed module_id:", parsedId);
+      return parsedId;
+    }
+  }
+  console.log("No valid module_id found, using default 1");
+  return 1; // Default value if none found
 };
 
 // 🔹 Centralized error handler
@@ -115,16 +126,40 @@ export const addDepartment = async (
   company_id: number
 ) => {
   const module_id = getModuleId();
+  
+  // Validate required fields
+  if (!dep_name || dep_name.trim() === '') {
+    throw new Error("Department name is required");
+  }
+  
+  if (!branch_id || branch_id === 0) {
+    throw new Error("Branch ID is required");
+  }
+  
+  if (!company_id || company_id === 0) {
+    throw new Error("Company ID is required");
+  }
+  
+  if (!module_id) {
+    throw new Error("Module ID is required");
+  }
+  
+  const payload = {
+    operation: 2,
+    dep_name: dep_name.trim(),
+    branch_id: branch_id,
+    company_id: company_id,
+    module_id: module_id
+  };
+  
+  console.log("Sending add department payload:", payload);
+  
   try {
-    const res = await axios.post(DEPARTMENT_API_URL, {
-      operation: 2,
-      dep_name,
-      branch_id,
-      company_id,
-      module_id: module_id
-    });
+    const res = await axios.post(DEPARTMENT_API_URL, payload);
+    console.log("Add department response:", res.data);
     return res.data;
   } catch (error) {
+    console.error("Add department error:", error);
     handleApiError(error);
   }
 };
@@ -137,17 +172,45 @@ export const updateDepartment = async (
   company_id: number
 ) => {
   const module_id = getModuleId();
+  
+  // Validate required fields
+  if (!dep_id) {
+    throw new Error("Department ID is required for update");
+  }
+  
+  if (!dep_name || dep_name.trim() === '') {
+    throw new Error("Department name is required");
+  }
+  
+  if (!branch_id || branch_id === 0) {
+    throw new Error("Branch ID is required");
+  }
+  
+  if (!company_id || company_id === 0) {
+    throw new Error("Company ID is required");
+  }
+  
+  if (!module_id) {
+    throw new Error("Module ID is required");
+  }
+  
+  const payload = {
+    operation: 3,
+    dep_id: dep_id,
+    dep_name: dep_name.trim(),
+    branch_id: branch_id,
+    company_id: company_id,
+    module_id: module_id
+  };
+  
+  console.log("Sending update department payload:", payload);
+  
   try {
-    const res = await axios.post(DEPARTMENT_API_URL, {
-      operation: 3,
-      dep_id,
-      dep_name,
-      branch_id,
-      company_id,
-      module_id: module_id
-    });
+    const res = await axios.post(DEPARTMENT_API_URL, payload);
+    console.log("Update department response:", res.data);
     return res.data;
   } catch (error) {
+    console.error("Update department error:", error);
     handleApiError(error);
   }
 };
@@ -155,14 +218,29 @@ export const updateDepartment = async (
 // 4️⃣ Delete department
 export const deleteDepartment = async (dep_id: number) => {
   const module_id = getModuleId();
+  
+  if (!dep_id) {
+    throw new Error("Department ID is required for deletion");
+  }
+  
+  if (!module_id) {
+    throw new Error("Module ID is required");
+  }
+  
+  const payload = {
+    operation: 4,
+    dep_id: dep_id,
+    module_id: module_id
+  };
+  
+  console.log("Sending delete department payload:", payload);
+  
   try {
-    const res = await axios.post(DEPARTMENT_API_URL, {
-      operation: 4,
-      dep_id,
-      module_id: module_id
-    });
+    const res = await axios.post(DEPARTMENT_API_URL, payload);
+    console.log("Delete department response:", res.data);
     return res.data;
   } catch (error) {
+    console.error("Delete department error:", error);
     handleApiError(error);
   }
 };

@@ -119,7 +119,7 @@ const handleAddUser = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.user_name .toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || user.status.toLowerCase() === filterStatus;
     return matchesSearch && matchesStatus;
@@ -206,24 +206,23 @@ const handleUserLock = async (userId: number) => {
 
  
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">User Management</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+        <div className="flex gap-2 ">
+          {/* <Button variant="outline" size="sm">
             <Upload className="w-4 h-4 mr-2" />
             Import Users
           </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export Users
-          </Button>
+          </Button> */}
         
               <Button onClick={handleAddUser}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add User
-                
               </Button>
            
         </div>
@@ -291,7 +290,7 @@ const handleUserLock = async (userId: number) => {
                   <TableCell>
                      <div className="flex flex-wrap gap-1">
                       {
-                        <Badge key={user.role_id} variant="secondary" className="text-xs">
+                        <Badge key={user.role_id} variant="default" className="text-xs">
                           {user.role_name}
                         </Badge>
                       }

@@ -487,10 +487,10 @@ const ItemProfitLoss: React.FC = () => {
         {/* Summary Cards */}
         {report.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-purple-50 p-4 rounded-lg">
+            {/* <div className="bg-purple-50 p-4 rounded-lg">
               <p className="text-sm text-purple-600 font-medium">Total Sold Quantity</p>
               <p className="text-2xl font-bold text-purple-700">{formatNumber(totalSoldQty)}</p>
-            </div>
+            </div> */}
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-sm text-green-600 font-medium">Total Profit</p>
               <p className="text-2xl font-bold text-green-700">{formatNumber(totalProfit)}</p>
@@ -499,14 +499,14 @@ const ItemProfitLoss: React.FC = () => {
               <p className="text-sm text-red-600 font-medium">Total Loss</p>
               <p className="text-2xl font-bold text-red-700">{formatNumber(totalLoss)}</p>
             </div>
-            <div className={`${netProfit >= 0 ? 'bg-emerald-50' : 'bg-rose-50'} p-4 rounded-lg`}>
+            {/* <div className={`${netProfit >= 0 ? 'bg-emerald-50' : 'bg-rose-50'} p-4 rounded-lg`}>
               <p className={`text-sm ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-medium`}>
                 Net {netProfit >= 0 ? 'Profit' : 'Loss'}
               </p>
               <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 {formatNumber(Math.abs(netProfit))}
               </p>
-            </div>
+            </div> */}
           </div>
         )}
 
@@ -517,10 +517,10 @@ const ItemProfitLoss: React.FC = () => {
               <TableHeader className="bg-gray-50">
                 <TableRow>
                   <TableHead className="w-[250px]">Product Name</TableHead>
-                  <TableHead className="text-right">Total Purchase</TableHead>
-                  <TableHead className="text-right">Total Sale</TableHead>
-                  <TableHead className="text-right">Sold Quantity</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right">Purchase Amount</TableHead>
+                  <TableHead className="text-right">Sale Amount</TableHead>
+                  {/* <TableHead className="text-right">Sold Quantity</TableHead> */}
+                  {/* <TableHead className="text-center">Status</TableHead> */}
                   <TableHead className="text-right">Profit</TableHead>
                   <TableHead className="text-right">Loss</TableHead>
                 </TableRow>
@@ -537,10 +537,10 @@ const ItemProfitLoss: React.FC = () => {
                         <TableCell className="font-medium">{r.product_name}</TableCell>
                         <TableCell className="text-right">{formatNumber(r.total_purchase)}</TableCell>
                         <TableCell className="text-right">{formatNumber(r.total_sale)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(r.sold_quantity)}</TableCell>
-                        <TableCell className="text-center">
+                        {/* <TableCell className="text-right">{formatNumber(r.sold_quantity)}</TableCell> */}
+                        {/* <TableCell className="text-center">
                           {getStatusBadge(r.profit, r.loss)}
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell className="text-right text-green-600 font-semibold">
                           {formatNumber(r.profit)}
                         </TableCell>

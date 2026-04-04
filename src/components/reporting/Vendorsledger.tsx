@@ -511,8 +511,8 @@ const VendorLedger: React.FC = () => {
                   <TableHead className="text-center align-middle">Type</TableHead>
                   <TableHead className="text-center align-middle">Item Name</TableHead>
                   <TableHead className="text-center align-middle">No#</TableHead>
-                  <TableHead className="text-center align-middle">Narration</TableHead>
-                  <TableHead className="text-center align-middle">Vehicle No</TableHead>
+                  {/* <TableHead className="text-center align-middle">Narration</TableHead> */}
+                  {/* <TableHead className="text-center align-middle">Vehicle No</TableHead> */}
                   <TableHead className="text-center align-middle">Quantity</TableHead>
                   <TableHead className="text-center align-middle">Rate</TableHead>
                   <TableHead className="text-center align-middle">Discount</TableHead>
@@ -532,8 +532,8 @@ const VendorLedger: React.FC = () => {
                       <TableCell className="text-center align-middle">{ledger.category}</TableCell>
                       <TableCell className="text-center align-middle">{ledger.item_name}</TableCell>
                       <TableCell className="text-center align-middle font-mono">{ledger.tran_no}</TableCell>
-                      <TableCell className="text-center align-middle">{ledger.remarks}</TableCell>
-                      <TableCell className="text-center align-middle">{ledger.vehicle_no}</TableCell>
+                      {/* <TableCell className="text-center align-middle">{ledger.remarks}</TableCell> */}
+                      {/* <TableCell className="text-center align-middle">{ledger.vehicle_no}</TableCell> */}
                       <TableCell className="text-center align-middle">{ledger.quantity}</TableCell>
                       <TableCell className="text-center align-middle">{ledger.rate}</TableCell>
                       <TableCell className="text-center align-middle">{formatNumber(ledger.discount_amount)}</TableCell>
@@ -582,12 +582,12 @@ const VendorLedger: React.FC = () => {
               <th className="text-center border px-2 py-1 align-middle">Type</th>
               <th className="text-center border px-2 py-1 align-middle">Item Name</th>
               <th className="text-center border px-2 py-1 align-middle">Invoice No</th>
-              <th className="text-center border px-2 py-1 align-middle">Naration</th>
-              <th className="text-center border px-2 py-1 align-middle">Vehicle No</th>
+              {/* <th className="text-center border px-2 py-1 align-middle">Naration</th> */}
+              {/* <th className="text-center border px-2 py-1 align-middle">Vehicle No</th> */}
               <th className="text-center border px-2 py-1 align-middle">Quantity</th>
               <th className="text-center border px-2 py-1 align-middle">Rate</th>
               <th className="text-center border px-2 py-1 align-middle">Discount</th>
-              <th className="text-center border px-2 py-1 align-middle">Freight</th>
+              {/* <th className="text-center border px-2 py-1 align-middle">Freight</th> */}
               <th className="text-center border px-2 py-1 align-middle">Debit</th>
               <th className="text-center border px-2 py-1 align-middle">Credit</th>
               <th className="text-center border px-2 py-1 align-middle">Balance</th>
@@ -602,12 +602,12 @@ const VendorLedger: React.FC = () => {
                   <td className="border px-2 py-1 text-center align-middle">{ledger.category}</td>
                   <td className="border px-2 py-1 text-center align-middle">{ledger.item_name}</td>
                   <td className="border px-2 py-1 text-center align-middle">{ledger.tran_no}</td>
-                  <td className="text-left">{(ledger.remarks || "").toUpperCase()}</td>                
-                  <td className="border px-2 py-1 text-center align-middle">{ledger.vehicle_no}</td>
+                  {/* <td className="text-left">{(ledger.remarks || "").toUpperCase()}</td>                 */}
+                  {/* <td className="border px-2 py-1 text-center align-middle">{ledger.vehicle_no}</td> */}
                   <td className="border px-2 py-1 text-center align-middle">{ledger.quantity}</td>
                   <td className="border px-2 py-1 text-center align-middle">{ledger.rate}</td>
                   <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.discount_amount)}</td>
-                  <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.freight)}</td>
+                  {/* <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.freight)}</td> */}
                   <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.debit)}</td>
                   <td className="border px-2 py-1 text-center align-middle">{formatNumber(ledger.credit)}</td>
                   <td className={`border px-2 py-1 text-center align-middle ${
@@ -622,7 +622,7 @@ const VendorLedger: React.FC = () => {
           </tbody>
           <tfoot>
             <tr className="totals-row">
-              <td colSpan={10} className="border px-2 py-1 text-center align-middle font-bold">
+              <td colSpan={8} className="border px-2 py-1 text-center align-middle font-bold">
                 Totals:
               </td>
               <td className="border px-2 py-1 text-center align-middle font-bold">{formatNumber(totalDebit)}</td>

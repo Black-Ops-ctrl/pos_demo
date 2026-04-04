@@ -300,7 +300,7 @@ const getModulePermissionCount = (role: Role, module: string): number => {
 // Assuming max permissions per module is 5
 const MAX_PERMISSIONS = 6;
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Role Management</h2>
             <Button
@@ -328,10 +328,20 @@ const MAX_PERMISSIONS = 6;
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="list" className="w-full">
-            <TabsList>
-              <TabsTrigger value="list">Role List</TabsTrigger>
-              <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
-            </TabsList>
+           <TabsList className="bg-gray-100 p-1 rounded-lg">
+            <TabsTrigger 
+              value="list" 
+              className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+            >
+              Role List
+            </TabsTrigger>
+            <TabsTrigger 
+              value="matrix" 
+              className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+            >
+              Permission Matrix
+            </TabsTrigger>
+          </TabsList>
             
             <TabsContent value="list">
               <Table>
@@ -355,7 +365,7 @@ const MAX_PERMISSIONS = 6;
                      
                      
                       <TableCell>
-                        <Badge variant="secondary">
+                        <Badge variant="default">
                           {getPermissionCount(role)} permissions
                         </Badge>
                       </TableCell>
@@ -408,7 +418,7 @@ const MAX_PERMISSIONS = 6;
                             if (permCount === MAX_PERMISSIONS) {
                                 variant = 'default'; // Blue background for 5/5
                             } else if (permCount >= 1) {
-                                variant = 'secondary'; // Lighter background for partial access (1/5 to 4/5)
+                                variant = 'default'; // Lighter background for partial access (1/5 to 4/5)
                             }
                             // If permCount is 0, it defaults to 'outline'
                             

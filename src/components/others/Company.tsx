@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState ,useCallback} from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Edit, Trash2, Building2, Loader2, ArrowUp } from "lucide-react";
 import { getCompanies, addCompany, updateCompany, deleteCompany } from "@/api/companyApi"; 
@@ -24,8 +23,7 @@ export interface Company {
 const CompanyComponent: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
-      const [showScrollToTop, setShowScrollToTop] = useState(false); // ✅ New state for scroll button
-  
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [open, setOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   
@@ -44,39 +42,35 @@ const CompanyComponent: React.FC = () => {
     }
   };
 
+  const checkScrollTop = useCallback(() => {
+    if (!showScrollToTop && window.scrollY > 400) {
+      setShowScrollToTop(true);
+    } else if (showScrollToTop && window.scrollY <= 400) {
+      setShowScrollToTop(false);
+    }
+  }, [showScrollToTop]);
 
+  useEffect(() => {
+    window.addEventListener('scroll', checkScrollTop);
+    return () => {
+      window.removeEventListener('scroll', checkScrollTop);
+    };
+  }, [checkScrollTop]);
 
-      const checkScrollTop = useCallback(() => {
-        // Show button if page is scrolled down more than 400px
-        if (!showScrollToTop && window.scrollY > 400) {
-          setShowScrollToTop(true);
-        } else if (showScrollToTop && window.scrollY <= 400) {
-          setShowScrollToTop(false);
-        }
-      }, [showScrollToTop]);
-    
-      useEffect(() => {
-        window.addEventListener('scroll', checkScrollTop);
-        return () => {
-          window.removeEventListener('scroll', checkScrollTop);
-        };
-      }, [checkScrollTop]);
-    
-      const scrollToTop = () => {
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      };
-  
-  // Filtered companies based on search (using useMemo for performance)
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Filtered companies based on search
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) =>
       company.company_name.toLowerCase().includes(search.toLowerCase()) ||
       (company.registration_number?.toLowerCase() || "").includes(search.toLowerCase())
     );
   }, [companies, search]);
-
 
   const handleAdd = () => {
     setEditingCompany(null);
@@ -103,7 +97,6 @@ const CompanyComponent: React.FC = () => {
   const handleSave = async (company_data: Omit<Company, "company_id">) => {
     try {
       if (editingCompany) {
-        // When updating, 'image' might be undefined (no change) or a new base64 string
         await updateCompany(
           editingCompany.company_id,
           company_data.company_name,
@@ -111,10 +104,9 @@ const CompanyComponent: React.FC = () => {
           company_data.address || "",
           company_data.phone || "",
           company_data.email || "",
-          company_data.image // This will be the new base64 or the old one, or undefined/null
+          company_data.image
         );
       } else {
-        // When adding, 'image' will be a new base64 string or undefined/null
         await addCompany(
           company_data.company_name,
           company_data.registration_number || "",
@@ -127,9 +119,9 @@ const CompanyComponent: React.FC = () => {
       setOpen(false);
       loadCompanies();
     } catch (error) {
-      console.error("Error saving department", error);
+      console.error("Error saving company", error);
       alert(`Error saving company: ${error instanceof Error ? error.message : "An unknown error occurred"}`);
-      throw error; // Re-throw the error so CompanyForm can catch it and reset loading state
+      throw error;
     }
   };
 
@@ -140,11 +132,11 @@ const CompanyComponent: React.FC = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Company
+              Companies
             </CardTitle>
-            {/* <Button className="bg-gradient-to-r from-blue-500 to-blue-600" onClick={handleAdd}>
+            <Button className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary" onClick={handleAdd}>
               <Plus className="h-4 w-4 mr-2" /> Add Company
-            </Button> */}
+            </Button>
           </div>
           <div className="relative mt-2">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -212,17 +204,19 @@ const CompanyComponent: React.FC = () => {
           </Table>
         </CardContent>
       </Card>
-              {showScrollToTop && (
-                <Button
-                  onClick={scrollToTop}
-                  size="icon"
-                  className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
-                             bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
-                  aria-label="Scroll to top"
-                >
-                  <ArrowUp className="h-5 w-5" />
-                </Button>
-              )}
+      
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          size="icon"
+          className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg 
+                     bg-blue-500 hover:bg-blue-600 transition-opacity duration-300"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
+      )}
+      
       {open && (
         <CompanyForm
           company={editingCompany}
@@ -238,7 +232,7 @@ const CompanyComponent: React.FC = () => {
 const CompanyForm: React.FC<{
   company: Company | null;
   onClose: () => void;
-  onSave: (data: Omit<Company, "company_id">) => Promise<void>; // Updated return type to Promise<void>
+  onSave: (data: Omit<Company, "company_id">) => Promise<void>;
 }> = ({ company, onClose, onSave }) => {
   const [name, setName] = useState("");
   const [registration_number, setRegistrationNumber] = useState("");
@@ -247,47 +241,42 @@ const CompanyForm: React.FC<{
   const [email, setEmail] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
+  const [isLoading, setIsLoading] = useState(false);
 
   // Sync form state with "initial" prop (for edit)
   useEffect(() => {
-    // Only set the state if a company is being edited
     if (company) {
       setName(company.company_name || "");
       setRegistrationNumber(company.registration_number || "");
       setAddress(company.address || "");
       setPhone(company.phone || "");
       setEmail(company.email || "");
-      setImageFile(null); // Reset file input
-      // Set preview URL to existing image if it exists
+      setImageFile(null);
       if (company.image) {
         setPreviewUrl(company.image);
       } else {
         setPreviewUrl(null);
       }
     } else {
-        // Reset for add
-        setName("");
-        setRegistrationNumber("");
-        setAddress("");
-        setPhone("");
-        setEmail("");
-        setImageFile(null);
-        setPreviewUrl(null);
+      setName("");
+      setRegistrationNumber("");
+      setAddress("");
+      setPhone("");
+      setEmail("");
+      setImageFile(null);
+      setPreviewUrl(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [company]); // Added dependency for safety
+  }, [company]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!name.trim()) {
-        alert("Please enter the company name.");
-        return;
+      alert("Please enter the company name.");
+      return;
     }
 
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     const data: Omit<Company, "company_id"> = {
       company_name: name,
@@ -295,43 +284,37 @@ const CompanyForm: React.FC<{
       address,
       phone,
       email,
-      image: previewUrl || undefined, // Start with existing image/null
+      image: previewUrl || undefined,
     };
 
     const saveData = async (finalData: Omit<Company, "company_id">) => {
       try {
         await onSave(finalData);
-        // Loading is reset in the finally block after onSave successfully closes the dialog
       } catch (error) {
         console.error("Save operation failed in form:", error);
-        // Keep the dialog open, reset loading state
-        setIsLoading(false); 
+        setIsLoading(false);
       }
     };
 
-    // --- Image Handling Logic ---
     if (imageFile) {
-      // 1. New image file selected: Convert to Base64 and save
       const reader = new FileReader();
       reader.onloadend = () => {
         const imageBase64 = reader.result as string;
-        saveData({ ...data, image: imageBase64 }); // Override image with new Base64 string
+        saveData({ ...data, image: imageBase64 });
       };
       reader.onerror = () => {
         console.error("Error reading file.");
         alert("Could not read image file.");
-        setIsLoading(false); // Stop loading on file read error
+        setIsLoading(false);
       };
       reader.readAsDataURL(imageFile);
     } else {
-      // 2. No new file selected: Save with the existing 'previewUrl' which holds the current image (or null/undefined)
       saveData(data);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      {/* Used a plain div for the modal container for simplicity, Dialog/DialogContent is not being used as per the original structure */}
       <div className="bg-white p-6 rounded-lg w-[650px] max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4">
           {company ? "Edit Company" : "Add Company"}
@@ -340,7 +323,7 @@ const CompanyForm: React.FC<{
         <form onSubmit={submit} className="space-y-4">
           <div className="flex space-x-4">
             <div className="flex flex-col flex-1">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Name *</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} />
             </div>
             <div className="flex flex-col flex-1">
@@ -353,6 +336,7 @@ const CompanyForm: React.FC<{
               />
             </div>
           </div>
+          
           <div className="flex space-x-4">
             <div className="flex flex-col flex-1">
               <Label htmlFor="address">Address</Label>
@@ -363,7 +347,8 @@ const CompanyForm: React.FC<{
               <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isLoading} />
             </div>
           </div>
-          <div >
+          
+          <div>
             <Label htmlFor="email">Email</Label>
             <Input 
               id="email" 
@@ -371,9 +356,10 @@ const CompanyForm: React.FC<{
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
               disabled={isLoading}
-              style={{ width: '300px' }}
+              className="w-[300px]"
             />
           </div>
+          
           <div>
             <Label htmlFor="image">Image</Label>
             <Input
@@ -389,8 +375,7 @@ const CompanyForm: React.FC<{
                   reader.onload = () => setPreviewUrl(reader.result as string);
                   reader.readAsDataURL(file);
                 } else {
-                  // If a file is cleared, revert to the original image if editing, otherwise clear.
-                  setPreviewUrl(company?.image || null); 
+                  setPreviewUrl(company?.image || null);
                 }
               }}
             />
@@ -402,14 +387,15 @@ const CompanyForm: React.FC<{
               />
             )}
           </div>
+          
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-500 to-blue-600"
-              disabled={isLoading} // Disable button while loading
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-primary"
+              disabled={isLoading}
             >
               {isLoading ? (
                 <>
@@ -427,4 +413,4 @@ const CompanyForm: React.FC<{
   );
 };
 
-export default CompanyComponent;  
+export default CompanyComponent;

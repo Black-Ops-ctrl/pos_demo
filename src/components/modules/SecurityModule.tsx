@@ -12,82 +12,74 @@ import { getUsers } from '@/api/usersApi';
 import { getRoles } from '@/api/rolesApi';
 import { getAuditDetail } from '@/api/getAuditDetail';
 
-
 interface User {
     user_id: number;
     user_name: string;
     email: string;
     full_name: string;
-    password:string;
-    dep_id: number,
-    dep_name: string,
-    branch_id:number,
-    branch_name:string,
-    role_id:number,
-    role_name :string,
-    status:string,
-    created_by:number,
-    creation_date:Date,
-    updated_by:number,
-    updated_date: Date,
-    mfaEnabled :boolean
+    password: string;
+    dep_id: number;
+    dep_name: string;
+    branch_id: number;
+    branch_name: string;
+    role_id: number;
+    role_name: string;
+    status: string;
+    created_by: number;
+    creation_date: Date;
+    updated_by: number;
+    updated_date: Date;
+    mfaEnabled: boolean;
 }
+
 interface Role {
     role_id: number | null;
     role_name: string;
     description: string;
     created_by: number;
     updated_by: number | null;
-
-    // Permissions (int 0/1)
     sales_read: number;
     sales_write: number;
     sales_delete: number;
     sales_export: number;
     sales_approve: number;
-
     accounting_read: number;
     accounting_write: number;
     accounting_delete: number;
     accounting_export: number;
     accounting_approve: number;
-
     hr_read: number;
     hr_write: number;
     hr_delete: number;
     hr_export: number;
     hr_approve: number;
-
     inventory_read: number;
     inventory_write: number;
     inventory_delete: number;
     inventory_export: number;
     inventory_approve: number;
-
     crm_read: number;
     crm_write: number;
     crm_delete: number;
     crm_export: number;
     crm_approve: number;
-
     purchasing_read: number;
     purchasing_write: number;
     purchasing_delete: number;
     purchasing_export: number;
     purchasing_approve: number;
-
     reports_read: number;
     reports_write: number;
     reports_delete: number;
     reports_export: number;
     reports_approve: number;
-
     security_read: number;
     security_write: number;
     security_delete: number;
     security_export: number;
     security_approve: number;
 }
+
 interface SecurityAlert {
     log_id: number;
     log_time: Date;
@@ -99,28 +91,23 @@ interface SecurityAlert {
     ip_address: string;
     details: string;
     severity: string;
-    failed_attempts:number;
-    status: string ;
+    failed_attempts: number;
+    status: string;
     alert_status: string;
-    
 }
 
 const SecurityModule: React.FC = () => {
-    // ⭐️ CHANGE 1: Initialize activeTab from Session Storage or default to 'overview'
     const [activeTab, setActiveTab] = useState(() => {
-        // Use a unique key for the security module tab
         return sessionStorage.getItem('securityActiveTab') || 'overview';
     });
 
-    // ⭐️ CHANGE 2: Save activeTab to Session Storage whenever it changes
     useEffect(() => {
         sessionStorage.setItem('securityActiveTab', activeTab);
     }, [activeTab]);
-    
+
     const [users, setUsers] = useState<User[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [alerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
-    
 
     const securityStats = {
         auditLogs: 1247,
@@ -135,7 +122,6 @@ const SecurityModule: React.FC = () => {
         { id: '5', action: 'Account Locked', user: 'system', timestamp: '2024-01-15 10:10:00', status: 'Warning' }
     ];
 
-    //  Fetch users list
     const loadusers = async () => {
         try {
             const res = await getUsers();
@@ -143,39 +129,41 @@ const SecurityModule: React.FC = () => {
         } catch (error) {
             console.error("Error loading users", error);
         }
-        };
-        useEffect(() => {
-            loadusers();
-        }, []);
-        const loadRoles = async () => {
-                try {
-                    const res = await getRoles();
-                    setRoles(res.data || res);
-                } catch (error) {
-                    console.error("Error loading roles", error); // Updated error message
-                }
-            };
-            useEffect(() => {
-                loadRoles();
-            }, []);
+    };
+    
+    useEffect(() => {
+        loadusers();
+    }, []);
 
-            const loadDetail = async () => {
-                        try {
-                            const res = await getAuditDetail();
-                            setSecurityAlerts(res);
-                            // console.log(alerts); // Removed logging alerts here as it might be stale
-                        } catch (error) {
-                            console.error("Error loading audit detail", error); // Updated error message
-                        }
-                    };
-                    useEffect(() => {
-                        loadDetail();
-                    }, []);
+    const loadRoles = async () => {
+        try {
+            const res = await getRoles();
+            setRoles(res.data || res);
+        } catch (error) {
+            console.error("Error loading roles", error);
+        }
+    };
+    
+    useEffect(() => {
+        loadRoles();
+    }, []);
 
-        // Depend on the state 'alerts' and 'users' for calculated values
-        const activeAlerts = alerts.filter(log => log.alert_status === 'Active');
-        const activeUsers = users.filter(user => user.status === "ACTIVE");
-        const lockedUsers = users.filter(user => user.status === "LOCKED");
+    const loadDetail = async () => {
+        try {
+            const res = await getAuditDetail();
+            setSecurityAlerts(res);
+        } catch (error) {
+            console.error("Error loading audit detail", error);
+        }
+    };
+    
+    useEffect(() => {
+        loadDetail();
+    }, []);
+
+    const activeAlerts = alerts.filter(log => log.alert_status === 'Active');
+    const activeUsers = users.filter(user => user.status === "ACTIVE");
+    const lockedUsers = users.filter(user => user.status === "LOCKED");
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -196,14 +184,97 @@ const SecurityModule: React.FC = () => {
                 </Badge>
             </div>
 
+            {/* Custom colored tabs */}
+            <style>{`
+                .custom-tabs-list {
+                    display: grid;
+                    grid-template-columns: repeat(5, 1fr);
+                    gap: 8px;
+                    background: transparent;
+                    padding: 4px;
+                }
+                
+                .custom-tab-trigger {
+                    padding: 10px 16px;
+                    border-radius: 8px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                    border: none;
+                    background: #f3f4f6;
+                    color: #4b5563;
+                }
+                
+                .custom-tab-trigger[data-state="active"] {
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                }
+                
+                .custom-tab-trigger[data-value="overview"]:hover {
+                    background: #dbeafe;
+                    color: #1e40af;
+                }
+                
+                .custom-tab-trigger[data-value="users"]:hover {
+                    background: #dcfce7;
+                    color: #166534;
+                }
+                
+                .custom-tab-trigger[data-value="roles"]:hover {
+                    background: #fef3c7;
+                    color: #92400e;
+                }
+                
+                .custom-tab-trigger[data-value="audit"]:hover {
+                    background: #fce7f3;
+                    color: #9d174d;
+                }
+                
+                .custom-tab-trigger[data-value="alerts"]:hover {
+                    background: #fee2e2;
+                    color: #991b1b;
+                }
+                
+                /* Active state with different colors per tab */
+                .custom-tab-trigger[data-state="active"][data-value="overview"] {
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                }
+                
+                .custom-tab-trigger[data-state="active"][data-value="users"] {
+                    background: linear-gradient(135deg, #10b981, #059669);
+                }
+                
+                .custom-tab-trigger[data-state="active"][data-value="roles"] {
+                    background: linear-gradient(135deg, #f59e0b, #d97706);
+                }
+                
+                .custom-tab-trigger[data-state="active"][data-value="audit"] {
+                    background: linear-gradient(135deg, #ec4899, #db2777);
+                }
+                
+                .custom-tab-trigger[data-state="active"][data-value="alerts"] {
+                    background: linear-gradient(135deg, #ef4444, #dc2626);
+                }
+            `}</style>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="roles">Roles</TabsTrigger>
-                    <TabsTrigger value="audit">Audit Logs</TabsTrigger>
-                {/*  <TabsTrigger value="auth">Authentication</TabsTrigger> */}
-                    <TabsTrigger value="alerts">Security Alerts</TabsTrigger>
+                <TabsList className="custom-tabs-list">
+                    <TabsTrigger value="overview" className="custom-tab-trigger">
+                        Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="users" className="custom-tab-trigger">
+                        Users
+                    </TabsTrigger>
+                    <TabsTrigger value="roles" className="custom-tab-trigger">
+                        Roles
+                    </TabsTrigger>
+                    <TabsTrigger value="audit" className="custom-tab-trigger">
+                        Audit Logs
+                    </TabsTrigger>
+                    <TabsTrigger value="alerts" className="custom-tab-trigger">
+                        Security Alerts
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -241,22 +312,8 @@ const SecurityModule: React.FC = () => {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-red-600">{activeAlerts.length}</div>
-                                
                             </CardContent>
                         </Card>
-{/* <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">MFA Enabled</CardTitle>
-                                <Lock className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{securityStats.mfaEnabled}%</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Of active users have MFA enabled
-                                </p>
-                            </CardContent>
-                        </Card>
-                        */}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -342,10 +399,6 @@ const SecurityModule: React.FC = () => {
 
                 <TabsContent value="audit">
                     <AuditLogs />
-                </TabsContent>
-
-                <TabsContent value="auth">
-                    <AuthenticationSettings />
                 </TabsContent>
 
                 <TabsContent value="alerts">

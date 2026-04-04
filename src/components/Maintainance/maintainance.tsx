@@ -8,10 +8,10 @@ import Items from '../Maintainance/ItemRateList';
 import City from './City';
 import Expense from './Expense';
 import Region from './Region';
-import Vehicles from './Vehicles'; // Import the new Vehicles component
+import Vehicles from './Vehicles';
 import { useState, useEffect } from 'react';
 import { ColorfulTabs, ColorfulTabsContent, ColorfulTabsList, ColorfulTabsTrigger } from '../ui/colorful-tabs';
-import { Bike, Briefcase, Building, Car, Cylinder, DollarSign, Globe, MapPin, Sun, User } from 'lucide-react';
+import { Briefcase, Building, MapPin, Sun, User, Users } from 'lucide-react';
 import Flock from './Flock';
 
 const getSelectedBranchId = (): string | null => {
@@ -30,7 +30,7 @@ const module_id = getModuleId();
 
 const Maintainance: React.FC = () => {
     const [activeTab, setActiveTab] = useState(() => {
-        return sessionStorage.getItem('maintainanceActiveTab') || 'branches';
+        return sessionStorage.getItem('maintainanceActiveTab') || 'company';
     });
 
     useEffect(() => {
@@ -45,36 +45,54 @@ const Maintainance: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
             <div className="container mx-auto p-6">
                 <div className="mb-2">
-                    <p className="text-gray-600">Manage your Companies,Branches and Departments</p>
+                    <p className="text-gray-600">Manage your Companies, Branches and Departments</p>
                 </div>
 
                 <ColorfulTabs value={activeTab} onValueChange={setActiveTab}>
-                   <ColorfulTabsList
-                        className="grid w-full grid-cols-4 mb-4 overflow-hidden"
-                        >
-                        {/* <ColorfulTabsTrigger value="company" icon={Building}>Company</ColorfulTabsTrigger> */}
-
+                    <ColorfulTabsList
+                        className="grid w-full grid-cols-6 mb-4 overflow-hidden"
+                    >
+                        <ColorfulTabsTrigger value="company" icon={Building}>
+                            Company
+                        </ColorfulTabsTrigger>
+                        
                         <ColorfulTabsTrigger value="branches" icon={Sun}>
-                            {/* {getBranchesTabName()} */}
                             Branches
                         </ColorfulTabsTrigger>
                         
-                        <ColorfulTabsTrigger value="city" icon={MapPin}>City</ColorfulTabsTrigger>
-                        {/* <ColorfulTabsTrigger value="Expense" icon={MapPin}>Expenses</ColorfulTabsTrigger> */}
-                        {/* <ColorfulTabsTrigger value="region" icon={Globe}>Region</ColorfulTabsTrigger> */}
+                        <ColorfulTabsTrigger value="departments" icon={Users}>
+                            Departments
+                        </ColorfulTabsTrigger>
                         
-                        {/* {module_id === 2 && (
-                            <ColorfulTabsTrigger value="flock" icon={Cylinder}>
-                                Flock
-                            </ColorfulTabsTrigger>
-                        )} */}
+                        <ColorfulTabsTrigger value="city" icon={MapPin}>
+                            City
+                        </ColorfulTabsTrigger>
                         
-                        {/* <ColorfulTabsTrigger value="vehicles" icon={Car}>Transport Vehicle</ColorfulTabsTrigger> */}
-                        <ColorfulTabsTrigger value="SalesPersons" icon={Briefcase}>SalesPersons</ColorfulTabsTrigger>
-                        <ColorfulTabsTrigger value="Customers" icon={User}>Customers</ColorfulTabsTrigger>
-                        {/* <ColorfulTabsTrigger value="Items" icon={DollarSign}>Items Rate List</ColorfulTabsTrigger> */}
+                        <ColorfulTabsTrigger value="SalesPersons" icon={Briefcase}>
+                            SalesPersons
+                        </ColorfulTabsTrigger>
+                        
+                        <ColorfulTabsTrigger value="Customers" icon={User}>
+                            Customers
+                        </ColorfulTabsTrigger>
                     </ColorfulTabsList>
                     
+                    <ColorfulTabsContent value="company">
+                        <Company />
+                    </ColorfulTabsContent>
+
+                    <ColorfulTabsContent value="branches">
+                        <Branch />
+                    </ColorfulTabsContent>
+
+                    <ColorfulTabsContent value="departments">
+                        <Department />
+                    </ColorfulTabsContent>
+
+                    <ColorfulTabsContent value="city">
+                        <City />
+                    </ColorfulTabsContent>
+
                     <ColorfulTabsContent value="SalesPersons">
                         <SalesPersons />
                     </ColorfulTabsContent>
@@ -83,37 +101,26 @@ const Maintainance: React.FC = () => {
                         <Customers />
                     </ColorfulTabsContent>
                     
-                    <ColorfulTabsContent value="Items">
+                    {/* Hidden/Commented tabs - can be uncommented when needed */}
+                    {/* <ColorfulTabsContent value="Items">
                         <Items />
-                    </ColorfulTabsContent>
+                    </ColorfulTabsContent> */}
 
-                    <ColorfulTabsContent value="branches">
-                        <Branch />
-                    </ColorfulTabsContent>
-
-                    <ColorfulTabsContent value="city">
-                        <City />
-                    </ColorfulTabsContent>
-
-                    <ColorfulTabsContent value="Expense">
+                    {/* <ColorfulTabsContent value="Expense">
                         <Expense />
-                    </ColorfulTabsContent>
+                    </ColorfulTabsContent> */}
 
-                    <ColorfulTabsContent value="region">
+                    {/* <ColorfulTabsContent value="region">
                         <Region />
-                    </ColorfulTabsContent>
-
-                    <ColorfulTabsContent value="company">
-                        <Company />
-                    </ColorfulTabsContent>
+                    </ColorfulTabsContent> */}
                     
-                    <ColorfulTabsContent value="flock">
+                    {/* <ColorfulTabsContent value="flock">
                         <Flock />
-                    </ColorfulTabsContent>
+                    </ColorfulTabsContent> */}
 
-                    <ColorfulTabsContent value="vehicles">
+                    {/* <ColorfulTabsContent value="vehicles">
                         <Vehicles />
-                    </ColorfulTabsContent>
+                    </ColorfulTabsContent> */}
                 </ColorfulTabs>
             </div>
         </div>

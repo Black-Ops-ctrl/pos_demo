@@ -663,7 +663,7 @@ const ViewProductsByCategory = () => {
                       {product.status}
                     </span>
                   </td>
-                  <td className="p-3 align-middle">{product.quantity} pcs</td>
+                  <td className="p-3 align-middle">{product.quantity}</td>
                   <td className="p-3 align-middle">Rs {product.price.toFixed(2)}</td>
                   <td className="p-3 align-middle">
                     <div className="flex justify-center items-center gap-2">

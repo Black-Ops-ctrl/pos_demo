@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from "axios";
 
-const PROFIT_LOSS_API_URL = "http://84.16.235.111:2149/api/product-profit-loss";
+const PROFIT_LOSS_API_URL = "http://84.16.235.111:2149/api/item-profit-loss";
 
 const getModuleId = (): string | null => {
   return sessionStorage.getItem('selectedBranchId');
@@ -20,27 +20,59 @@ const handleApiError = (error: any) => {
   throw new Error("Unexpected error");
 };
 
-// 🔹 Get Product Profit/Loss Report using consolidated API
+// 🔹 Process and transform API response to match expected format
+const processProfitLossData = (data: any[]) => {
+  return data.map((item: any) => {
+    const totalPurchase = parseFloat(item.total_purchase) || 0;
+    const totalSale = parseFloat(item.total_sale) || 0;
+    const profit = parseFloat(item.profit) || 0;
+    const loss = parseFloat(item.loss) || 0;
+    
+    // Calculate sold quantity if not provided
+    // Since we don't have quantity, we can't calculate per-unit rates
+    // We'll use 0 and show the aggregated totals
+    let soldQuantity = 0;
+    
+    if (item.sold_quantity) {
+      soldQuantity = parseFloat(item.sold_quantity);
+    } else {
+      // If sold_quantity is not provided, we can't determine it from available data
+      console.log(`No sold_quantity for ${item.item_name || item.product_name}`);
+      // Keep as 0 - UI will show N/A for per-unit calculations
+    }
+    
+    return {
+      product_id: item.product_id || item.item_id,
+      product_name: item.product_name || item.item_name,
+      total_purchase: totalPurchase.toFixed(2),
+      total_sale: totalSale.toFixed(2),
+      sold_quantity: soldQuantity.toString(),
+      profit: profit.toFixed(2),
+      loss: loss.toFixed(2)
+    };
+  });
+};
+
+// 🔹 Get Product Profit/Loss Report
 export const getProductProfitLoss = async (
-  p_product_id: number | null, 
-  p_start_date: string, 
-  p_end_date: string
+  item_id: number | null, 
+  start_date: string, 
+  end_date: string
 ) => {
   try {
-    console.log("Fetching profit/loss report for product:", p_product_id, "from", p_start_date, "to", p_end_date);
+    console.log("Fetching profit/loss report for product:", item_id, "from", start_date, "to", end_date);
     
-    if (!p_start_date || !p_end_date) {
+    if (!start_date || !end_date) {
       return [];
     }
 
     const module_id = getModuleId();
     
     const requestData = {
-      p_operation: 1,
-      p_product_id: p_product_id,
-      p_start_date: p_start_date,
-      p_end_date: p_end_date,
-      module_id: module_id
+      operation: 1,
+      item_id: item_id,
+      start_date: start_date,
+      end_date: end_date,
     };
     
     console.log("Sending request to profit/loss API:", requestData);
@@ -49,13 +81,15 @@ export const getProductProfitLoss = async (
     
     console.log("Profit/Loss API Response:", res.data);
     
-    // Handle the actual API response structure
     let reportData = [];
     
+    // Handle different response structures
     if (res.data?.data && Array.isArray(res.data.data)) {
       reportData = res.data.data;
     } else if (Array.isArray(res.data)) {
       reportData = res.data;
+    } else if (res.data?.Data && Array.isArray(res.data.Data)) {
+      reportData = res.data.Data;
     } else {
       console.warn("Unexpected response structure:", res.data);
       return [];
@@ -63,25 +97,17 @@ export const getProductProfitLoss = async (
     
     console.log("Raw report data:", reportData);
     
-    // Simply return the data as-is from API without any transformations
-    const transformedData = reportData.map((item: any) => ({
-      product_id: item.product_id,
-      product_name: item.product_name,
-      total_purchase: item.total_purchase,
-      total_sale: item.total_sale,
-      sold_quantity: item.sold_quantity,
-      profit: item.profit,
-      loss: item.loss
-    }));
+    // Transform the data to match expected format
+    const processedData = processProfitLossData(reportData);
     
-    console.log("Transformed profit/loss report:", transformedData);
+    console.log("Processed profit/loss report:", processedData);
     
     // Filter by specific product if selected
-    if (p_product_id) {
-      return transformedData.filter(item => item.product_id === p_product_id);
+    if (item_id) {
+      return processedData.filter(item => item.product_id === item_id);
     }
     
-    return transformedData;
+    return processedData;
 
   } catch (error) {
     console.error("Error fetching profit/loss report:", error);

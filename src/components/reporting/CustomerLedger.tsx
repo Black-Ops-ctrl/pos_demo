@@ -49,6 +49,7 @@ interface CustomerLedger {
   account_id: number;
   account_code: string;
   debit: number;
+  branch_name: string;
   credit: number;
   line_description: string;
   created_by: number;
@@ -520,7 +521,7 @@ const CustomerLedger: React.FC = () => {
                   return (
                     <TableRow key={ledger.journal_entry_id}>
                       <TableCell className="text-center align-middle">{formatDate(ledger.entry_date)}</TableCell>
-                      <TableCell className="text-center align-middle">{ledger.voucher_name || 'N/A'}</TableCell> {/* This shows customer name */}
+                      <TableCell className="text-center align-middle">{ledger.branch_name || 'N/A'}</TableCell> {/* This shows customer name */}
                       <TableCell className="text-center align-middle font-mono">{ledger.tran_no}</TableCell> {/* Invoice number */}
                       <TableCell className="text-center align-middle">{formatNumber(ledger.debit)}</TableCell>
                       <TableCell className="text-center align-middle">{formatNumber(ledger.credit)}</TableCell>

@@ -78,10 +78,10 @@ const loadDetail = async () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Audit Logs</h2>
-        <Button>
+        {/* <Button>
           <Download className="w-4 h-4 mr-2" />
           Export Logs
-        </Button>
+        </Button> */}
       </div>
 
       <Card>

@@ -19,11 +19,11 @@ const OrderSummary = ({
 }) => {
   // State management
   const [cartItems, setCartItems] = useState([]);
-  const [receivedAmount, setReceivedAmount] = useState("");
   const [discountPercentage, setDiscountPercentage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); 
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [remarks, setRemarks] = useState(""); // State for remarks
   
   // Customer dropdown states
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -119,7 +119,7 @@ const OrderSummary = ({
           title: product.product_name || product.title,
           uom: product.uom_name || "Pieces",
           desc: product.description || product.desc || "",
-          price: Math.round(parseFloat(product.price) || 0),
+          price: parseFloat(product.price) || 0,
           image: product.image_url || product.image || "/img_category.webp",
           quantity: parseFloat(product.quantity) || 0
         };
@@ -327,30 +327,20 @@ const OrderSummary = ({
     }
   };
 
-  const handleReceivedAmountChange = (e) => {
-    const value = e.target.value;
-    if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
-      setReceivedAmount(value);
-    }
-  };
-
-  // Handle discount change - now clears field on focus for easy typing
+  // Handle discount change
   const handleDiscountChange = (e) => {
     const value = e.target.value;
-    // Allow empty string or numbers only
     if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
       setDiscountPercentage(value);
     }
   };
 
   const handleDiscountFocus = (e) => {
-    // Clear the field when user clicks on it
     e.target.value = "";
     setDiscountPercentage("");
   };
 
   const handleDiscountBlur = () => {
-    // If field is empty after blur, set to 0
     if (discountPercentage === "" || discountPercentage === "0") {
       setDiscountPercentage("0");
     }
@@ -360,16 +350,18 @@ const OrderSummary = ({
     setPaymentMethod(method);
   };
 
+  // Handle remarks change
+  const handleRemarksChange = (e) => {
+    setRemarks(e.target.value);
+  };
+
   // Calculations
-  const subtotal = Math.round(
-    cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-  );
+  const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
   const parsedDiscount = discountPercentage === "" ? 0 : parseFloat(discountPercentage) || 0;
-  const discountAmount = Math.round((subtotal * parsedDiscount) / 100);
+  const discountAmount = (subtotal * parsedDiscount) / 100;
   const taxPercentage = 0;
   const taxAmount = 0;
-  const totalAmount = Math.round(subtotal - discountAmount);
-  const payback = receivedAmount && Math.round(parseFloat(receivedAmount) - totalAmount);
+  const totalAmount = subtotal - discountAmount;
   const isAnySelected = cartItems.some((item) => item.selected);
   const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
 
@@ -406,13 +398,6 @@ const OrderSummary = ({
       return;
     }
 
-    if (paymentMethod === "cash") {
-      if (!receivedAmount || parseFloat(receivedAmount) < totalAmount) {
-        showToast("Please enter valid received amount!", 'warning');
-        return;
-      }
-    }
-
     setIsProcessing(true);
 
     try {
@@ -427,9 +412,9 @@ const OrderSummary = ({
       const itemsForApi = cartItems.map(item => ({
         item_id: parseInt(item.id),
         quantity: parseInt(item.quantity),
-        unit_price: Math.round(parseFloat(item.price)),
+        unit_price: parseFloat(item.price),
         discount_percentage: parseFloat(parsedDiscount),
-        discount_amount: Math.round((item.price * item.quantity * parsedDiscount) / 100),
+        discount_amount: (item.price * item.quantity * parsedDiscount) / 100,
         tax: parseFloat(taxPercentage),
         extra_discount: 0,
         commission_percentge: 0,
@@ -455,7 +440,7 @@ const OrderSummary = ({
       const receiptData = {
         cartItems: cartItems.map(item => ({
           ...item,
-          price: Math.round(item.price),
+          price: item.price,
           id: item.id || item.barcode
         })),
         subtotal,
@@ -464,8 +449,8 @@ const OrderSummary = ({
         tax: taxAmount,
         totalAmount,
         paymentMethod,
-        receivedAmount: receivedAmount ? Math.round(parseFloat(receivedAmount)) : "",
-        payback: payback ? Math.round(payback) : 0,
+        payback: 0,
+        remarks: remarks, // Add remarks to receipt data
         invoiceNo: generateInvoiceNo(),
         fbrInvoiceNo: generateFbrInvoiceNo(),
         shopName: "Smart Shop",
@@ -481,27 +466,28 @@ const OrderSummary = ({
         try {
           const companyIdValue = companyId ? parseInt(companyId) : null;
           const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
-          const description = `POS Sale - ${paymentMethod} payment`;
+          const description = remarks || `POS Sale - ${paymentMethod} payment`; // Use remarks as description if available
           
+          // Create sales invoice with remarks
           await createSalesInvoice(
             customerIdValue,
             new Date(),
-            description,
+            description, // Pass remarks as description/remarks
             totalAmount,
             0,
             companyIdValue,
             branchIdValue,
             itemsForApi,
             paymentMethod,
-            receivedAmount ? Math.round(parseFloat(receivedAmount)) : 0,
-            payback ? Math.round(payback) : 0,
+            0,
+            0,
             'POS'
           );
           
           printReceipt(receiptData);
           setCartItems([]);
-          setReceivedAmount("");
           setDiscountPercentage("0");
+          setRemarks(""); // Clear remarks after successful sale
           
           showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
           
@@ -551,11 +537,11 @@ const OrderSummary = ({
       )}
 
       {/* Header */}
-      <div className="px-3 pt-2 pb-1 border-b border-gray-100 bg-white">
-        <div className="flex justify-between items-center mb-1">
-          <div className="flex items-center gap-1.5">
-            {renderIcon(ShoppingCart, 16, "text-blue-900")}
-            <h2 className="font-semibold text-sm">
+      <div className="px-4 pt-3 pb-2 border-b border-gray-100 bg-white">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            {renderIcon(ShoppingCart, 20, "text-blue-900")}
+            <h2 className="font-semibold text-base">
               Cart <span className="text-blue-900">({cartItems.length})</span>
             </h2>
           </div>
@@ -564,34 +550,34 @@ const OrderSummary = ({
           <div className="relative" ref={customerDropdownRef}>
             <button
               onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)}
-              className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1 rounded-full text-xs border border-gray-200 hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-full text-sm border border-gray-200 hover:bg-gray-100 transition-colors"
               type="button"
             >
               {selectedCustomerDetails ? (
                 <>
-                  {renderIcon(User, 12, "text-gray-600")}
-                  <span className="font-medium text-gray-700 max-w-[100px] truncate text-xs">
+                  {renderIcon(User, 14, "text-gray-600")}
+                  <span className="font-medium text-gray-700 max-w-[120px] truncate text-sm">
                     {selectedCustomerDetails.name}
                   </span>
                 </>
               ) : (
                 <>
-                  {renderIcon(User, 12, "text-gray-500")}
-                  <span className="text-gray-600 text-xs">Customer</span>
+                  {renderIcon(User, 14, "text-gray-500")}
+                  <span className="text-gray-600 text-sm">Customer</span>
                 </>
               )}
-              {renderIcon(ChevronDown, 12, "text-gray-400")}
+              {renderIcon(ChevronDown, 14, "text-gray-400")}
             </button>
             
             {/* Dropdown Menu */}
             {isCustomerDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-56 overflow-y-auto">
-                <div className="px-2 py-1 text-[10px] font-semibold text-gray-500 border-b border-gray-100">
+              <div className="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 max-h-60 overflow-y-auto">
+                <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 border-b border-gray-100">
                   SELECT CUSTOMER
                 </div>
                 
                 {loadingCustomers ? (
-                  <div className="px-2 py-1.5 text-[10px] text-gray-500 text-center">Loading...</div>
+                  <div className="px-3 py-2 text-sm text-gray-500 text-center">Loading...</div>
                 ) : (
                   <>
                     {customers.length > 0 ? (
@@ -599,22 +585,22 @@ const OrderSummary = ({
                         <button
                           key={customer.customer_id}
                           onClick={() => handleCustomerSelect(customer)}
-                          className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-50 transition-colors ${
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
                             localSelectedCustomer?.id === customer.customer_id ? 'bg-blue-50' : ''
                           }`}
                           type="button"
                         >
                           {customer.customer_type === 'credit' ? (
-                            renderIcon(TrendingUp, 10, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
+                            renderIcon(TrendingUp, 12, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
                           ) : (
-                            renderIcon(CreditCard, 10, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
+                            renderIcon(CreditCard, 12, localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-500')
                           )}
                           <div className="flex-1 text-left">
-                            <div className={`font-medium text-[11px] ${localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-700'}`}>
+                            <div className={`font-medium text-sm ${localSelectedCustomer?.id === customer.customer_id ? 'text-blue-900' : 'text-gray-700'}`}>
                               {customer.customer_name}
                             </div>
                           </div>
-                          <span className={`text-[8px] px-1 py-0.5 rounded-full ${
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                             customer.customer_type === 'credit' 
                               ? 'bg-orange-100 text-orange-700' 
                               : 'bg-blue-100 text-blue-700'
@@ -624,7 +610,7 @@ const OrderSummary = ({
                         </button>
                       ))
                     ) : (
-                      <div className="px-2 py-1.5 text-[10px] text-gray-500 text-center">No customers found</div>
+                      <div className="px-3 py-2 text-sm text-gray-500 text-center">No customers found</div>
                     )}
                   </>
                 )}
@@ -634,23 +620,23 @@ const OrderSummary = ({
         </div>
         
         {/* Select All Row */}
-        {cartItems.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1">
+          {cartItems.length > 0 && (
+          <div className="flex items-center gap-2 mt-1">
             <input
               type="checkbox"
               checked={isAllSelected}
               onChange={handleSelectAll}
               disabled={isProcessing}
-              className="w-3.5 h-3.5 accent-blue-900 cursor-pointer rounded"
+              className="w-4 h-4 accent-blue-900 cursor-pointer rounded"
             />
-            <span className="text-[11px] text-gray-600">Select All</span>
+            <span className="text-sm text-gray-600">Select All</span>
             {isAnySelected && (
               <button
                 onClick={handleDelete}
                 disabled={isProcessing}
-                className="ml-auto flex items-center gap-1 px-2 py-0.5 text-blue-900 rounded-md text-[11px] font-medium transition-colors border border-blue-200"
+                className="ml-auto flex items-center gap-1.5 px-3 py-1 text-blue-900 rounded-md text-sm font-medium transition-colors border border-blue-200"
               >
-                {renderIcon(Trash2, 12, "")}
+                {renderIcon(Trash2, 14, "")}
                 Delete
               </button>
             )}
@@ -664,33 +650,33 @@ const OrderSummary = ({
         className="flex-1 overflow-y-auto min-h-0 bg-gray-50"
       >
         {cartItems.length === 0 ? (
-          <div className="text-center text-gray-400 py-8 flex flex-col items-center gap-1">
-            {renderIcon(ShoppingCart, 36, "text-gray-300")}
-            <p className="text-xs">Empty Cart</p>
-            <p className="text-[10px] text-gray-400">Scan or search products to add</p>
+          <div className="text-center text-gray-400 py-12 flex flex-col items-center gap-2">
+            {renderIcon(ShoppingCart, 48, "text-gray-300")}
+            <p className="text-sm">Empty Cart</p>
+            <p className="text-xs text-gray-400">Scan or search products to add</p>
           </div>
         ) : (
-          <div className="space-y-1 p-1.5">
+          <div className="space-y-2 p-2">
             {cartItems.map((item) => (
-              <div key={item.barcode} className="bg-white p-1.5 shadow-sm border border-gray-100 flex items-center gap-1.5">
+              <div key={item.barcode} className="bg-white p-3 shadow-sm border border-gray-100 flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={item.selected}
                   onChange={() => handleSelect(item.barcode)}
                   disabled={isProcessing}
-                  className="w-3.5 h-3.5 accent-blue-900 cursor-pointer flex-shrink-0"
+                  className="w-4 h-4 accent-blue-900 cursor-pointer flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <p className="font-medium text-[11px] truncate">{item.title}</p>
-                      <span className="text-[9px] text-gray-400">({item.uom})</span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <p className="font-medium text-sm truncate">{item.title}</p>
+                      <span className="text-xs text-gray-400">({item.uom})</span>
                     </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleQuantityChange(item.barcode, -1)}
                         disabled={isProcessing}
-                        className="w-5 h-5 bg-red-500 rounded-full flex text-white items-center justify-center  text-[12px] flex-shrink-0 disabled:opacity-50 transition-colors"
+                        className="w-6 h-6 bg-red-500 rounded-full flex text-white items-center justify-center text-sm flex-shrink-0 disabled:opacity-50 transition-colors"
                       >
                         -
                       </button>
@@ -704,12 +690,12 @@ const OrderSummary = ({
                         onChange={(e) => handleManualQuantityChange(item.barcode, e)}
                         onBlur={(e) => handleQuantityBlur(item.barcode, e)}
                         disabled={isProcessing}
-                        className="w-8 text-center text-[10px] border border-gray-200 rounded px-0.5 py-0 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                        className="w-10 text-center text-sm border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-300"
                       />
                       <button
                         onClick={() => handleQuantityChange(item.barcode, 1)}
                         disabled={isProcessing}
-                        className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center  text-[12px] flex-shrink-0 disabled:opacity-50 transition-colors"
+                        className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm flex-shrink-0 disabled:opacity-50 transition-colors"
                       >
                         +
                       </button>
@@ -717,8 +703,8 @@ const OrderSummary = ({
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="font-bold text-blue-900 text-[11px]">
-                    Rs {Math.round(item.price * item.quantity)}
+                  <p className="font-bold text-blue-900 text-sm">
+                    Rs {(item.price * item.quantity).toFixed(2)}  
                   </p>
                 </div>
               </div>
@@ -727,17 +713,17 @@ const OrderSummary = ({
         )}
       </div>
 
-      {/* Checkout Section - REDUCED GAPS between subtotal to received and smaller button */}
+      {/* Checkout Section */}
       {cartItems.length > 0 && (
-        <div className="border-t border-gray-200 bg-white px-3 py-1.5 space-y-1">
-          {/* Summary - reduced gap */}
-          <div className="space-y-0.5">
-            <div className="flex justify-between text-[11px]">
+        <div className="border-t border-gray-200 bg-white px-4 py-2 space-y-2">
+          {/* Summary */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-semibold">Rs {subtotal}</span>
+              <span className="font-semibold">Rs {subtotal.toFixed(2)}</span>
             </div>
             
-            <div className="flex justify-between items-center text-[11px]">
+            <div className="flex justify-between items-center text-sm">
               <span className="text-gray-600">Discount</span>
               <div className="flex items-center gap-1">
                 <div className="flex items-center gap-0.5">
@@ -751,98 +737,78 @@ const OrderSummary = ({
                     onFocus={handleDiscountFocus}
                     onBlur={handleDiscountBlur}
                     disabled={isProcessing}
-                    className="w-10 px-1 py-0 border border-gray-300 rounded text-center text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-300"
+                    className="w-12 px-1 py-0.5 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
                     placeholder="0"
                   />
-                  <span className="text-gray-600 text-[10px]">%</span>
+                  <span className="text-gray-600 text-sm">%</span>
                 </div>
-                <span className="text-blue-900  text-[11px] font-semibold">
-                  -Rs {discountAmount}
+                <span className="text-blue-900 text-sm font-semibold">
+                  -Rs {discountAmount.toFixed(2)}
                 </span>
               </div>
             </div>
             
-            <div className="flex justify-between text-[11px]">
-              <span className="text-gray-600">Tax</span>
-              <span className="font-semibold">Rs 0</span>
-            </div>
-            
-            <div className="border-t border-gray-200 pt-0.5 mt-0.5">
-              <div className="flex justify-between font-semibold text-sm">
+            <div className="border-t border-gray-200 pt-1 mt-1">
+              <div className="flex justify-between font-semibold text-base">
                 <span>Total</span>
-                <span className="text-blue-900">Rs {totalAmount}</span>
+                <span className="text-blue-900">Rs {totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
-          {/* Payment Methods - reduced gap */}
-          <div className="flex items-center justify-between pt-0.5">
-            <span className="text-[11px] text-gray-600">Payment</span>
-            <div className="flex gap-1.5">
+          {/* Remarks Field - Added for user input */}
+          <div className="pt-1">
+            <label className="text-sm text-gray-600 font-medium">Remarks</label>
+            <textarea
+              value={remarks}
+              onChange={handleRemarksChange}
+              disabled={isProcessing}
+              placeholder="Add remarks (optional)..."
+              rows="2"
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300 resize-none"
+            />
+          </div>
+
+          {/* Payment Methods */}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-sm text-gray-600">Payment</span>
+            <div className="flex gap-2">
               <button
                 onClick={() => handlePaymentMethodChange("cash")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all ${
                   paymentMethod === "cash"
                     ? "bg-blue-900 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
                 disabled={isProcessing}
               >
-                {renderIcon(Banknote, 10, "")}
+                {renderIcon(Banknote, 14, "")}
                 Cash
               </button>
               <button
-                onClick={() => handlePaymentMethodChange("card")}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all ${
-                  paymentMethod === "card"
+                onClick={() => handlePaymentMethodChange("credit")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                  paymentMethod === "credit"
                     ? "bg-blue-900 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
                 disabled={isProcessing}
               >
-                {renderIcon(CreditCard, 10, "")}
-                Card
+                {renderIcon(CreditCard, 14, "")}
+                Credit
               </button>
             </div>
           </div>
 
-          {/* Received Amount - reduced gap */}
-          <div className="flex items-center justify-between pt-0.5">
-            <span className="text-[11px] text-gray-600">Received</span>
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500 text-[10px]">Rs</span>
-              <input
-                type="number"
-                value={receivedAmount}
-                onChange={handleReceivedAmountChange}
-                disabled={isProcessing}
-                className="w-20 px-2 py-0.5 border border-gray-300 rounded text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-blue-300"
-                min="0"
-                step="1"
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          {/* Change - reduced gap */}
-          {receivedAmount && payback !== undefined && (
-            <div className="flex justify-between text-[10px] py-0.5 px-1.5 bg-gray-50 rounded mt-0.5">
-              <span className="text-gray-600">Change</span>
-              <span className={payback < 0 ? "text-blue-900 font-semibold" : "text-green-600 font-semibold"}>
-                Rs {Math.abs(payback)} {payback < 0 ? "(Due)" : ""}
-              </span>
-            </div>
-          )}
-
-          {/* Print Button - smaller size */}
+          {/* Print Button */}
           <button 
             onClick={handlePrint}
             disabled={isProcessing || cartItems.length === 0}
-            className={`w-full bg-blue-900 text-white py-1 rounded-lg font-medium text-[11px] transition-all flex items-center justify-center gap-1 mt-1 ${
-              isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-900"
+            className={`w-full bg-blue-900 text-white py-2 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 mt-1 ${
+              isProcessing || cartItems.length === 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-800"
             }`}
           >
-            {renderIcon(Printer, 12, "")}
+            {renderIcon(Printer, 16, "")}
             {isProcessing ? "Processing..." : "Print Receipt"}
           </button>
         </div>

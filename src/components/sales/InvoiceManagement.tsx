@@ -449,6 +449,9 @@ const SalesInvoice: React.FC = () => {
         }
     }
 
+    // Get remarks for display
+    const invoiceRemarks = invoice.remarks || '';
+
     const numberToWords = (num: number) => {
         const a = [
             '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
@@ -473,8 +476,8 @@ const SalesInvoice: React.FC = () => {
         return convert(num) + ' Only /-';
     };
 
-    const logoSource = companyData?.image;
-    const companyName = companyData?.company_name;
+    const logoSource = companyData?.image || '';
+    const companyName = companyData?.company_name || '';
     const companyAddress = companyData?.address || "";
     const companyPhone = companyData?.phone || "";
     const companyEmail = companyData?.email || "";
@@ -586,7 +589,7 @@ const SalesInvoice: React.FC = () => {
             <body>
                 <div class="header">
                     <div class="logo">
-                        <img src="${logoSource}" alt="Company Logo" />
+                        ${logoSource ? `<img src="${logoSource}" alt="Company Logo" />` : ''}
                     </div>
                     <div class="title">
                         <h2>${companyName}</h2>
@@ -608,9 +611,11 @@ const SalesInvoice: React.FC = () => {
                         <td><strong>Customer:</strong> ${customerDisplay}</td>
                         <td><strong>Payment Method:</strong> ${paymentMethod}</td>
                     </tr>
+                    ${invoiceRemarks ? `
                     <tr>
-                        <td colspan="2"><strong>Narration:</strong> ${invoice.remarks || ""}</td>
+                        <td colspan="2"><strong>Remarks:</strong> ${invoiceRemarks}</td>
                     </tr>
+                    ` : ''}
                 </table>
 
                 <div class="items-table">
@@ -621,7 +626,6 @@ const SalesInvoice: React.FC = () => {
                                 <th>Item Name</th>
                                 <th>Quantity</th>
                                 <th>Price</th>
-                                <th>Tax</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
@@ -629,10 +633,7 @@ const SalesInvoice: React.FC = () => {
                             ${(invoice.items || []).map((item, index) => {
                                 const quantity = Number(item.quantity || 0);
                                 const unitPrice = Number(item.rate || item.unit_price || 0);
-                                const discountPercentage = Number(item.discount_percentage || 0);
-                                const discountAmount = Number(item.discount_amount || (quantity * unitPrice * discountPercentage / 100));
-                                const tax = Number(item.tax || 0);
-                                const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + tax));
+                                const rowTotal = quantity * unitPrice;
                                 
                                 return `
                                     <tr>
@@ -640,13 +641,12 @@ const SalesInvoice: React.FC = () => {
                                         <td class="text-left">${item.item_name || ''}</td>
                                         <td>${quantity}</td>
                                         <td>${unitPrice.toLocaleString()}</td>
-                                        <td>${tax.toLocaleString()}</td>
                                         <td>${rowTotal.toLocaleString()}</td>
                                     </tr>
                                 `;
                             }).join('')}
                             <tr>
-                                <td colspan="5" style="text-align:right; font-weight:bold;">Grand Total:</td>
+                                <td colspan="4" style="text-align:right; font-weight:bold;">Grand Total:</td>
                                 <td style="font-weight:bold;">${grandTotal.toLocaleString()}</td>
                             </tr>
                         </tbody>
@@ -963,53 +963,11 @@ const SalesInvoice: React.FC = () => {
                                         {viewingSO.customer_name || 'Walk In Customer'}
                                     </td>
                                 </tr>
-                                {/* Extract from remarks if payment_term is null */}
-                                {!viewingSO.payment_term && viewingSO.remarks && viewingSO.remarks.includes('payment') && (
-                                    <tr>
-                                        <td className="p-2 font-medium text-gray-600 border">Payment Method</td>
-                                        <td className="p-2 border">
-                                            {viewingSO.remarks.includes('cash') ? 'Cash' : 
-                                            viewingSO.remarks.includes('card') ? 'Card' : 
-                                            viewingSO.remarks}
-                                        </td>
-                                    </tr>
-                                )}
-                                {/* Get discount from first item */}
+                                {/* Remarks Section - Added */}
                                 <tr>
-                                    <td className="p-2 font-medium text-gray-600 border">Discount %</td>
+                                    <td className="p-2 font-medium text-gray-600 border">Remarks</td>
                                     <td className="p-2 border">
-                                        {viewingSO.items && viewingSO.items.length > 0 
-                                            ? `${viewingSO.items[0].discount_percentage || 0}%` 
-                                            : '0%'}
-                                    </td>
-                                </tr>
-                                {/* Get tax from first item */}
-                                <tr>
-                                    <td className="p-2 font-medium text-gray-600 border">Tax %</td>
-                                    <td className="p-2 border">
-                                        {viewingSO.items && viewingSO.items.length > 0 && viewingSO.items[0].tax
-                                            ? `${viewingSO.items[0].tax}%` 
-                                            : '0%'}
-                                    </td>
-                                </tr>
-                                {/* Calculate total discount amount */}
-                                <tr>
-                                    <td className="p-2 font-medium text-gray-600 border">Total Discount Amount</td>
-                                    <td className="p-2 border">
-                                        {viewingSO.items 
-                                            ? viewingSO.items.reduce((sum, item) => 
-                                                sum + Number(item.discount_amount || 0), 0).toFixed(2)
-                                            : '0.00'}
-                                    </td>
-                                </tr>
-                                {/* Calculate total tax amount */}
-                                <tr>
-                                    <td className="p-2 font-medium text-gray-600 border">Total Tax Amount</td>
-                                    <td className="p-2 border">
-                                        {viewingSO.items 
-                                            ? viewingSO.items.reduce((sum, item) => 
-                                                sum + Number(item.tax || 0), 0).toFixed(2)
-                                            : '0.00'}
+                                        {viewingSO.remarks || 'No remarks'}
                                     </td>
                                 </tr>
                                 <tr>
@@ -1030,7 +988,6 @@ const SalesInvoice: React.FC = () => {
                                     <th className="p-2 border text-left">Rate</th>
                                     <th className="p-2 border text-left">Discount %</th>
                                     <th className="p-2 border text-left">Discount Amount</th>
-                                    <th className="p-2 border text-left">Tax</th>
                                     <th className="p-2 border text-left">Row Total</th>
                                 </tr>
                             </thead>
@@ -1040,8 +997,7 @@ const SalesInvoice: React.FC = () => {
                                     const unitPrice = Number(item.rate || item.unit_price || 0);
                                     const discountPercentage = Number(item.discount_percentage || 0);
                                     const discountAmount = Number(item.discount_amount || 0);
-                                    const tax = Number(item.tax || 0);
-                                    const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount + tax));
+                                    const rowTotal = Number(item.row_total || (quantity * unitPrice - discountAmount));
                                     
                                     return (
                                         <tr key={index}>
@@ -1050,7 +1006,6 @@ const SalesInvoice: React.FC = () => {
                                             <td className="p-2 border">{unitPrice.toFixed(2)}</td>
                                             <td className="p-2 border">{discountPercentage.toFixed(2)}%</td>
                                             <td className="p-2 border">{discountAmount.toFixed(2)}</td>
-                                            <td className="p-2 border">{tax.toFixed(2)}</td>
                                             <td className="p-2 border">{rowTotal.toFixed(2)}</td>
                                         </tr>
                                     );
@@ -1063,12 +1018,6 @@ const SalesInvoice: React.FC = () => {
                                         {viewingSO.items 
                                             ? viewingSO.items.reduce((sum, item) => 
                                                 sum + Number(item.discount_amount || 0), 0).toFixed(2)
-                                            : '0.00'}
-                                    </td>
-                                    <td className="p-2 border">
-                                        {viewingSO.items 
-                                            ? viewingSO.items.reduce((sum, item) => 
-                                                sum + Number(item.tax || 0), 0).toFixed(2)
                                             : '0.00'}
                                     </td>
                                     <td className="p-2 border font-bold">

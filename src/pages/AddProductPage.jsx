@@ -9,7 +9,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const [image, setImage] = useState(null);
   const [uomList, setUomList] = useState([]); 
   const [loadingUOM, setLoadingUOM] = useState(false);
-  const [alwaysLowStock, setAlwaysLowStock] = useState(false); // New state for checkbox
+  const [alwaysLowStock, setAlwaysLowStock] = useState(false);
   const [formData, setFormData] = useState({
     productName: "",
     category: "",
@@ -30,21 +30,18 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   const barcodeInputRef = useRef(null);
   const checkTimeoutRef = useRef(null);
   const lastCheckedBarcode = useRef("");
-  const isManualTrigger = useRef(false); 
   
   // Fetch UOM list on component mount
   useEffect(() => {
     fetchUOMList();
   }, []);
 
-  // Function to fetch UOM from API
   const fetchUOMList = async () => {
     setLoadingUOM(true);
     try {
       const response = await getUOM();
       console.log("UOM List Response:", response);
       
-      // Handle different response structures
       if (response && response.data) {
         setUomList(response.data);
       } else if (Array.isArray(response)) {
@@ -62,22 +59,26 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     }
   };
   
-  // Function to check if barcode already exists in database
-  const checkDuplicateBarcode = useCallback(async (barcodeToCheck, manualTrigger = false) => {
+  // Function to check if barcode already exists
+  const checkDuplicateBarcode = useCallback(async (barcodeToCheck) => {
     // Don't check empty barcodes
-    if (!barcodeToCheck || barcodeToCheck.length < 3) return;
+    if (!barcodeToCheck || barcodeToCheck.trim() === "") {
+      setBarcodeExists(false);
+      setExistingProductName("");
+      return;
+    }
     
-    // Don't check the same barcode multiple times UNLESS it's a manual trigger (Enter key)
-    if (!manualTrigger && lastCheckedBarcode.current === barcodeToCheck) {
-      console.log(`⏭️ Skipping duplicate check for: ${barcodeToCheck} (not manual)`);
+    // Don't check the same barcode multiple times in a row
+    if (lastCheckedBarcode.current === barcodeToCheck) {
+      console.log(`⏭️ Skipping duplicate check for: ${barcodeToCheck} (already checked)`);
       return;
     }
     
     setCheckingBarcode(true);
     try {
-      console.log(`🔍 Checking complete barcode: ${barcodeToCheck} ${manualTrigger ? '(manual)' : '(auto)'}`);
+      console.log(`🔍 Checking barcode: ${barcodeToCheck}`);
       const result = await checkBarcodeExists(barcodeToCheck);
-      console.log(`Barcode check result for ${barcodeToCheck}:`, result.exists ? 'EXISTS' : 'AVAILABLE');
+      console.log(`Barcode check result:`, result);
       
       if (result.exists) {
         setBarcodeExists(true);
@@ -91,77 +92,70 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       lastCheckedBarcode.current = barcodeToCheck;
     } catch (error) {
       console.error("Error checking barcode:", error);
+      setBarcodeExists(false);
+      setExistingProductName("");
     } finally {
       setCheckingBarcode(false);
     }
   }, []);
 
-  // Debounced barcode check (auto mode)
+  // Debounced barcode check for manual typing
   const debouncedCheckBarcode = useCallback((barcodeToCheck) => {
-    // Clear any pending check
     if (checkTimeoutRef.current) {
       clearTimeout(checkTimeoutRef.current);
     }
     
-    // Set a new timeout to check after typing stops
-    checkTimeoutRef.current = setTimeout(() => {
-      checkDuplicateBarcode(barcodeToCheck, false); // false = not manual
-    }, 500); // Wait 500ms after last keystroke before checking
+    // Only check if barcode has at least 1 character
+    if (barcodeToCheck && barcodeToCheck.trim().length > 0) {
+      checkTimeoutRef.current = setTimeout(() => {
+        checkDuplicateBarcode(barcodeToCheck);
+      }, 500);
+    } else {
+      setBarcodeExists(false);
+      setExistingProductName("");
+    }
   }, [checkDuplicateBarcode]);
   
-  // Effect to handle barcode scanner input by capturing rapid key presses
+  // Handle barcode scanner input - IMPROVED VERSION
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
       const isBarcodeInputFocused = activeElement === barcodeInputRef.current;
       
-      // If any input is focused (including barcode field), we still want to detect Enter key
-      // to know when a barcode scan is complete
-      if (activeElement.tagName === "INPUT" || 
-          activeElement.tagName === "TEXTAREA" || 
-          activeElement.tagName === "SELECT") {
-        
-        // Special handling for barcode input - detect Enter key for scanner completion
-        if (isBarcodeInputFocused && e.key === "Enter") {
-          e.preventDefault(); // Prevent form submission
-          e.stopPropagation(); // Stop event from bubbling to other handlers
-          
-          const currentBarcode = barcodeInputRef.current.value;
-          if (currentBarcode && currentBarcode.length > 0) {
-            console.log(`📦 Scanner completed barcode (focused): ${currentBarcode}`);
-            checkDuplicateBarcode(currentBarcode, true); // true = manual trigger
-          }
-        }
-        
-        // Reset scanner buffer when user types in any input
-        inputBuffer.current = "";
-        return;
-      }
-      
-      // This section is for when NO input field is focused
-      // This is the typical scanner mode
-      
-      // Reset buffer if keys are pressed too slowly (not from scanner)
-      const now = Date.now();
-      if (now - lastTime.current > 100) {
-        inputBuffer.current = "";
-      }
-      lastTime.current = now;
-      
-      // Handle Enter key as end of barcode scan
+      // Always capture Enter key for barcode completion
       if (e.key === "Enter") {
+        // If barcode input is focused, use its value
+        if (isBarcodeInputFocused && barcodeInputRef.current) {
+          e.preventDefault();
+          const currentBarcode = barcodeInputRef.current.value;
+          if (currentBarcode && currentBarcode.trim().length > 0) {
+            console.log(`📦 Scanner completed (focused input): ${currentBarcode}`);
+            checkDuplicateBarcode(currentBarcode);
+          }
+          inputBuffer.current = "";
+          return;
+        }
+        
+        // If no input focused, use the buffer from scanner
         if (inputBuffer.current.length > 0) {
+          e.preventDefault();
           const scannedBarcode = inputBuffer.current;
-          console.log(`📦 Scanner detected barcode (no focus): ${scannedBarcode}`);
+          console.log(`📦 Scanner detected (no focus): ${scannedBarcode}`);
           setBarcode(scannedBarcode);
-          checkDuplicateBarcode(scannedBarcode, true); // true = manual trigger
+          checkDuplicateBarcode(scannedBarcode);
+          inputBuffer.current = "";
+          return;
         }
-        inputBuffer.current = "";
-        e.preventDefault(); // Prevent form submission on Enter
-      } else if (e.key.length === 1) { // Accumulate alphanumeric characters from scanner
-        if (/[a-zA-Z0-9]/.test(e.key)) {
-          inputBuffer.current += e.key;
+      }
+      
+      // Accumulate scanner input when no input is focused
+      if (!isBarcodeInputFocused && e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        const now = Date.now();
+        if (now - lastTime.current > 100) {
+          inputBuffer.current = "";
         }
+        lastTime.current = now;
+        inputBuffer.current += e.key;
       }
     };
     
@@ -174,34 +168,40 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     const newBarcode = e.target.value;
     setBarcode(newBarcode);
     
-    // Debounce the check for manual typing (auto mode)
-    if (newBarcode && newBarcode.length >= 3) {
-      debouncedCheckBarcode(newBarcode);
-    } else {
-      setBarcodeExists(false);
-      setExistingProductName("");
-      // Clear any pending timeout
-      if (checkTimeoutRef.current) {
-        clearTimeout(checkTimeoutRef.current);
-      }
+    // Clear previous check
+    if (checkTimeoutRef.current) {
+      clearTimeout(checkTimeoutRef.current);
+    }
+    
+    // Reset barcode exists status while typing
+    setBarcodeExists(false);
+    setExistingProductName("");
+    lastCheckedBarcode.current = "";
+    
+    // Debounced check for manual typing
+    if (newBarcode && newBarcode.trim().length > 0) {
+      checkTimeoutRef.current = setTimeout(() => {
+        checkDuplicateBarcode(newBarcode);
+      }, 600); // Longer delay for manual typing
     }
   };
   
-  // Handle key press specifically on the barcode input
+  // Handle Enter key on barcode input
   const handleBarcodeKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Prevent form submission
-      e.stopPropagation(); // Stop event from bubbling to other handlers
-      
+      e.preventDefault();
       const currentBarcode = e.target.value;
-      if (currentBarcode && currentBarcode.length > 0) {
-        console.log(`📦 Enter pressed in barcode field: ${currentBarcode}`);
-        checkDuplicateBarcode(currentBarcode, true); // true = manual trigger
+      if (currentBarcode && currentBarcode.trim().length > 0) {
+        console.log(`📦 Enter pressed - checking: ${currentBarcode}`);
+        // Clear any pending timeout
+        if (checkTimeoutRef.current) {
+          clearTimeout(checkTimeoutRef.current);
+        }
+        checkDuplicateBarcode(currentBarcode);
       }
     }
   };
   
-  // Function to show toast notifications
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
@@ -209,7 +209,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     }, 3000);
   };
   
-  // Handler for all form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -217,6 +216,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!formData.productName?.trim()) {
       showToast("Please enter product name", "warning");
       return;
@@ -242,59 +242,63 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
       return;
     }
     
-    // Check if barcode is already taken
+    // FINAL CHECK before submitting
     if (barcodeExists) {
       showToast(`Cannot create product. Barcode already used for: ${existingProductName}`, "error");
       return;
     }
     
+    // Double-check barcode existence one more time before submitting
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
+    setCheckingBarcode(true);
     
-    // Determine low_stock_qty based on checkbox
-    // If alwaysLowStock is true, set to a very high number (999999)
-    // If false, set to default 5 (or you can keep existing logic)
-    const lowStockQty = alwaysLowStock ? 999999 : 5;
-    
-    // Pass the image file, UOM ID, and low_stock_qty to createProduct
-    const result = await createProduct(formData, categories, barcode, image, formData.uom_id, lowStockQty);
-    
-    if (result.success) {
-      showToast(result.message, "success");
-      console.log("✅ Product created:", result.data);
-      if (result.data.image_path) {
-        console.log("🖼️ Image saved at:", result.data.image_path);
+    try {
+      const finalCheck = await checkBarcodeExists(barcode);
+      if (finalCheck.exists) {
+        showToast(`Barcode already exists for product: ${finalCheck.product?.product_name}`, "error");
+        setBarcodeExists(true);
+        setExistingProductName(finalCheck.product?.product_name);
+        setLoading(false);
+        setCheckingBarcode(false);
+        return;
       }
       
-      // Reset form after successful submission
-      setFormData({ 
-        productName: "", 
-        category: "", 
-        uom_id: "",
-        price: "" 
-      });
-      setBarcode("");
-      setImage(null);
-      setBarcodeExists(false);
-      setExistingProductName("");
-      setAlwaysLowStock(false); // Reset checkbox
+      // Proceed with product creation
+      const lowStockQty = alwaysLowStock ? 999999 : 5;
+      const result = await createProduct(formData, categories, barcode, image, formData.uom_id, lowStockQty);
       
-      // Reset the file input
-      const fileInput = document.querySelector('input[type="file"]');
-      if (fileInput) fileInput.value = '';
-      
-      if (onSuccess) onSuccess(result.data);     
-      setTimeout(() => {
-        if (onClose) onClose();
-      }, 1500);
-    } else {
-      showToast(result.message, "error");
+      if (result.success) {
+        showToast(result.message, "success");
+        console.log("✅ Product created:", result.data);
+        
+        // Reset form
+        setFormData({ productName: "", category: "", uom_id: "", price: "" });
+        setBarcode("");
+        setImage(null);
+        setBarcodeExists(false);
+        setExistingProductName("");
+        setAlwaysLowStock(false);
+        lastCheckedBarcode.current = "";
+        
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
+        
+        if (onSuccess) onSuccess(result.data);     
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1500);
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      showToast("Error creating product", "error");
+    } finally {
+      setLoading(false);
+      setCheckingBarcode(false);
     }
-    setLoading(false);
   };
   
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (checkTimeoutRef.current) {
@@ -303,7 +307,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
     };
   }, []);
   
-  // Reusable input class for consistent styling
   const inputClass = "mt-2 px-4 py-3 border-2 border-gray-200 rounded-md bg-white text-gray-600 placeholder-gray-400 focus:outline-none focus:border-indigo-500 focus:ring-indigo-400";
 
   return (
@@ -326,10 +329,10 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
               onChange={handleBarcodeChange}
               onKeyDown={handleBarcodeKeyDown}
               placeholder="Scan or enter barcode"
-              className={`w-full px-4 py-3 border rounded-md pr-24 ${
+              className={`w-full px-4 py-3 border rounded-md pr-28 ${
                 barcodeExists 
                   ? 'border-red-500 bg-red-50' 
-                  : barcode && !barcodeExists && !checkingBarcode
+                  : barcode && !barcodeExists && !checkingBarcode && barcode.trim().length > 0
                   ? 'border-green-500 bg-green-50'
                   : 'border-gray-500'
               }`}
@@ -338,12 +341,12 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
               {checkingBarcode && (
                 <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
               )}
-              {barcode && !checkingBarcode && (
+              {barcode && !checkingBarcode && barcode.trim().length > 0 && (
                 <>
                   {barcodeExists ? (
-                    <span className="text-red-500 text-sm font-medium">Already exists</span>
+                    <span className="text-red-500 text-xs font-medium">Already exists</span>
                   ) : (
-                    <span className="text-green-500 text-sm font-medium flex items-center gap-1">
+                    <span className="text-green-500 text-xs font-medium flex items-center gap-1">
                       <span>✓</span> Available
                     </span>
                   )}
@@ -358,7 +361,6 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
           )}
         </div>
         
-        {/* Product Name row with checkbox */}
         <div className="flex flex-col">
           <div className="flex items-center justify-between">
             <label className="font-bold text-secondary text-lg">Product Name *</label>
@@ -414,7 +416,7 @@ const AddProductPage = ({ categories = [], onSuccess, onClose }) => {
             ))}
           </select>
         </div>
-        {/* UOM Dropdown - Using uom_id */}
+        
         <div className="flex flex-col">
           <label className="font-bold text-secondary">Unit of Measurement (UOM) *</label>
           <select
