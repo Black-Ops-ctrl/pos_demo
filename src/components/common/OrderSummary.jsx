@@ -23,7 +23,7 @@ const OrderSummary = ({
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [remarks, setRemarks] = useState(""); // State for remarks
+  const [remarks, setRemarks] = useState("");
   
   // Customer dropdown states
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -35,6 +35,9 @@ const OrderSummary = ({
   const scrollContainerRef = useRef(null);
   const quantityInputRefs = useRef({});
   const discountInputRef = useRef(null);
+
+  // Flag to prevent double addition
+  const isProcessingPendingProduct = useRef(false);
 
   // Show toast function
   const showToast = (message, type = 'success') => {
@@ -76,6 +79,49 @@ const OrderSummary = ({
       setLoadingCustomers(false);
     }
   };
+
+  // Check for pending product with custom quantity from sessionStorage
+  useEffect(() => {
+    const checkForPendingProduct = () => {
+      // Prevent multiple simultaneous additions
+      if (isProcessingPendingProduct.current) return;
+      
+      const pendingProductJson = sessionStorage.getItem('pendingProduct');
+      if (pendingProductJson) {
+        const pendingProduct = JSON.parse(pendingProductJson);
+        if (pendingProduct && pendingProduct.customQuantity) {
+          console.log("Found pending product with quantity:", pendingProduct.customQuantity);
+          isProcessingPendingProduct.current = true;
+          
+          // Add to cart with custom quantity
+          const productToAdd = {
+            id: pendingProduct.id,
+            barcode: pendingProduct.barcode,
+            title: pendingProduct.title,
+            price: pendingProduct.price,
+            uom: pendingProduct.uom_name || "Pieces",
+            quantity: pendingProduct.quantity
+          };
+          addToCart(productToAdd, pendingProduct.customQuantity);
+          
+          // Remove from sessionStorage
+          sessionStorage.removeItem('pendingProduct');
+          
+          // Reset flag after a short delay
+          setTimeout(() => {
+            isProcessingPendingProduct.current = false;
+          }, 500);
+        }
+      }
+    };
+    
+    // Run immediately
+    checkForPendingProduct();
+    
+    // Set up an interval to check (but with longer interval)
+    const interval = setInterval(checkForPendingProduct, 300);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load customers on mount
   useEffect(() => {
@@ -144,13 +190,26 @@ const OrderSummary = ({
     });
   }, [cartItems]);
 
-  // Handle barcode scanning
+  // Handle barcode scanning - only for direct barcode scans (not from modal)
   useEffect(() => {
     if (scannedBarcode) {
+      // Check if this barcode is already being processed as a pending product
+      const pendingProductJson = sessionStorage.getItem('pendingProduct');
+      if (pendingProductJson) {
+        const pendingProduct = JSON.parse(pendingProductJson);
+        if (pendingProduct && pendingProduct.barcode === scannedBarcode) {
+          // This barcode is already being handled by the pending product flow
+          console.log("Skipping barcode scan - already handled by pending product");
+          onBarcodeProcessed();
+          return;
+        }
+      }
+      
       const foundProduct = productDatabase[scannedBarcode];
       
       if (foundProduct) {
-        addToCart(foundProduct);
+        // Direct barcode scan (not from modal) - add with quantity 1
+        addToCart(foundProduct, 1);
       } else {
         showToast(`Product with barcode ${scannedBarcode} not found!`, 'error');
       }
@@ -199,10 +258,12 @@ const OrderSummary = ({
     };
   };
 
-  // Add to cart with stock validation
-  const addToCart = (product) => {
+  // Add to cart with custom quantity support
+  const addToCart = (product, customQuantity = 1) => {
+    console.log("Adding to cart:", product.title, "Quantity:", customQuantity);
+    
     const existingItem = cartItems.find((item) => item.barcode === product.barcode);
-    const requestedQuantity = existingItem ? existingItem.quantity + 1 : 1;
+    const requestedQuantity = existingItem ? existingItem.quantity + customQuantity : customQuantity;
 
     const stockCheck = checkStockAvailability(product, requestedQuantity);
     
@@ -217,7 +278,7 @@ const OrderSummary = ({
       if (existingItem) {
         return prev.map((item) =>
           item.barcode === product.barcode
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + customQuantity }
             : item
         );
       } else {
@@ -225,11 +286,13 @@ const OrderSummary = ({
           ...product, 
           id: product.id,
           barcode: product.barcode, 
-          quantity: 1, 
+          quantity: customQuantity, 
           selected: false 
         }];
       }
     });
+    
+    showToast(`${customQuantity} x ${product.title} added to cart!`, 'success');
   };
 
   // Toggle selection of individual cart item
@@ -450,7 +513,7 @@ const OrderSummary = ({
         totalAmount,
         paymentMethod,
         payback: 0,
-        remarks: remarks, // Add remarks to receipt data
+        remarks: remarks,
         invoiceNo: generateInvoiceNo(),
         fbrInvoiceNo: generateFbrInvoiceNo(),
         shopName: "Smart Shop",
@@ -466,13 +529,12 @@ const OrderSummary = ({
         try {
           const companyIdValue = companyId ? parseInt(companyId) : null;
           const branchIdValue = selectedBranchId ? parseInt(selectedBranchId) : null;
-          const description = remarks || `POS Sale - ${paymentMethod} payment`; // Use remarks as description if available
+          const description = remarks || `POS Sale - ${paymentMethod} payment`;
           
-          // Create sales invoice with remarks
           await createSalesInvoice(
             customerIdValue,
             new Date(),
-            description, // Pass remarks as description/remarks
+            description,
             totalAmount,
             0,
             companyIdValue,
@@ -487,7 +549,7 @@ const OrderSummary = ({
           printReceipt(receiptData);
           setCartItems([]);
           setDiscountPercentage("0");
-          setRemarks(""); // Clear remarks after successful sale
+          setRemarks("");
           
           showToast(`Sale completed successfully! Invoice: ${receiptData.invoiceNo}`, 'success');
           
@@ -620,7 +682,7 @@ const OrderSummary = ({
         </div>
         
         {/* Select All Row */}
-          {cartItems.length > 0 && (
+        {cartItems.length > 0 && (
           <div className="flex items-center gap-2 mt-1">
             <input
               type="checkbox"
@@ -756,7 +818,7 @@ const OrderSummary = ({
             </div>
           </div>
 
-          {/* Remarks Field - Added for user input */}
+          {/* Remarks Field */}
           <div className="pt-1">
             <label className="text-sm text-gray-600 font-medium">Remarks</label>
             <textarea

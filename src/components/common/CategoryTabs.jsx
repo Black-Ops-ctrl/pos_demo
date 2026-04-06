@@ -1,7 +1,13 @@
 import React, { useRef, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) => {
+const CategoryTabs = ({ 
+  categories = [], 
+  selectedCategory, 
+  selectedCategoryIndex = -1,
+  activeSection = false,
+  onCategorySelect 
+}) => {
   const scrollContainerRef = useRef(null);
   const [showLeftButton, setShowLeftButton] = useState(false);
   const [showRightButton, setShowRightButton] = useState(false);
@@ -34,6 +40,26 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
     }
   }, [categories.length, windowWidth]);
 
+  // Auto-scroll to selected category
+  useEffect(() => {
+    if (activeSection && selectedCategoryIndex >= 0 && categories[selectedCategoryIndex]) {
+      const selectedElement = document.getElementById(`category-${selectedCategoryIndex}`);
+      if (selectedElement && scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const element = selectedElement;
+        const elementLeft = element.offsetLeft;
+        const elementWidth = element.offsetWidth;
+        const containerWidth = container.clientWidth;
+        const scrollPosition = elementLeft - (containerWidth / 2) + (elementWidth / 2);
+        
+        container.scrollTo({
+          left: Math.max(0, scrollPosition),
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [selectedCategoryIndex, activeSection, categories]);
+
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
@@ -63,9 +89,6 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
   if (categories.length === 0) {
     return (
       <div className="w-full max-w-full overflow-hidden">
-        <h2 className="font-semibold font-sans mb-2 text-sm text-gray-600">
-          Choose Category
-        </h2>
         <div className="flex gap-2 overflow-x-auto pb-1">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="px-5 py-2 rounded-full bg-gray-200 animate-pulse w-24 h-10"></div>
@@ -77,12 +100,7 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
 
   return (
     <div className="w-full max-w-full overflow-hidden">
-      {/* <h2 className="font-semibold font-sans mb-3 text-sm text-gray-600">
-        Choose Category
-      </h2> */}
-
       <div className="relative">
-        {/* Left scroll button */}
         {!isMobile && showLeftButton && (
           <>
             <button
@@ -97,7 +115,6 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
           </>
         )}
 
-        {/* Right scroll button */}
         {!isMobile && showRightButton && (
           <>
             <button
@@ -112,7 +129,6 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
           </>
         )}
 
-        {/* Scrollable categories container */}
         <div
           ref={scrollContainerRef}
           className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
@@ -125,12 +141,16 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
           {categories.map((cat, index) => (
             <button
               key={`${cat}-${index}`}
-              onClick={() => onCategorySelect(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-all transform hover:scale-105 active:scale-95 shadow-sm ${
-                cat === selectedCategory
-                  ? "bg-blue-900 text-white shadow-md"
+              id={`category-${index}`}
+              data-category-index={index}
+              onClick={() => onCategorySelect(cat, index)}
+              className={`
+                px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-all transform hover:scale-105 active:scale-95 shadow-sm
+                ${cat === selectedCategory 
+                  ? "bg-blue-900 text-white shadow-md" 
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow"
-              }`}
+                }
+              `}
             >
               {cat}
             </button>
@@ -138,7 +158,6 @@ const CategoryTabs = ({ categories = [], selectedCategory, onCategorySelect }) =
         </div>
       </div>
 
-      {/* Mobile swipe hint */}
       {isMobile && categories.length > 0 && (
         <div className="text-center mt-2">
           <span className="text-[10px] text-gray-400 bg-gray-100 px-3 py-1 rounded-full inline-block">

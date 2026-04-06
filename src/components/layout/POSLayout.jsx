@@ -3,7 +3,8 @@ import Sidebar from "./Sidebar";
 import OrderSummary from "../common/OrderSummary";
 import TopBar from "../common/TopBar";
 import ProductGrid from "../common/ProductGrid";
-import CategoryTabs from "../common/CategoryTabs"; 
+import CategoryTabs from "../common/CategoryTabs";
+import QuantityModal from "../common/QuantityModal";
 import { fetchCategories } from "../../core/services/api/fetchCategories";  
 import { fetchProducts } from "../../core/services/api/fetchProducts"; 
 
@@ -21,9 +22,22 @@ const POSLayout = () => {
   const [activeSection, setActiveSection] = useState("categories");
   const [selectedCategoryIndex, setSelectedCategoryIndex] = useState(0);
   const [selectedProductIndex, setSelectedProductIndex] = useState(0);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  // Quantity modal state
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
+  const [selectedProductForQuantity, setSelectedProductForQuantity] = useState(null);
+  
+  // Store the currently displayed products for keyboard navigation
+  const [displayedProducts, setDisplayedProducts] = useState([]);
   
   // Ref to track grid columns dynamically
   const [columns, setColumns] = useState(4);
+  
+  // Refs for DOM elements
+  const searchInputRef = useRef(null);
+  const categoryTabsRef = useRef(null);
+  const productGridRef = useRef(null);
 
   // Load categories on component mount
   useEffect(() => {
@@ -37,34 +51,47 @@ const POSLayout = () => {
     }
   }, [categories, refreshTrigger]); 
 
-  // Filter products by search term FIRST (global search)
-const searchFilteredProducts = products.filter(product => {
-  if (!searchTerm || searchTerm.trim() === "") return true;
-  const term = searchTerm.toLowerCase().trim();
-  return product.title?.toLowerCase().includes(term) || 
-         (product.barcode && product.barcode.toLowerCase().includes(term)) ||
-         (product.desc && product.desc.toLowerCase().includes(term));
-});
+  // Update displayed products whenever products, searchTerm, or selectedCategory changes
+  useEffect(() => {
+    if (products.length === 0) {
+      setDisplayedProducts([]);
+      return;
+    }
+    
+    let filtered = [...products];
+    
+    // Filter by search term
+    if (searchTerm && searchTerm.trim() !== "") {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(product => 
+        product.title?.toLowerCase().includes(term) || 
+        (product.barcode && product.barcode.toLowerCase().includes(term)) ||
+        (product.desc && product.desc.toLowerCase().includes(term))
+      );
+    } 
+    // Filter by category only if no search term
+    else if (selectedCategory && selectedCategory !== "Popular" && selectedCategory !== "") {
+      filtered = filtered.filter(product => {
+        const productCategory = product.category?.toLowerCase() || "";
+        const searchCategory = selectedCategory.toLowerCase();
+        return productCategory === searchCategory;
+      });
+    }
+    
+    // Sort alphabetically
+    const sorted = filtered.sort((a, b) => {
+      const titleA = a.title || "";
+      const titleB = b.title || "";
+      return titleA.localeCompare(titleB);
+    });
+    
+    setDisplayedProducts(sorted);
+  }, [products, searchTerm, selectedCategory]);
 
-// Then filter by category (only if search is empty)
-const displayedProducts = searchFilteredProducts.filter(product => {
-  // If there's an active search term, show all search results regardless of category
-  if (searchTerm && searchTerm.trim() !== "") {
-    return true;
-  }
-  // Otherwise filter by selected category
-  if (selectedCategory && selectedCategory !== "Popular" && selectedCategory !== "") {
-    const productCategory = product.category?.toLowerCase() || "";
-    const searchCategory = selectedCategory.toLowerCase();
-    return productCategory === searchCategory;
-  }
-  return true;
-});
-
-  // Reset selected product index when category changes or filtered products change
+  // Reset selected product index when displayed products change
   useEffect(() => {
     setSelectedProductIndex(0);
-  }, [selectedCategory, searchTerm]);
+  }, [displayedProducts.length, selectedCategory, searchTerm]);
 
   // Calculate grid columns dynamically based on screen size
   useEffect(() => {
@@ -91,24 +118,47 @@ const displayedProducts = searchFilteredProducts.filter(product => {
   // Fetch categories from API and process response
   const loadCategories = async () => {
     try {
+      console.log("Loading categories...");
       const response = await fetchCategories();
-      const categoriesData = Array.isArray(response) ? response : (response?.data || []);
-      const categoryNames = Array.isArray(categoriesData) 
-        ? categoriesData.map(cat => {
-            return cat?.category_name || cat?.name || cat?.title || cat?.catName || "Unknown";
-          }).filter(name => name !== "Unknown") 
-        : [];
-      setCategories(categoryNames);
+      console.log("Categories response:", response);
+      
+      let categoriesData = [];
+      if (Array.isArray(response)) {
+        categoriesData = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        categoriesData = response.data;
+      } else if (response?.data) {
+        categoriesData = [response.data];
+      } else {
+        categoriesData = [];
+      }
+      
+      const categoryNames = categoriesData
+        .map(cat => {
+          return cat?.category_name || cat?.name || cat?.title || cat?.catName;
+        })
+        .filter(name => name && name !== "Unknown" && name !== "");
+      
+      console.log("Extracted category names:", categoryNames);
+      
       if (categoryNames.length > 0) {
+        setCategories(categoryNames);
         setSelectedCategory(categoryNames[0]);
+        setSelectedCategoryIndex(0);
+      } else {
+        // Fallback categories if API returns empty
+        const fallbackCategories = ["All Products", "Fast Food", "Beverages", "Desserts"];
+        console.log("Using fallback categories:", fallbackCategories);
+        setCategories(fallbackCategories);
+        setSelectedCategory(fallbackCategories[0]);
         setSelectedCategoryIndex(0);
       }
     } catch (error) {
       console.error("Error loading categories:", error);
-      const fallbackCategories = ["Popular", "Fast Food", "Grains", "Electronics", "Groceries"];
+      const fallbackCategories = ["All Products", "Fast Food", "Beverages", "Desserts"];
       setCategories(fallbackCategories);
-      setSelectedCategory("Fast Food");
-      setSelectedCategoryIndex(1);
+      setSelectedCategory(fallbackCategories[0]);
+      setSelectedCategoryIndex(0);
     }
   };
 
@@ -116,7 +166,10 @@ const displayedProducts = searchFilteredProducts.filter(product => {
   const loadProducts = async () => {
     setLoading(true);
     try {
+      console.log("Loading products...");
       const response = await fetchProducts();
+      console.log("Products response:", response);
+      
       let productsData = [];
       
       if (Array.isArray(response)) {
@@ -129,7 +182,7 @@ const displayedProducts = searchFilteredProducts.filter(product => {
         productsData = [];
       }
       
-      const formattedProducts = Array.isArray(productsData) ? productsData.map((prod, index) => {
+      const formattedProducts = productsData.map((prod, index) => {
         let imageUrl = "/img_categoryFive.webp";
         if (prod.image_url) {
           imageUrl = prod.image_url;
@@ -154,8 +207,9 @@ const displayedProducts = searchFilteredProducts.filter(product => {
           image_url: prod.image_url,
           uom_name: prod.uom_name || "Pieces"
         };
-      }) : [];
+      });
       
+      console.log("Formatted products count:", formattedProducts.length);
       setProducts(formattedProducts);
     } catch (error) {
       console.error("Error loading products:", error);
@@ -168,29 +222,66 @@ const displayedProducts = searchFilteredProducts.filter(product => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // Open quantity modal
+  const openQuantityModal = (product) => {
+    console.log("Opening quantity modal for product:", product.title);
+    setSelectedProductForQuantity(product);
+    setIsQuantityModalOpen(true);
+  };
+
+  // Handle product selection with quantity
+  const handleProductWithQuantity = (product, quantity) => {
+    console.log(`Adding ${quantity} x ${product.title} to cart`);
+    // Create a custom event or directly pass to OrderSummary
+    // We'll use scannedBarcode with a special flag
+    const productWithQuantity = {
+      ...product,
+      customQuantity: quantity
+    };
+    // Store in sessionStorage or use a ref to pass to OrderSummary
+    sessionStorage.setItem('pendingProduct', JSON.stringify(productWithQuantity));
+    setScannedBarcode(product.barcode);
+    setIsQuantityModalOpen(false);
+    setSelectedProductForQuantity(null);
+  };
+
   const handleBarcodeScanned = (barcode) => {
-    setScannedBarcode(barcode);
+    console.log("Barcode scanned:", barcode);
+    const product = products.find(p => p.barcode === barcode);
+    if (product) {
+      openQuantityModal(product);
+    } else {
+      setScannedBarcode(barcode);
+    }
     setSearchTerm("");
   };
 
   const handleProductSelect = (barcode) => {
-    setScannedBarcode(barcode);
+    console.log("Product selected:", barcode);
+    const product = displayedProducts.find(p => p.barcode === barcode);
+    if (product) {
+      openQuantityModal(product);
+    }
   };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
+    if (term.trim()) {
+      setActiveSection("products");
+      setSelectedProductIndex(0);
+    }
   };
 
-  const handleEnterPress = (searchTerm) => {
-    if (!searchTerm.trim()) return;
-    const term = searchTerm.toLowerCase().trim();
+  const handleEnterPress = (searchTermValue) => {
+    if (!searchTermValue.trim()) return;
+    const term = searchTermValue.toLowerCase().trim();
     const matchedProduct = products.find(product => 
       product.title.toLowerCase().includes(term) ||
       (product.barcode && product.barcode.toLowerCase().includes(term)) ||
       (product.desc && product.desc.toLowerCase().includes(term))
     );
     if (matchedProduct) {
-      setScannedBarcode(matchedProduct.barcode);
+      openQuantityModal(matchedProduct);
       setSearchTerm("");
     }
   };
@@ -200,44 +291,62 @@ const displayedProducts = searchFilteredProducts.filter(product => {
   };
 
   const handleCategorySelect = (category, index) => {
+    console.log("Category selected:", category, index);
     setSearchTerm("");
     setSelectedCategory(category);
     setSelectedCategoryIndex(index);
     setSelectedProductIndex(0);
+    setActiveSection("products");
   };
 
   const handleCustomerSelect = (customer) => {
     setSelectedCustomer(customer);
   };
 
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchBlur = () => {
+    setIsSearchFocused(false);
+  };
+
+  const handleCloseQuantityModal = () => {
+    setIsQuantityModalOpen(false);
+    setSelectedProductForQuantity(null);
+  };
+
   // Keyboard navigation
   const handleKeyDown = (e) => {
+    // Don't handle keyboard events if search input is focused or modal is open
+    if (isSearchFocused || document.activeElement?.id === 'search-input' || isQuantityModalOpen) {
+      if (e.key === 'Escape') {
+        if (isQuantityModalOpen) {
+          handleCloseQuantityModal();
+        } else {
+          searchInputRef.current?.blur();
+          setIsSearchFocused(false);
+          setActiveSection("categories");
+        }
+      }
+      return;
+    }
+
+    // Tab key to switch between sections
     if (e.key === 'Tab') {
       e.preventDefault();
       if (activeSection === "categories") {
-        setActiveSection("products");
-        setSelectedProductIndex(0);
-      } else {
+        if (displayedProducts.length > 0) {
+          setActiveSection("products");
+          setSelectedProductIndex(0);
+        }
+      } else if (activeSection === "products") {
         setActiveSection("categories");
       }
       return;
     }
 
-    if (e.key === 'ArrowDown' && activeSection === "categories") {
-      e.preventDefault();
-      if (displayedProducts.length > 0) {
-        setActiveSection("products");
-        setSelectedProductIndex(0);
-      }
-      return;
-    }
-
-    if (e.key === 'ArrowUp' && activeSection === "products") {
-      e.preventDefault();
-      setActiveSection("categories");
-      return;
-    }
-
+    // Arrow navigation
     if (activeSection === "categories") {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -251,8 +360,19 @@ const displayedProducts = searchFilteredProducts.filter(product => {
         setSelectedCategoryIndex(newIndex);
         setSelectedCategory(categories[newIndex]);
         setSelectedProductIndex(0);
+      } else if (e.key === 'ArrowDown' && displayedProducts.length > 0) {
+        e.preventDefault();
+        setActiveSection("products");
+        setSelectedProductIndex(0);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (displayedProducts.length > 0) {
+          setActiveSection("products");
+          setSelectedProductIndex(0);
+        }
       }
-    } else if (activeSection === "products") {
+    } 
+    else if (activeSection === "products") {
       const totalProducts = displayedProducts.length;
       if (totalProducts === 0) return;
       
@@ -277,7 +397,7 @@ const displayedProducts = searchFilteredProducts.filter(product => {
           const currentCol = prev % columns;
           let lastRowIndex = lastRowStart + currentCol;
           if (lastRowIndex >= totalProducts) {
-            lastRowIndex = lastRowStart - columns + currentCol;
+            lastRowIndex = totalProducts - 1;
           }
           return lastRowIndex >= 0 ? lastRowIndex : prev;
         });
@@ -289,15 +409,23 @@ const displayedProducts = searchFilteredProducts.filter(product => {
           const currentCol = prev % columns;
           return currentCol < totalProducts ? currentCol : prev;
         });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (displayedProducts[selectedProductIndex]) {
+          const product = displayedProducts[selectedProductIndex];
+          openQuantityModal(product);
+        }
+      } else if (e.key === 'ArrowUp' && selectedProductIndex === 0) {
+        e.preventDefault();
+        setActiveSection("categories");
       }
     }
 
-    if (e.key === 'Enter' && activeSection === "products") {
+    // Escape key to reset focus to categories
+    if (e.key === 'Escape') {
       e.preventDefault();
-      if (displayedProducts[selectedProductIndex]) {
-        const product = displayedProducts[selectedProductIndex];
-        setScannedBarcode(product.barcode);
-      }
+      setActiveSection("categories");
+      setSelectedProductIndex(0);
     }
   };
 
@@ -306,58 +434,57 @@ const displayedProducts = searchFilteredProducts.filter(product => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeSection, selectedCategoryIndex, selectedProductIndex, categories, displayedProducts, columns]);
+  }, [activeSection, selectedCategoryIndex, selectedProductIndex, categories, displayedProducts, columns, isSearchFocused, isQuantityModalOpen]);
 
   return (
     <div className="h-screen overflow-hidden bg-gray-100">
       <div className="h-full flex flex-col lg:flex-row overflow-hidden">
-        {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Top bar with search - reduced padding */}
-          {/* <div className="px-4 pt-2  bg-white ">
-            <TopBar 
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              onSearch={handleSearch}
-              onBarcodeScanned={handleBarcodeScanned}
-              onEnterPress={handleEnterPress}
-            />
-          </div> */}
-          
-          {/* Main content - reduced gaps */}
-        
-          <div className="flex-1 flex flex-col lg:flex-row min-h-0  pb-14  overflow-hidden">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 pb-14 overflow-hidden">
             {/* Left Column - Products Section */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-white ">
-            {/* Top bar with search - reduced padding */}
-            <div className="px-4 pt-2  bg-white ">
-            <TopBar 
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              onSearch={handleSearch}
-              onBarcodeScanned={handleBarcodeScanned}
-              onEnterPress={handleEnterPress}
-            />
-          </div>
-              {/* Category tabs - reduced padding */}
-              <div className="pt-2 px-5">
-                <CategoryTabs 
-                  categories={categories}
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={handleCategorySelect}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-white">
+              {/* Top bar with search */}
+              <div className="px-4 pt-2 bg-white">
+                <TopBar 
+                  ref={searchInputRef}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  onSearch={handleSearch}
+                  onBarcodeScanned={handleBarcodeScanned}
+                  onEnterPress={handleEnterPress}
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                 />
               </div>
               
-              {/* Product grid - no extra padding */}
-              <div className="flex-1 min-h-0 overflow-hidden px-5 pb-3">
+              {/* Category tabs */}
+              <div className="pt-2 px-5" ref={categoryTabsRef}>
+                {categories.length > 0 ? (
+                  <CategoryTabs 
+                    categories={categories}
+                    selectedCategory={selectedCategory}
+                    selectedCategoryIndex={selectedCategoryIndex}
+                    onCategorySelect={handleCategorySelect}
+                    activeSection={activeSection}
+                  />
+                ) : (
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="px-5 py-2 rounded-full bg-gray-200 animate-pulse w-24 h-10"></div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Product grid */}
+              <div className="flex-1 min-h-0 overflow-hidden px-5 pb-3" ref={productGridRef}>
                 <ProductGrid 
                   onProductSelect={handleProductSelect}
-                  searchTerm={searchTerm}
-                  selectedCategory={selectedCategory}
                   products={displayedProducts}
                   loading={loading}
                   activeSection={activeSection}
                   selectedProductIndex={selectedProductIndex}
+                  columns={columns}
                 />
               </div>
             </div>
@@ -375,6 +502,14 @@ const displayedProducts = searchFilteredProducts.filter(product => {
           </div>
         </div>
       </div>
+
+      {/* Quantity Modal */}
+      <QuantityModal 
+        isOpen={isQuantityModalOpen}
+        product={selectedProductForQuantity}
+        onConfirm={handleProductWithQuantity}
+        onCancel={handleCloseQuantityModal}
+      />
     </div>
   );
 };
